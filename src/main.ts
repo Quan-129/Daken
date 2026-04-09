@@ -1,0 +1,145 @@
+import './style.css'; // Import the CSS file
+import { StateManager } from './data/StateManager';
+import { Engine } from './core/Engine';
+import { EventBus } from './utils/EventBus';
+import { UISystem } from './systems/UISystem';
+import { AudioSystem } from './systems/AudioSystem';
+import { initAutoFitText } from './utils/AutoFitText';
+import { byId } from './utils/uiHelpers';
+
+// Register/mount moved Web Components so Vite bundles them
+import './components/avatar-seal.js';
+import './components/friend-list.js';
+import './components/game-menu.js';
+import './components/lofi-background.js';
+import './components/rank-board.js';
+
+console.log('--- NEON TYPING ARCADE: PHASE 4 ---');
+
+// 0. Khởi động Auto-fit Text Toàn Dự Án
+initAutoFitText();
+
+const eventBus = EventBus.getInstance();
+const stateManager = StateManager.getInstance();
+
+// 1. Nạp MockData
+stateManager.loadData();
+stateManager.loadN2HubData();
+
+// 2. Lấy HTML Elements UI
+const canvas = byId('gameCanvas') as HTMLCanvasElement;
+
+// 3. Khởi tạo các Systems
+const engine = new Engine(canvas);
+new UISystem();
+new AudioSystem();
+
+// 4. Lắng nghe Event GAME_START từ UI khi người dùng nhấn nút START
+eventBus.subscribe('GAME_START', async (config: { mode: string, studyLevel?: string }) => {
+    console.log(`[main.ts] Starting game with mode: ${config.mode}, studyLevel: ${config.studyLevel}`);
+    
+    if (config.mode === 'study' && config.studyLevel) {
+        await stateManager.loadStudyData(config.studyLevel);
+    } else {
+        // Có thể bổ sung Nạp lại mockData nếu thoát khỏi StudyMode
+        // Nhưng tạm thời StateManager.loadData()
+        stateManager.loadData();
+    }
+
+    // Cài đặt mode cho engine
+    engine.mode = config.mode;
+    engine.setSpeedModifier(1.0);
+    
+    // Reset và bắt đầu engine
+    engine.stop();
+    engine.clearEnemiesAndCanvas();
+    
+    // Xóa quái cũ nếu có bằng cách truy xuất và reset (tạm thời để Engine lo việc khởi tạo)
+    // Đối với Wave của mode chill/easy, gọi spawnWave
+    if (config.mode === 'chill' || config.mode === 'easy' || config.mode === 'study') {
+        engine.spawnWave();
+    }
+    
+    engine.start();
+});
+
+eventBus.subscribe('GAME_START_N2', (config: { mode: string, studyLevel: string, words: any[], unitIdx: number, sessionIdx: number }) => {
+    console.log(`[main.ts] Starting N2 Session: Unit ${config.unitIdx}, Session ${config.sessionIdx}`);
+    engine.mode = config.mode;
+    engine.setSpeedModifier(1.0);
+    
+    engine.stop();
+    engine.clearEnemiesAndCanvas();
+    
+    // Inject words directly into Spawner!
+    const spawner = engine['spawner']; // Hack để lấy spawner ra hoặc dùng public method
+    if (spawner && typeof spawner.startN2Session === 'function') {
+        spawner.startN2Session(config.words);
+    }
+    
+    // Lưu N2 context để Game Over / Win report biết đường mà cập nhật UI nếu cần
+    (engine as any).currentN2Context = {
+        unitIdx: config.unitIdx,
+        sessionIdx: config.sessionIdx
+    };
+    (engine as any).lastStartTime = performance.now();
+    
+    engine.spawnWave();
+    engine.start();
+});
+
+eventBus.subscribe('STUDY_SESSION_END', () => {
+    console.log(`[main.ts] Study Session End!`);
+    const elapsedMs = performance.now() - ((engine as any).lastStartTime || performance.now());
+    const elapsedMins = elapsedMs / 60000;
+    
+    const typing = engine.getTypingLogic();
+    const acc = typing.totalKeystrokes > 0 ? typing.correctKeystrokes / typing.totalKeystrokes : 0;
+    const wpm = elapsedMins > 0 ? Math.round((typing.correctKeystrokes / 5) / elapsedMins) : 0;
+    
+    // Calculate Rank! S, A, B, C, D
+    let rank = 'D';
+    if (acc >= 0.95 && wpm >= 70) rank = 'S';
+    else if (acc >= 0.90 && wpm >= 50) rank = 'A';
+    else if (acc >= 0.80 && wpm >= 30) rank = 'B';
+    else if (acc >= 0.60 && wpm >= 20) rank = 'C';
+
+    const scoreEl = byId('scoreVal');
+    const score = scoreEl ? parseInt(scoreEl.innerText) || 0 : 0;
+
+    const ctx = (engine as any).currentN2Context;
+    if (ctx) {
+        StateManager.getInstance().saveN2SessionProgress(ctx.unitIdx, ctx.sessionIdx, {rank, acc, wpm, score});
+        eventBus.publish('N2_SESSION_CLEARED', { rank, acc, wpm, score, unitIdx: ctx.unitIdx, sessionIdx: ctx.sessionIdx });
+        (engine as any).currentN2Context = null; // Clear
+    }
+    
+    engine.stop();
+    engine.clearEnemiesAndCanvas();
+});
+
+// 5. Bắt event GAME_OVER để stop engine
+eventBus.subscribe('GAME_OVER', () => {
+    console.log(`[main.ts] GAME OVER!`);
+    engine.stop();
+});
+
+eventBus.subscribe('GAME_PAUSED', () => {
+    engine.stop();
+});
+
+eventBus.subscribe('GAME_RESUMED', () => {
+    engine.start();
+});
+
+eventBus.subscribe('TUTORIAL_COMPLETE', () => {
+    console.log(`[main.ts] TUTORIAL COMPLETE!`);
+    engine.stop();
+    engine.clearEnemiesAndCanvas();
+});
+
+eventBus.subscribe('GAME_STOPPED', () => {
+    engine.clearEnemiesAndCanvas();
+});
+
+

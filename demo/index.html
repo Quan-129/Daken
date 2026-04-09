@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ninja Typing</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@400;600&family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div id="game-container">
+        <!-- Background elements -->
+        <div id="background-fx"></div>
+
+        <!-- Canvas -->
+        <canvas id="gameCanvas"></canvas>
+
+        <!-- UI Overlay -->
+        <div id="ui-layer">
+            <div class="top-bar">
+                <div class="stats">
+                    <div class="score">SCORE <span id="scoreVal">0</span> <span id="multiplierVal">x1</span></div>
+                    <div class="hp">HP: <span id="hpVal">5</span></div>
+                </div>
+                
+                <div class="mode-controls">
+                    <select id="modeSelect">
+                        <option value="easy">Easy</option>
+                        <option value="medium" selected>Medium</option>
+                        <option value="hard">Hard</option>
+                        <option value="chill">Chill</option>
+                    </select>
+                    <select id="bgmSource" style="display:none;">
+                        <option value="HSOtku1j600">Nhạc Mặc Định (MONO - Waiting For You)</option>
+                        <option value="custom">Gắn Link Nhạc Tùy Chọn</option>
+                    </select>
+                    <button id="playlistBtn" style="display:none;">⚙️ My Playlist</button>
+                    
+                    <!-- Mini Music Player -->
+                    <div id="mini-player" class="mini-player hidden">
+                        <div id="mini-disc" class="mini-disc-vinyl spin"></div>
+                        <div class="mini-info">
+                            <div id="mini-title" class="mini-title scroll-text">Chưa có bài hát...</div>
+                            <div class="mini-progress-bg"><div id="mini-progress-fill" class="mini-progress-fill"></div></div>
+                        </div>
+                        <div class="mini-controls">
+                            <button id="mini-prev" class="mc-btn">⏮</button>
+                            <button id="mini-play" class="mc-btn">⏸</button>
+                            <button id="mini-next" class="mc-btn">⏭</button>
+                            <div class="mc-vol-wrapper">
+                                <span>🔊</span>
+                                <input type="range" id="mini-vol" min="0" max="100" value="70">
+                            </div>
+                        </div>
+                    </div>
+
+                    <button id="startBtn">START</button>
+                    
+                    <!-- HUD Playlist Xổ Xuống Kế Bên -->
+                    <div id="main-playlist-hud" class="hidden">
+                        <div class="hud-playlist-header">
+                            <span id="hudPlaylistName">📁 Folder</span>
+                        </div>
+                        <div id="hudPlaylistSongs" class="hud-playlist-songs"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Vertical Speed Slider -->
+            <div id="speedControl" class="slider-container vertical-slider">
+                <label for="speedSlider">SPEED<br><span id="speedDisplay">1.0x</span></label>
+                <input type="range" id="speedSlider" min="0.5" max="3" step="0.1" value="1.0" orient="vertical">
+            </div>
+
+            <!-- Hype & Combo -->
+            <div class="hype-container">
+                <div class="hype-bar"><div id="hypeFill"></div></div>
+                <div id="comboText"></div>
+            </div>
+
+            <!-- Input Buffer Display -->
+            <div id="input-buffer-display">
+                <span class="trash-text" id="bufferTrash"></span><span class="typed-text" id="bufferTyped"></span><span class="cursor">_</span>
+            </div>
+
+            <!-- Skill HUD -->
+            <div class="skills-hud">
+                <div class="cyber-coins">🪙 <span id="coinVal">0</span></div>
+                <div class="skill-slots">
+                    <div class="skill" id="skillFire">
+                        <span class="key">Space</span>
+                        <span class="cost">10</span>
+                        <div class="icon">🔥</div>
+                    </div>
+                    <div class="skill" id="skillIce">
+                        <span class="key">Shift</span>
+                        <span class="cost">7</span>
+                        <div class="icon">❄️</div>
+                    </div>
+                    <div class="skill" id="skillClone">
+                        <span class="key">1</span>
+                        <span class="cost">15</span>
+                        <div class="icon">🌀</div>
+                    </div>
+                </div>
+            </div>
+            
+             <!-- Message Center overlay -->
+             <div id="messageCenter">
+                <h1 id="msgTitle">NINJA TYPING</h1>
+                <p id="msgSub">Nhập phím bất kỳ và Test Mode Mới!</p>
+                <div id="errorLog" class="hidden"></div>
+            </div>
+            
+            <!-- Playlist Modal -->
+            <div id="playlist-modal" class="hidden">
+                <div class="modal-content">
+                    <!-- VIEW 1: Danh Sách Folder -->
+                    <div id="folder-view">
+                        <h2>Thư Viện Nhạc Của Tôi</h2>
+                        <div class="add-song"> <!-- Mượn style add-song cho input Folder -->
+                            <input type="text" id="newFolderName" placeholder="Tên Folder mới (VD: Nhạc Chill)...">
+                            <button id="addFolderBtn">Tạo</button>
+                        </div>
+                        <ul id="folderList" class="my-list-block">
+                           <!-- list folder -->
+                        </ul>
+                        <button id="closeFolderBtn" class="danger-btn">Đóng</button>
+                    </div>
+
+                    <!-- VIEW 2: Danh sách Bài hát trong 1 Folder -->
+                    <div id="song-view" class="hidden">
+                        <h2>🎵 <span id="currentFolderName">Tên</span></h2>
+                        <div class="add-song">
+                            <input type="text" id="newSongUrl" placeholder="Dán link YouTube mới...">
+                            <button id="addSongBtn">Thêm</button>
+                        </div>
+                        <ul id="playlistList" class="my-list-block">
+                           <!-- list bai hat -->
+                        </ul>
+                        <button id="backToFoldersBtn" class="dark-btn">⬅ Quay Lại</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- YOUTUBE BGM PLAYER (Mẹo chống Chrome tự động tắt video khi khuất màn hình) -->
+        <div id="youtube-player" style="position: absolute; bottom: 0; left: 0; width: 20px; height: 20px; opacity: 0.05; pointer-events: none; z-index: -99;"></div>
+    </div>
+
+    <!-- MOCK CSV DATA & ENGINE -->
+    <script src="data.js"></script>
+    <script src="audio.js"></script>
+    <script src="game.js"></script>
+</body>
+</html>

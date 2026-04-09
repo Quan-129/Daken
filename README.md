@@ -1,0 +1,68 @@
+# DAKEN! ( Neon Typing Arcade) 🕹️🥷✨
+
+Một dự án Web Game Luyện gõ phím & Trí nhớ mang âm hưởng **Lofi Cyber-Oriental (Á Đông Cổ Phong pha trộn Cyberpunk)**. Trải nghiệm hóa thân thành Ninja vi mạch chém bay các chuỗi từ vựng giữa một màn đêm không gian mạng ngập rạng rỡ với những hồ cá Koi dạ quang thư giãn. Vừa xả stress vừa tiếp thu tiếng Nhật sâu thẳm qua Study Mode (Tàng Kinh Các)!
+
+---
+
+## Tính Năng Nổi Bật 🚀
+
+- **Luồng Gõ Đạt Chuẩn Thuật Toán**: Typing matching chính xác đến từng Kí Tự Phụ Âm, hỗ trợ target-lock (Khóa mục tiêu dựa trên chữ cái đầu tiên).
+- **Hệ Sinh Thái Study Mode**:
+  - Không chỉ luyện tay, bạn sẽ đối đầu với khối dữ liệu từ vựng khổng lồ (Kanji + Nghĩa Việt + Romaji).
+  - Tích hợp tính năng Furigana tự động và diễn giải Ngữ Pháp (Grammar).
+  - Khám phá cơ chế "Death Delay" (The Ah-ha! Moment): Giấu kín bộ nhớ, ép buộc truy xuất và lật đáp án rực rỡ trong 6 giây tĩnh lặng ngay khi gõ xong (kèm quyền Skip siêu tốc bằng Spacebar).
+  - **Cơ chế Dual-Stack Contextual Memory (Wave 2)**: Bạn sẽ phải gõ ngẫu nhiên không báo trước 2 chiều truy xuất: Nhìn Kanji gõ Romaji hoặc Nhìn Nghĩa Tiếng Việt gõ Romaji. Các công cụ nhắc tuồng tinh vi giúp não bạn đổ mồ hôi thực sự để ghim từ vựng vào sâu tiềm thức!
+  - **Cơ chế Retry Không Khoan Nhượng (Anki Red Stacks)**: Mọi sự do dự hay buông xuôi đều bị ghim cờ "Weak" và vứt vào một Vòng Lặp Vay Nợ. Khi Wave kết thúc, hệ thống ép bạn xử lý khoản nợ đỏ rực kia cho tới khi vượt qua chính mình.
+  - **Cơ chế Trừng Phạt Bầy Đàn (Swarm Mode - Wave 3)**: Đây là nơi thanh toán ân oán. Mọi khoản "nợ đỏ" sinh sôi thành bầy cá (clones). Đặc biệt, hệ thống **Viewfinder Khóa Mục Tiêu (Hardcore Lock-on)** ép bạn phải ngắm bắn chuẩn xác theo thứ tự, gõ chệch mục tiêu sẽ bị tịch thu phím và trừ sạch Combo!
+  - **Ma Trận Trắc Nghiệm Ngữ Pháp (Wave 4 - Đã hoàn thiện)**: Bài thi tàn nhẫn và tốc độ nhất! Đóng vai trò là chuỗi bài Contextual Choice chắp vá cấu trúc câu thông qua cụm Ô Trống `[ ]`. Các Flashcard tĩnh được nhồi cơ chế Render Font tự thu phóng (Auto-scaling), chắt lọc Furigana tinh tế bên trong Canvas và chốt chặn điểm rơi thông minh (Safe-area margin). Xóa bỏ cách gõ phím thông thường, áp dụng hoàn toàn Căn Chỉnh Phím Tắt (Hotkeys 1->4) tạo cảm giác Instant Kill tràn ngập Dopamine! Thả quái sai rơi ngay vào hàng đợi Học Lại (Stack), đồng thời thuật toán tự triệt tiêu biến ảnh (Ghost Text) kích hoạt giải phóng thẻ Terminal rộng tối đa giúp đọc mượt những định nghĩa ngữ pháp từ vựng siêu dài.
+- **Trạng Thái Ngưng Đọng Tuyệt Đối**: Cảm giác trải nghiệm tiệm cận AAA. Bấm Stop - toàn bộ Vũ trụ Game (Thời gian và Nhạc nền YouTube) lập tức đóng băng. Bấm Tiếp tục - đếm ngược 3-2-1 bùng nổ để bạn vào lại nhịp Flow State mượt nhất.
+- **Dynamic HUD Float Engine**: Sự kết hợp tinh tế của toán học và DOM API. Bảng thông tin siêu meta (Kanji, Nghiã, Ngữ pháp...) được Neo cứng ở nửa dưới màn hình để chừa không gian trống tuyệt đối cho Vùng Gõ Phím. Những Viên Thuốc từ vựng được điều khiển bởi thuật toán đo tọa độ vật lý thời gian thực, đảm bảo luôn bay lơ lửng, giữ khoảng cách an toàn tuyệt đối 15px so với mép trên của bảng thông tin, bất chấp nội dung bên trong bảng có phình to ra như thế nào. Trí tuệ tuyệt đối vào từng khung hình.
+- **Web Component UI Ecosystem**: Kiến trúc Dashboard chia tách hoàn toàn bằng Vanilla ShadowDOM (Cột Mộc Ấn Avatar, Phong Thần Bảng Rank eSports, và Hệ thống Side-Banner Sự kiện trượt tự động). Tự động tính toán không gian co giãn chiều cao theo màn hình người chơi (`calc(100vh)`) để tuyệt đối không xảy ra hiện tượng chồng lấp.
+- **Nested Radial & Fan-out Panel UI**: Đập bỏ hoàn toàn giới hạn ô menu chữ nhật truyền thống. Dựng đứng màn hình chính (Landing Focus) dưới dạng "Trọng Lõi" khổng lồ (`打検`) của `osu!` đặt giữa rải ngân hà 3 vòng tròn quỹ đạo đồng tâm Neon. Hệ thống Chọn chế độ chuyển sang cấu trúc Bệ phóng (Orbit Buttons). Tinh tế nhất là tuyệt kỹ "Bo Viền" Cánh quạt Study: Cưỡng chế thẻ chứa chữ ngược góc xoay (Anti-gravity string) tạo cảm giác không trọng lực đỉnh cao. Đặc biệt, hệ thống trang bị tính năng chống "Ghost Hover" tuyệt đỉnh, sử dụng "cầu nối tàng hình" SVG để triệt tiêu mọi khe hở quang học giữa các nan quạt phụ, phối hợp cùng bộ Đếm Debounce siêu nhỏ để quạt co rút mượt mà, giữ trọn tỉ lệ vàng trên mọi khung hình mà không lo nhấp nháy chuyển trạng thái vô duyên.
+- **Lofi Cyber-Bamboo N2 Hub**: Lột xác hoàn thiện hằng số của JLPT N2 Hub. Gột rửa mảng mảng ô hộp (Boxy Frame), ban phát linh hồn "Tàng Kinh Các" - thiết kế Header lấy cảm hứng từ thẻ tre "Cuộn Trúc Thư". Tái hiện ấn triện thư pháp Mặc Tích [ 二級 ]. Hệ thống hiển thị Chỉ Số Stats thu gọn về chuẩn Minimalist Zen `|` đi kèm trải nghiệm tương tác (Sliding Brush Hover) trên nút Trở Về Sảnh, giúp không gian học tập hòa vào triết lý Tĩnh Tâm tuyệt đối.
+- **Tính Kiên Định Âm Nhạc & Chấm Điểm N2 Thực Tế**: Xóa bỏ khái niệm đứt gãy Audio - thanh thu gọn Mini Music Player bám trụ kiên cường ở mọi màn hình để giữ trọn Lofi Flow. Đặc biệt, bộ đếm N2 Hub nay chấm dứt việc dùng điểm giả lập (Simulated Acc*WPM), bắt tay lấy thẳng Real Score kết tinh từ màn chơi. Chào đón dàn HUD hiển thị "SCORE" rực sáng trên từng nan cuộn Session gộp kèm hệ thống Tiến Trình Trực Quan (Wave Progress Bar, % Tracking, Retry Queue) giúp vắt kiệt và tối ưu hiệu suất ghi nhớ!
+- **Tùy Chỉnh Âm Nhạc Bất Tận**: Nhúng trực tiếp Youtube Lofi Player với Playlist HUD riêng biệt, cho phép lưu trữ Local Storage các folder bài hát mà bạn thích nhất!
+- **Hệ Sinh Thái Âm Thanh & Text-To-Speech (TTS)**: 
+  - Mọi "Kẻ địch" bị hạ gục trong Study Mode sẽ được xướng danh bằng hệ thống tự động đọc (Web Speech API chuẩn giọng ja-JP) lướt sâu vào đại não.
+  - Tích hợp **Bảng Điều Khiển Master Audio Mixer** dạng kính mờ (Glassmorphism) cực lãng mạn. Trượt tay chia rẽ các cõi âm: Giọng Đọc (Vocals), Nhạc Nền (BGM), Hiệu Ứng (SFX) & Tốc Độ Truyền Âm.
+  - **Ducking Volume**: Điệu nhảy nhịp nhàng của âm thanh. Tiếng nhạc Lofi lùi bước nhẹ bằng 20% khi bản tin bài đọc được xướng lên, chừa khoảng trống cho tư duy, và tự động dâng trào 70% trở lại vào những quãng nghỉ trứ danh.
+
+## Stack Thần Thánh Xây Lên Game 💻
+
+- **Vite + TypeScript**: Chạy lướt sóng, không lỗi lầm. Build gọn nhẹ tốc độ bàn thờ.
+- **Vanilla Canvas API**: Xử lý logic vòng lặp Engine 60FPS mượt mà, tối ưu DOM repaint.
+- **CSS3 Animations**: Glassmorphism, Hiệu ứng nhiễu sóng UI, Viền dạ quang Cyberpunk.
+- **Node.js Scripts (Automation)**: Cào và tinh chỉnh Regex xử lý Ruby text cực mượt.
+
+## Kiến Trúc Hệ Thống (Architecture) 🏗️
+
+```mermaid
+graph TD
+    A[Core Engine] --> B(Spawner)
+    A --> C(Typing Logic)
+    A --> D(Event Bus)
+    B --> E[Enemy Entities]
+    D -.-> F(UISystem)
+    D -.-> G(AudioSystem)
+    H[StateManager] -.-> B
+```
+
+- Tuân thủ nguyên lý Tách Biệt Mối Quan Tâm (Separation of Concerns). `UISystem`, `AudioSystem` hoàn toàn độc lập với `Engine`, giao tiếp ẩn danh thông qua `EventBus`.
+- Quái vật chỉ thuần túy chứa hitbox họa hình, toàn bộ Data DOM phức tạp được nhường việc cho "HUD Terminal" xử lý tĩnh.
+- **AI Data Architect Pipeline**: Tích hợp luồng tạo Data độc lập bằng Node.js (`ai_data_builder.js`). Giao thức mới đã tiễn đưa giới hạn 12 Unit, vươn tầm giải mã trọn vẹn **15 Hệ Cấu Trúc Ngôn Ngữ (Units)** cho kỳ thi N2. Dữ liệu giờ được bọc trong ma trận đa tầng tĩnh (Level -> Unit -> Vocab). Khả năng tự động cắm rễ `Kuroshiro` & `Kuromoji` bóc tách Furigana `{Kanji|Kana}` trực tiếp. Cơ chế Auto-Recovery giúp vượt bão Rate Limits, gánh vác toàn bộ mảng dữ liệu để nhường não bộ cho Game Balance!
+- **Hệ Sinh Thái Phản Thể AI (.agent/memory)**: Được xây dựng với quy luật tự tiêu thụ Workflows nội bộ. Hệ thống AI Agent được quy hoạch thư mục chuyên biệt để duy trì Trạng Thái Handoff, Kịch Bản Game (GDD), và Pitch Deck một cách hoàn toàn tự động thông qua luồng `/all_in_one` thần thánh.
+
+## Cài Đặt Khởi Động Trạm 🛠️
+
+```bash
+# Cài gói
+npm install
+
+# Build data Furigana thủ công (Nếu bạn định thêm data gốc mới)
+node scripts/fix-furigana.cjs
+
+# Tiến trình khởi chạy
+npm run dev
+```
+
+> "Bên dưới muôn vàn dòng code rối rắm, cảm giác chém gục một con quái bằng chữ 'shuriken' vẫn cứ là đỉnh cao của Dopamine!"
