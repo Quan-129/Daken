@@ -135,7 +135,7 @@ export class TypingLogic {
                             this.currentWordTypoCount++;
                             this.perfectComboCount = 0;
                             
-                            const penalty = GameConfig.studyMode.learningPhase.penaltyPoints;
+                            const penalty = 5; // Hardcode hoặc dùng fallback do learningPhase bị xoá
                             EventBus.getInstance().publish('POINTS_PENALTY', { enemy: target, points: penalty });
                             
                             EventBus.getInstance().publish('TYPO', String(numericKey)); // Hiện hiệu ứng Typo
@@ -145,20 +145,19 @@ export class TypingLogic {
                             if (trueEnemy) {
                                 trueEnemy.isWeak = true; // Thẻ nợ
                                 EventBus.getInstance().publish('MARK_WEAK', trueEnemy);
-                                trueEnemy.isDefeated = true; // Skip qua câu
                                 
                                 w4Enemies.forEach(e => {
-                                    e.isDead = true; 
-                                    e.isDefeated = false; // Ngăn chặn trigger hide HTML Terminal 
-                                    e.isLocked = false;
+                                    if (e !== trueEnemy) {
+                                        e.isDead = true; 
+                                        e.isDefeated = false; // Ngăn chặn trigger hide HTML Terminal 
+                                        e.isLocked = false;
+                                    }
                                 });
                                 
-                                // Tạo fake enemy để giữ loop chờ Space
-                                let dummy = new Enemy(trueEnemy.word, 'study', 0, 0, 0, 1);
-                                dummy.isDefeated = true;
-                                dummy.isDead = false;
-                                dummy.x = -1000; 
-                                enemies.push(dummy);
+                                // Biến trueEnemy thành dummy luôn thay vì tạo object mới
+                                trueEnemy.isDefeated = true; // Bật chờ bấm Space
+                                trueEnemy.isDead = false;    // Sống vất vưởng
+                                trueEnemy.x = -1000;         // Giấu khỏi màn hình
                                 
                                 EventBus.getInstance().publish('ENEMY_DEFEATED', trueEnemy);
                                 EventBus.getInstance().publish('ENEMY_KILLED', { enemy: trueEnemy, points: 0, combo: 0 }); 

@@ -869,7 +869,7 @@ export class UISystem {
             this.hudTerminal.style.boxShadow = '';
             this.hudTerminal.style.backgroundColor = '';
 
-            if (enemy.mode === 'study' && enemy.studyWave === 3) return;
+            if (enemy.mode === 'study' && (enemy.studyWave === 3 || enemy.studyWave === 5)) return;
 
             const word = enemy.word;
 
@@ -1067,7 +1067,7 @@ export class UISystem {
                 });
             }
 
-            if (enemy.mode === 'study' && enemy.studyWave === 3) return;
+            if (enemy.mode === 'study' && (enemy.studyWave === 3 || enemy.studyWave === 5)) return;
             EventBus.getInstance().publish('PLAY_DING', null); // Âm báo thành công ah-ha
             const word = enemy.word;
             let exampleJp = word.example_jp || word.visual;
@@ -1233,20 +1233,22 @@ export class UISystem {
                 const waveKey = this.currentWaveNumber === 3 ? 'wave3' : 'wave4';
                 const config = (GameConfig.studyMode as any)[waveKey].timeBonuses;
                 
-                if (elapsedMs < config.gold.timeMs) {
-                    bonusPoints = config.gold.points;
-                    bonusLabel = "GOLD CLEAR";
-                } else if (elapsedMs < config.silver.timeMs) {
-                    bonusPoints = config.silver.points;
-                    bonusLabel = "SILVER CLEAR";
-                } else if (elapsedMs < config.bronze.timeMs) {
-                    bonusPoints = config.bronze.points;
-                    bonusLabel = "BRONZE CLEAR";
-                }
-                
-                if (bonusPoints > 0) {
-                    this.updateScore(this.currentScore + bonusPoints);
-                    this.currentWaveBonusScore = bonusPoints;
+                if (config) {
+                    if (elapsedMs < config.gold.timeMs) {
+                        bonusPoints = config.gold.points;
+                        bonusLabel = "GOLD CLEAR";
+                    } else if (elapsedMs < config.silver.timeMs) {
+                        bonusPoints = config.silver.points;
+                        bonusLabel = "SILVER CLEAR";
+                    } else if (elapsedMs < config.bronze.timeMs) {
+                        bonusPoints = config.bronze.points;
+                        bonusLabel = "BRONZE CLEAR";
+                    }
+                    
+                    if (bonusPoints > 0) {
+                        this.updateScore(this.currentScore + bonusPoints);
+                        this.currentWaveBonusScore = bonusPoints;
+                    }
                 }
             }
 
@@ -1319,9 +1321,15 @@ export class UISystem {
             if (this.currentHp <= 0) {
                 if (this.messageCenter && this.msgTitle && this.msgSub) {
                     this.messageCenter.classList.remove('hidden');
-                    this.msgTitle.innerText = "BUSTED!";
-                    this.msgTitle.style.color = "var(--danger)";
-                    this.msgSub.innerText = `Chết nhục nhã. Điểm: ${this.currentScore}`;
+                    if (this.currentMode === 'study' && this.currentWaveNumber >= 5) {
+                        this.msgTitle.innerText = "BATTERY DEPLETED";
+                        this.msgTitle.style.color = "var(--neon-cyan)";
+                        this.msgSub.innerText = "CALCULATING RESULTS...";
+                    } else {
+                        this.msgTitle.innerText = "BUSTED!";
+                        this.msgTitle.style.color = "var(--danger)";
+                        this.msgSub.innerText = `Chết nhục nhã. Điểm: ${this.currentScore}`;
+                    }
                 }
             } else {
                 if (this.messageCenter && this.msgTitle && this.msgSub) {

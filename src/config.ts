@@ -12,6 +12,8 @@ export const GameConfig: any = {
         easyModeRespawnDelay: 2000
     },
     speeds: {
+        baseEnemyMinSpeed: 1.0,
+        baseEnemyMaxSpeed: 2.0,
         wave3SpeedBoost: 0.5,
         wave5SpeedBoost: 0.8 
     },

@@ -86,20 +86,19 @@ export class Engine {
     }
 
     private resize() {
-        if (this.canvas.parentElement) {
-            const newW = this.canvas.parentElement.clientWidth;
-            const newH = this.canvas.parentElement.clientHeight;
-            this.canvas.width = newW;
-            this.canvas.height = newH;
-            if (this.spawner) {
-                this.spawner.updateDimensions(newW, newH);
-            }
-        } else {
-            this.canvas.width = window.innerWidth;
-            this.canvas.height = window.innerHeight;
-            if (this.spawner) {
-                this.spawner.updateDimensions(this.canvas.width, this.canvas.height);
-            }
+        let newW = window.innerWidth;
+        let newH = window.innerHeight;
+        
+        if (this.canvas.parentElement && this.canvas.parentElement.clientWidth > 0) {
+            newW = this.canvas.parentElement.clientWidth;
+            newH = this.canvas.parentElement.clientHeight;
+        }
+
+        this.canvas.width = newW;
+        this.canvas.height = newH;
+        
+        if (this.spawner) {
+            this.spawner.updateDimensions(newW, newH);
         }
     }
 
@@ -285,6 +284,9 @@ export class Engine {
                             }
                         }, GameConfig.timing.easyModeRespawnDelay);
                     } else if (this.mode === 'study' && this.spawner.currentStudyWave !== 5) {
+                        // Nếu đang chờ Space để qua Wave mới thì không làm gì thêm
+                        if (this.isWaitingForProceed) return;
+
                         if ((this.spawner.currentStudyWave === 1 || this.spawner.currentStudyWave === 2 || this.spawner.currentStudyWave === 4) && this.spawner.hasMoreStudyEnemies()) {
                             // Đẻ quái tiếp theo của Wave học hiện tại
                             setTimeout(() => {
@@ -300,8 +302,12 @@ export class Engine {
                                     this.spawner.spawnNextStudyEnemy(this.speedModifier);
                                 }
                             }, 500);
+                        } else if (this.spawner.currentStudyWave === 3 && this.spawner.hasMoreStudyEnemies()) {
+                            // Để Spawner.update tự xử lý đẻ đợt tiếp theo của Wave 3 (Batch mode)
+                            // Không set isWaitingForProceed ở đây để luồng gõ được liên tục
+                            return;
                         } else {
-                            // Hết quái của Wave hiện tại -> Dừng lại chờ bấm SPACE
+                            // Hết quái của Wave hiện tại -> Dừng lại chờ bấm SPACE để qua Wave tiếp theo
                             this.isWaitingForProceed = true;
                             EventBus.getInstance().publish('WAVE_CLEARED', { isWaitingManual: true });
                         }
