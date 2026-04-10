@@ -76,13 +76,14 @@ export class StateManager {
     }
   }
 
-  public async loadN2HubData(): Promise<void> {
+  public async loadLevelHubData(level: string): Promise<void> {
     try {
+        const mLevel = level.toUpperCase();
         const response = await fetch('/data/vocabulary_generated.json');
-       if (!response.ok) throw new Error('Failed to fetch JSON');
+        if (!response.ok) throw new Error('Failed to fetch JSON');
         const data = await response.json();
         
-        const levelData = data.find((d: any) => d.level === 'N2');
+        const levelData = data.find((d: any) => d.level === mLevel);
         if (levelData && levelData.unit_list) {
             this.n2HubData = [];
             levelData.unit_list.forEach((unit: any, uIndex: number) => {

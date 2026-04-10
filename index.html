@@ -284,20 +284,20 @@
             <!-- HUD Terminal for Study Mode -->
             <div id="hud-terminal" class="hud-terminal hidden"></div>
             
-            <!-- N2 Hub Page Overlay -->
-            <div id="n2-hub-page" class="hidden">
+            <!-- JLPT Hub Page Overlay (Dùng chung cho N1-N5) -->
+            <div id="jlpt-hub-page" class="hidden">
                 <!-- Nút trở về sảnh ở góc trên trái -->
-                <button id="n2HubBackBtn" class="zen-back-btn" style="position: absolute; top: 25px; left: 50px; z-index: 300;">
+                <button id="hubBackBtn" class="zen-back-btn" style="position: absolute; top: 25px; left: 50px; z-index: 300;">
                     <span class="back-icon">◄</span> TRỞ VỀ SẢNH
                 </button>
                 
-                <div class="n2-hub-header" style="flex-direction: column; align-items: center; justify-content: center; width: 100%; gap: 15px;">
+                <div class="jlpt-hub-header" style="flex-direction: column; align-items: center; justify-content: center; width: 100%; gap: 15px;">
                     <h2 class="zen-title">
-                        N2 語彙 TÀNG KINH CÁC 
-                        <span class="red-seal">二級</span>
+                        <span id="hubLevelName">N2</span> 語彙 TÀNG KINH CÁC 
+                        <span class="red-seal" id="hubSealName">二級</span>
                     </h2>
                     
-                    <div class="zen-hud-stats" id="n2GlobalHud">
+                    <div class="zen-hud-stats" id="jlptGlobalHud">
                         <div class="zen-stat">
                             <span class="zen-label">OVERALL RANK</span>
                             <span class="zen-val" id="n2GlobalRank">-</span>

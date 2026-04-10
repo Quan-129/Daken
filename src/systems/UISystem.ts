@@ -61,13 +61,16 @@ export class UISystem {
     private gameContainer = byId('game-container');
 
     // N2 Hub
-    private n2HubPage = byId('n2-hub-page');
-    private n2HubBackBtn = byId('n2HubBackBtn');
+    // JLPT Hub
+    private jlptHubPage = byId('jlpt-hub-page');
+    private hubBackBtn = byId('hubBackBtn');
     private n2UnitsContainer = byId('n2UnitsContainer');
     private n2CalibrationModal = byId('n2-calibration-modal');
     private closeCalibrationBtn = byId('closeCalibrationBtn');
     private startN2SessionBtn = byId('startN2SessionBtn');
     private calibSessionTitle = byId('calibration-session-title');
+    private hubLevelName = byId('hubLevelName');
+    private hubSealName = byId('hubSealName');
     private n2TotalProgress = byId('n2-total-progress');
     private calibBgmSlider = byId('calibBgmSlider') as HTMLInputElement;
     private calibSfxSlider = byId('calibSfxSlider') as HTMLInputElement;
@@ -408,8 +411,8 @@ export class UISystem {
 
                     (document.activeElement as HTMLElement)?.blur();
                     
-                    if (level === 'n2') {
-                        setTimeout(() => this.openN2Hub(), 300); // Đợi menu gập lại mượt mà
+                    if (level.startsWith('n')) {
+                        setTimeout(() => this.openJLPTHub(level), 300); // Đợi menu gập lại mượt mà
                     } else {
                         if (this.startBtn) {
                             this.startBtn.click();
@@ -686,10 +689,10 @@ export class UISystem {
             });
         }
 
-        if (this.n2HubBackBtn) {
-            this.n2HubBackBtn.addEventListener('click', () => {
+        if (this.hubBackBtn) {
+            this.hubBackBtn.addEventListener('click', () => {
                 EventBus.getInstance().publish('PLAY_DING', null);
-                if (this.n2HubPage) this.n2HubPage.classList.add('hidden');
+                if (this.jlptHubPage) this.jlptHubPage.classList.add('hidden');
                 
                 if (this.messageCenter) this.messageCenter.classList.add('hidden');
                 
@@ -2435,14 +2438,26 @@ export class UISystem {
         });
     }
 
-    // --- N2 HUB METHODS ---
-    public openN2Hub() {
+    public openJLPTHub(level: string = 'n2') {
+        const mLevel = level.toUpperCase();
         if (this.menuControls) this.menuControls.classList.add('hidden');
         if (this.messageCenter) this.messageCenter.classList.add('hidden');
-        if (this.n2HubPage) {
-            this.n2HubPage.classList.remove('hidden');
-            this.renderN2Units();
-        }
+        
+        // Cập nhật nhãn Level và Con dấu (Seal)
+        const sealNames: Record<string, string> = {
+            'N1': '一級', 'N2': '二級', 'N3': '三級', 'N4': '四級', 'N5': '五級'
+        };
+        
+        if (this.hubLevelName) this.hubLevelName.innerText = mLevel;
+        if (this.hubSealName) this.hubSealName.innerText = sealNames[mLevel] || '---';
+
+        // Load dữ liệu cho level này
+        StateManager.getInstance().loadLevelHubData(mLevel).then(() => {
+            if (this.jlptHubPage) {
+                this.jlptHubPage.classList.remove('hidden');
+                this.renderN2Units(); // Vẫn dùng renderN2Units vì nó lấy dữ liệu từ state.n2HubData đã được cập nhật
+            }
+        });
         
         // Hiện thanh âm nhạc
         if (this.miniPlayer) this.miniPlayer.classList.remove('hidden');
