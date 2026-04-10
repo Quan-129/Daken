@@ -64,14 +64,14 @@ export class UISystem {
     // JLPT Hub
     private jlptHubPage = byId('jlpt-hub-page');
     private hubBackBtn = byId('hubBackBtn');
-    private n2UnitsContainer = byId('n2UnitsContainer');
-    private n2CalibrationModal = byId('n2-calibration-modal');
+    private jlptUnitsContainer = byId('jlptUnitsContainer');
+    private jlptCalibrationModal = byId('jlpt-calibration-modal');
     private closeCalibrationBtn = byId('closeCalibrationBtn');
-    private startN2SessionBtn = byId('startN2SessionBtn');
+    private startJLPTSessionBtn = byId('startJLPTSessionBtn');
     private calibSessionTitle = byId('calibration-session-title');
     private hubLevelName = byId('hubLevelName');
     private hubSealName = byId('hubSealName');
-    private n2TotalProgress = byId('jlpt-total-progress');
+    private jlptTotalProgress = byId('jlpt-total-progress');
     private calibBgmSlider = byId('calibBgmSlider') as HTMLInputElement;
     private calibSfxSlider = byId('calibSfxSlider') as HTMLInputElement;
     private calibTtsSlider = byId('calibTtsSlider') as HTMLInputElement;
@@ -685,7 +685,7 @@ export class UISystem {
 
         if (this.closeCalibrationBtn) {
             this.closeCalibrationBtn.addEventListener('click', () => {
-                if (this.n2CalibrationModal) this.n2CalibrationModal.classList.add('hidden');
+                if (this.jlptCalibrationModal) this.jlptCalibrationModal.classList.add('hidden');
             });
         }
 
@@ -700,6 +700,7 @@ export class UISystem {
                     this.menuControls.classList.remove('hidden');
                     this.menuControls.classList.remove('collapsed');
                 }
+                if (this.profileCard) this.profileCard.classList.remove('hidden');
                 
                 // Clear active states of radial menu
                 document.querySelectorAll('.fan-blade, .sub-blade').forEach(p => p.classList.remove('active'));
@@ -713,9 +714,9 @@ export class UISystem {
             });
         }
 
-        if (this.startN2SessionBtn) {
-            this.startN2SessionBtn.addEventListener('click', () => {
-                if (this.n2CalibrationModal) this.n2CalibrationModal.classList.add('hidden');
+        if (this.startJLPTSessionBtn) {
+            this.startJLPTSessionBtn.addEventListener('click', () => {
+                if (this.jlptCalibrationModal) this.jlptCalibrationModal.classList.add('hidden');
                 if (this.jlptHubPage) this.jlptHubPage.classList.add('hidden');
                 
                 this.currentMode = 'study';
@@ -1615,7 +1616,7 @@ export class UISystem {
 
         events.subscribe('N2_PROGRESS_SYNCED', () => {
             if (this.jlptHubPage && !this.jlptHubPage.classList.contains('hidden')) {
-                this.renderN2Units();
+                this.renderJLPTUnits();
             }
             this.updateProfileUI(); // Cập nhật cả bảng Profile (Total Score)
         });
@@ -1669,7 +1670,7 @@ export class UISystem {
             if (this.playerRankEl) {
                 const avgRank = reverseRank[Math.round(rankScoreSum / totalStatsCount)];
                 this.playerRankEl.innerText = `CLASS ${avgRank}`;
-                this.playerRankEl.className = `rank-value n2-rank-${avgRank}`;
+                this.playerRankEl.className = `rank-value jlpt-rank-${avgRank}`;
             }
         } else {
             if (this.avgAccEl) this.avgAccEl.innerText = "0%";
@@ -2442,6 +2443,7 @@ export class UISystem {
         const mLevel = level.toUpperCase();
         if (this.menuControls) this.menuControls.classList.add('hidden');
         if (this.messageCenter) this.messageCenter.classList.add('hidden');
+        if (this.profileCard) this.profileCard.classList.add('hidden');
         
         // Cập nhật nhãn Level và Con dấu (Seal)
         const sealNames: Record<string, string> = {
@@ -2455,7 +2457,7 @@ export class UISystem {
         StateManager.getInstance().loadLevelHubData(mLevel).then(() => {
             if (this.jlptHubPage) {
                 this.jlptHubPage.classList.remove('hidden');
-                this.renderN2Units(); // Vẫn dùng renderN2Units vì nó lấy dữ liệu từ state.n2HubData đã được cập nhật
+                this.renderJLPTUnits(); // Vẫn dùng renderJLPTUnits vì nó lấy dữ liệu từ state.n2HubData đã được cập nhật
             }
         });
         
@@ -2463,19 +2465,19 @@ export class UISystem {
         if (this.miniPlayer) this.miniPlayer.classList.remove('hidden');
     }
 
-    private renderN2Units() {
+    private renderJLPTUnits() {
         const state = StateManager.getInstance();
         const data = state.getN2HubData();
         console.log(`[UISystem] Bắt đầu render Hub. Số lượng Units nhận được: ${data.length}`);
         
-        if (!this.n2UnitsContainer) {
-            console.error('[UISystem] Không tìm thấy n2UnitsContainer trong DOM!');
+        if (!this.jlptUnitsContainer) {
+            console.error('[UISystem] Không tìm thấy jlptUnitsContainer trong DOM!');
             return;
         }
-        this.n2UnitsContainer.innerHTML = '';
+        this.jlptUnitsContainer.innerHTML = '';
         
         if (data.length === 0) {
-            this.n2UnitsContainer.innerHTML = '<div style="color: var(--danger); text-align: center; width: 100%; padding: 40px; font-family: monospace; font-size: 1.2rem; letter-spacing: 2px;">[ HỆ THỐNG: KHÔNG TÌM THẤY DỮ LIỆU CẤP ĐỘ NÀY ]</div>';
+            this.jlptUnitsContainer.innerHTML = '<div style="color: var(--danger); text-align: center; width: 100%; padding: 40px; font-family: monospace; font-size: 1.2rem; letter-spacing: 2px;">[ HỆ THỐNG: KHÔNG TÌM THẤY DỮ LIỆU CẤP ĐỘ NÀY ]</div>';
             console.warn('[UISystem] Dữ liệu Hub rỗng, hiển thị thông báo trống.');
         }
         
@@ -2496,7 +2498,7 @@ export class UISystem {
             
             // Render Sessions trước để lấy Data tổng
             let sessionsContainer = document.createElement('div');
-            sessionsContainer.className = 'n2-unit-sessions';
+            sessionsContainer.className = 'jlpt-unit-sessions';
             
             let rankMap: Record<string, number> = {'S': 4, 'A': 3, 'B': 2, 'C': 1, 'D': 0};
             let reverseRank = ['D', 'C', 'B', 'A', 'S'];
@@ -2525,11 +2527,11 @@ export class UISystem {
                 }
 
                 let sessCard = document.createElement('div');
-                sessCard.className = 'n2-session-card';
+                sessCard.className = 'jlpt-session-card';
                 sessCard.innerHTML = `
-                    <div class="n2-session-title">Session ${sIdx + 1}</div>
-                    <div class="n2-session-rank n2-rank-${rank}">${rank}</div>
-                    <div class="n2-session-stats">
+                    <div class="jlpt-session-title">Session ${sIdx + 1}</div>
+                    <div class="jlpt-session-rank jlpt-rank-${rank}">${rank}</div>
+                    <div class="jlpt-session-stats">
                         <span>ACC: ${acc}%</span>
                         <span style="color: var(--primary); font-family: 'Orbitron', sans-serif;">SCORE: ${score}</span>
                         <span>WPM: ${wpm}</span>
@@ -2539,7 +2541,7 @@ export class UISystem {
                 sessCard.addEventListener('click', (e) => {
                     e.stopPropagation(); // Ngăn nện click lan lên header
                     this.currentN2Context = { unitIdx: uIdx, sessionIdx: sIdx };
-                    this.openN2CalibrationModal(unit.unitName, sIdx + 1);
+                    this.openjlptCalibrationModal(unit.unitName, sIdx + 1);
                 });
                 sessionsContainer.appendChild(sessCard);
             });
@@ -2550,24 +2552,24 @@ export class UISystem {
             let avgRank = unitSessCompleted > 0 ? reverseRank[Math.round(rankScoreSum / unitSessCompleted)] : '-';
 
             let unitCard = document.createElement('div');
-            unitCard.className = 'n2-unit-card';
+            unitCard.className = 'jlpt-unit-card';
             
             let header = document.createElement('div');
-            header.className = 'n2-unit-header';
+            header.className = 'jlpt-unit-header';
             
             // Xây dựng Bố cục Cyber-Bamboo (Hollow Engraving)
             header.innerHTML = `
-                <div class="n2-unit-rope left-rope"></div>
+                <div class="jlpt-unit-rope left-rope"></div>
                 
-                <div class="n2-unit-title-box">
-                    <div class="n2-ja-title" title="${unit.studyName_JA}">${unit.studyName_JA}</div>
-                    <div class="n2-en-title" title="[ ${unit.unitName.replace('_',' ')}: ${unit.studyName_ENG.toUpperCase()} ]">[ ${unit.unitName.replace('_',' ')}: ${unit.studyName_ENG.toUpperCase()} ]</div>
+                <div class="jlpt-unit-title-box">
+                    <div class="jlpt-ja-title" title="${unit.studyName_JA}">${unit.studyName_JA}</div>
+                    <div class="jlpt-en-title" title="[ ${unit.unitName.replace('_',' ')}: ${unit.studyName_ENG.toUpperCase()} ]">[ ${unit.unitName.replace('_',' ')}: ${unit.studyName_ENG.toUpperCase()} ]</div>
                 </div>
 
-                <div class="n2-unit-hud">
+                <div class="jlpt-unit-hud">
                     <div class="hud-stat-box">
                         <span class="hud-label">RANK</span>
-                        <span class="hud-val n2-rank-${avgRank}">${avgRank}</span>
+                        <span class="hud-val jlpt-rank-${avgRank}">${avgRank}</span>
                     </div>
                     <div class="hud-stat-box">
                         <span class="hud-label">ACCURACY</span>
@@ -2584,7 +2586,7 @@ export class UISystem {
                     <div class="hud-sess-count">✦ ${unit.sessions.length} Cuộn ✦</div>
                 </div>
                 
-                <div class="n2-unit-rope right-rope"></div>
+                <div class="jlpt-unit-rope right-rope"></div>
             `;
                 
 
@@ -2599,7 +2601,7 @@ export class UISystem {
             
             unitCard.appendChild(header);
             unitCard.appendChild(sessionsContainer);
-            this.n2UnitsContainer!.appendChild(unitCard);
+            this.jlptUnitsContainer!.appendChild(unitCard);
         });
 
         // --- UPDATE GLOBAL HUD ---
@@ -2621,14 +2623,14 @@ export class UISystem {
         if (gWpmEl) gWpmEl.innerText = `${gWpm}`;
         if (gScoreEl) gScoreEl.innerText = globalScoreSum.toLocaleString();
 
-        if (this.n2TotalProgress) {
+        if (this.jlptTotalProgress) {
             const perc = totalCount === 0 ? 0 : Math.round((completedCount / totalCount) * 100);
-            this.n2TotalProgress.innerText = `${perc}% (${completedCount}/${totalCount})`;
+            this.jlptTotalProgress.innerText = `${perc}% (${completedCount}/${totalCount})`;
         }
     }
 
-    private openN2CalibrationModal(unitName: string, sessionNum: number) {
-        if (!this.n2CalibrationModal) return;
+    private openjlptCalibrationModal(unitName: string, sessionNum: number) {
+        if (!this.jlptCalibrationModal) return;
         
         // Cập nhật giá trị UI theo cache Audio hiện tại
         if (this.bgmVolSlider && this.calibBgmSlider) this.calibBgmSlider.value = this.bgmVolSlider.value;
@@ -2640,6 +2642,6 @@ export class UISystem {
             this.calibSessionTitle.innerText = `${unitName} - Session ${sessionNum}`;
         }
         
-        this.n2CalibrationModal.classList.remove('hidden');
+        this.jlptCalibrationModal.classList.remove('hidden');
     }
 }

@@ -1204,7 +1204,7 @@ input[type="text"]::placeholder { color: #aaa; }
 /* =========================================================================
    N2 HUB & CALIBRATION MODAL
    ========================================================================= */
-#n2-hub-page {
+#jlpt-hub-page {
     position: absolute;
     top: 0; left: 0; width: 100%; height: 100%;
     background: rgba(10, 10, 20, 0.95);
@@ -1218,24 +1218,24 @@ input[type="text"]::placeholder { color: #aaa; }
 }
 
 /* Tùy chỉnh thanh cuộn (Scrollbar) cho ngầu */
-#n2-hub-page::-webkit-scrollbar {
+#jlpt-hub-page::-webkit-scrollbar {
     width: 8px;
 }
-#n2-hub-page::-webkit-scrollbar-track {
+#jlpt-hub-page::-webkit-scrollbar-track {
     background: rgba(0, 0, 0, 0.5);
     border-radius: 4px;
 }
-#n2-hub-page::-webkit-scrollbar-thumb {
+#jlpt-hub-page::-webkit-scrollbar-thumb {
     background: var(--primary);
     border-radius: 4px;
     box-shadow: 0 0 10px var(--primary);
 }
-#n2-hub-page::-webkit-scrollbar-thumb:hover {
+#jlpt-hub-page::-webkit-scrollbar-thumb:hover {
     background: #fff;
     box-shadow: 0 0 15px var(--primary);
 }
 
-.n2-hub-header {
+.jlpt-hub-header {
     display: flex; align-items: flex-end; justify-content: space-between;
     border-bottom: 1px solid rgba(0, 245, 255, 0.2); /* Nét mảnh thiền định */
     padding-bottom: 20px; margin-bottom: 30px;
@@ -1345,7 +1345,7 @@ input[type="text"]::placeholder { color: #aaa; }
 }
 
 /* --- CYBER-BAMBOO ARCHIVE STYLES --- */
-.n2-unit-card {
+.jlpt-unit-card {
     background: transparent;
     border: none;
     margin-bottom: 25px;
@@ -1355,7 +1355,7 @@ input[type="text"]::placeholder { color: #aaa; }
 }
 
 /* Thanh mộc giản (Cyber-Bamboo Roll Header) */
-.n2-unit-header {
+.jlpt-unit-header {
     background: #0b1412; /* Deep jade dark */
     background-image: 
         repeating-linear-gradient(
@@ -1392,7 +1392,7 @@ input[type="text"]::placeholder { color: #aaa; }
 }
 
 /* Lằn dây lạt (Cyber Neon strings) binding the bamboo roll */
-.n2-unit-rope {
+.jlpt-unit-rope {
     position: absolute;
     top: 0;
     width: 6px;
@@ -1415,7 +1415,7 @@ input[type="text"]::placeholder { color: #aaa; }
 .right-rope { right: 25px; }
 
 /* HOVER: Ropes glow intense and spin pattern */
-.n2-unit-header:hover .n2-unit-rope {
+.jlpt-unit-header:hover .jlpt-unit-rope {
     background: repeating-linear-gradient(
         -45deg,
         rgba(0, 0, 0, 0.9) 0px,
@@ -1427,7 +1427,7 @@ input[type="text"]::placeholder { color: #aaa; }
     width: 8px;
 }
 
-.n2-unit-header:hover {
+.jlpt-unit-header:hover {
     transform: translateY(-2px) scale(1.01);
     box-shadow: 
         inset 0 10px 15px rgba(255, 255, 255, 0.1), 
@@ -1437,7 +1437,7 @@ input[type="text"]::placeholder { color: #aaa; }
 }
 
 /* --- TITLE BOX (Left) --- */
-.n2-unit-title-box {
+.jlpt-unit-title-box {
     display: flex;
     flex-direction: column;
     padding-left: 30px; /* Offset the rope */
@@ -1446,7 +1446,7 @@ input[type="text"]::placeholder { color: #aaa; }
     min-width: 0; /* Quan trọng để text-overflow hoạt động trong flexbox */
 }
 
-.n2-ja-title {
+.jlpt-ja-title {
     font-size: 2.2rem;
     font-family: 'Noto Sans JP', sans-serif;
     font-weight: 700;
@@ -1459,7 +1459,7 @@ input[type="text"]::placeholder { color: #aaa; }
     text-overflow: ellipsis;
 }
 
-.n2-en-title {
+.jlpt-en-title {
     font-size: 0.9rem;
     font-family: 'Orbitron', sans-serif;
     color: var(--primary);
@@ -1473,7 +1473,7 @@ input[type="text"]::placeholder { color: #aaa; }
 }
 
 /* --- HUD STATS (Right) - Khắc kim loại / Gỗ lõm --- */
-.n2-unit-hud {
+.jlpt-unit-hud {
     display: flex;
     gap: 20px;
     padding-right: 30px; /* Offset the right rope */
@@ -1521,7 +1521,7 @@ input[type="text"]::placeholder { color: #aaa; }
     margin-left: 10px;
 }
 
-.n2-unit-card.expanded .n2-unit-header {
+.jlpt-unit-card.expanded .jlpt-unit-header {
     background-color: #112624;
     box-shadow: 
         inset 0 0 20px rgba(0, 245, 255, 0.2), 
@@ -1529,7 +1529,7 @@ input[type="text"]::placeholder { color: #aaa; }
 }
 
 /* Khung mành thả xuống chứa Sessions (Bamboo Curtain) */
-.n2-unit-sessions {
+.jlpt-unit-sessions {
     background: rgba(5, 10, 15, 0.85);
     border: 1px solid var(--primary);
     border-top: none;
@@ -1570,7 +1570,7 @@ input[type="text"]::placeholder { color: #aaa; }
         visibility 0s 0.4s;
 }
 
-.n2-unit-card.expanded .n2-unit-sessions {
+.jlpt-unit-card.expanded .jlpt-unit-sessions {
     max-height: 800px; /* Đủ lớn để bọc n sessions, không nên để quá to 1200 gây delay khi gập */
     opacity: 1;
     padding-top: 30px; /* Thả xuống tạo khoảng cách với thẻ trên */
@@ -1590,7 +1590,7 @@ input[type="text"]::placeholder { color: #aaa; }
 }
 
 /* Từng Session Card - Mảnh trúc nhỏ */
-.n2-session-card {
+.jlpt-session-card {
     background: linear-gradient(180deg, rgba(16, 30, 25, 0.9) 0%, rgba(5, 15, 10, 0.8) 100%);
     border: 1px solid rgba(0, 245, 255, 0.2);
     border-top: 4px solid var(--primary);
@@ -1603,7 +1603,7 @@ input[type="text"]::placeholder { color: #aaa; }
     cursor: pointer;
 }
 
-.n2-session-card:hover {
+.jlpt-session-card:hover {
     border-color: var(--primary);
     border-top: 6px solid #fff;
     box-shadow: 0 10px 20px rgba(0, 245, 255, 0.3), inset 0 0 15px rgba(0, 245, 255, 0.1);
@@ -1612,15 +1612,15 @@ input[type="text"]::placeholder { color: #aaa; }
     cursor: pointer;
 }
 
-.n2-session-title { color: var(--primary); text-shadow: 0 0 8px var(--primary); font-weight: bold; font-size: 1.2rem; margin-bottom: 10px; font-family: 'Orbitron'; }
-.n2-session-stats { font-size: 0.9rem; color: #a8b2d1; display: flex; justify-content: space-between; align-items: center;}
-.n2-session-rank { font-size: 1.5rem; font-weight: bold; font-family: 'Orbitron', sans-serif; }
-.n2-rank-S { color: #ffd700; text-shadow: 0 0 10px #ffd700; }
-.n2-rank-A { color: #00e676; text-shadow: 0 0 10px #00e676; }
-.n2-rank-B { color: var(--primary); text-shadow: 0 0 10px var(--primary); }
-.n2-rank-C, .n2-rank-D { color: #ff9800; }
+.jlpt-session-title { color: var(--primary); text-shadow: 0 0 8px var(--primary); font-weight: bold; font-size: 1.2rem; margin-bottom: 10px; font-family: 'Orbitron'; }
+.jlpt-session-stats { font-size: 0.9rem; color: #a8b2d1; display: flex; justify-content: space-between; align-items: center;}
+.jlpt-session-rank { font-size: 1.5rem; font-weight: bold; font-family: 'Orbitron', sans-serif; }
+.jlpt-rank-S { color: #ffd700; text-shadow: 0 0 10px #ffd700; }
+.jlpt-rank-A { color: #00e676; text-shadow: 0 0 10px #00e676; }
+.jlpt-rank-B { color: var(--primary); text-shadow: 0 0 10px var(--primary); }
+.jlpt-rank-C, .jlpt-rank-D { color: #ff9800; }
 
-#n2-calibration-modal {
+#jlpt-calibration-modal {
     position: absolute;
     top: 0; left: 0; width: 100%; height: 100%;
     z-index: 300;
