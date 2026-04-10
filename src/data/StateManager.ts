@@ -1,6 +1,7 @@
 import { Word } from '../entities/Word';
 import { mockVocabulary } from './MockData';
 import { EventBus } from '../utils/EventBus';
+import { supabase } from '../utils/supabase';
 
 export class StateManager {
   private static instance: StateManager;
@@ -115,38 +116,97 @@ export class StateManager {
           if (data) {
               this.n2Progress = JSON.parse(data);
           }
+          
+          // Thử đồng bộ với Cloud sau khi load local xong
+          setTimeout(() => this.syncN2ProgressWithCloud(), 1000);
       } catch (e) { console.error('Failed to load N2 progress', e); }
+  }
+
+  public async syncN2ProgressWithCloud() {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+
+      console.log('[StateManager] Đang đồng bộ tiến trình N2 với Cloud...');
+      
+      const { data, error } = await supabase
+          .from('n2_progress')
+          .select('*')
+          .eq('user_id', session.user.id);
+
+      if (error) {
+          console.error('[StateManager] Lỗi đồng bộ Cloud:', error.message);
+          return;
+      }
+
+      if (data && data.length > 0) {
+          let hasNewData = false;
+          data.forEach(row => {
+              const key = `u${row.unit_idx}_s${row.session_idx}`;
+              const cloudStats = { rank: row.rank, acc: row.acc, wpm: row.wpm, score: row.score };
+              
+              // Nếu Cloud xịn hơn hoặc Local chưa có -> Cập nhật local
+              if (!this.n2Progress[key] || this.isBetterStats(cloudStats, this.n2Progress[key] as any)) {
+                  this.n2Progress[key] = cloudStats;
+                  hasNewData = true;
+              }
+          });
+
+          if (hasNewData) {
+              this.saveN2Progress();
+              // Báo hiệu UI update lại Hub
+              this.eventBus.publish('N2_PROGRESS_SYNCED', this.n2Progress);
+          }
+      }
+  }
+
+  private isBetterStats(newStats: {rank: string, acc: number, wpm: number, score?: number}, oldStats: {rank: string, acc: number, wpm: number, score?: number}) {
+      const ranks = ['S', 'A', 'B', 'C', 'D'];
+      const oldRankIdx = ranks.indexOf(oldStats.rank);
+      const newRankIdx = ranks.indexOf(newStats.rank);
+      
+      if (newRankIdx < oldRankIdx) return true; // S tốt hơn A
+      if (newRankIdx === oldRankIdx) {
+          if (newStats.score !== undefined && oldStats.score !== undefined) {
+              return newStats.score > oldStats.score;
+          }
+          return newStats.acc > oldStats.acc;
+      }
+      return false;
   }
 
   private saveN2Progress() {
       localStorage.setItem(this.n2ProgressKey, JSON.stringify(this.n2Progress));
   }
   
-  public saveN2SessionProgress(unitIdx: number, sessionIdx: number, stats: {rank: string, acc: number, wpm: number, score?: number}) {
+  public async saveN2SessionProgress(unitIdx: number, sessionIdx: number, stats: {rank: string, acc: number, wpm: number, score?: number}) {
       const key = `u${unitIdx}_s${sessionIdx}`;
-      // Chỉ lưu nếu tốt hơn (Rank ưu tiên, sau đó tới Score hoặc Acc)
       const current = this.n2Progress[key];
-      let shouldUpdate = false;
-      if (!current) {
-          shouldUpdate = true;
-      } else {
-          const ranks = ['S', 'A', 'B', 'C', 'D'];
-          const currentRankIdx = ranks.indexOf(current.rank);
-          const newRankIdx = ranks.indexOf(stats.rank);
-          if (newRankIdx < currentRankIdx) {
-              shouldUpdate = true; // S tốt hơn A
-          } else if (newRankIdx === currentRankIdx) {
-              if (stats.score !== undefined && current.score !== undefined) {
-                  if (stats.score > current.score) shouldUpdate = true;
-              } else if (stats.acc > current.acc) {
-                  shouldUpdate = true;
-              }
-          }
-      }
+      
+      let shouldUpdate = !current || this.isBetterStats(stats, current as any);
       
       if (shouldUpdate) {
           this.n2Progress[key] = stats;
           this.saveN2Progress();
+
+          // Đẩy lên Cloud nếu đã đăng nhập
+          const { data: { session } } = await supabase.auth.getSession();
+          if (session) {
+              const { error } = await supabase
+                  .from('n2_progress')
+                  .upsert({
+                      user_id: session.user.id,
+                      unit_idx: unitIdx,
+                      session_idx: sessionIdx,
+                      rank: stats.rank,
+                      acc: stats.acc,
+                      wpm: stats.wpm,
+                      score: stats.score || 0,
+                      updated_at: new Date().toISOString()
+                  }, { onConflict: 'user_id,unit_idx,session_idx' });
+              
+              if (error) console.error('[StateManager] Lỗi lưu Cloud:', error.message);
+              else console.log('[StateManager] Đã đồng bộ lên Cloud!');
+          }
       }
   }
   

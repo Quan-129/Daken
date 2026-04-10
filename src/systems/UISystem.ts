@@ -15,12 +15,45 @@ export class UISystem {
     private msgSub = byId('msgSub');
     private scoreFeedContainer = byId('score-feed-container');
 
-    // Login Screen
+    // Profile Card UI
+    private profileCard = byId('player-profile-card');
+    private playerNameEl = byId('playerName');
+    private playerRankEl = byId('playerRank');
+    private totalScoreEl = byId('totalScoreVal');
+    private avgAccEl = byId('avgAccVal');
+    private avgWpmEl = byId('avgWpmVal');
+    private playerAvtImg = byId('playerAvt') as HTMLImageElement;
+    private avatarTrigger = byId('avatarTrigger');
+    private avtFileInput = byId('avtFileInput') as HTMLInputElement;
+    private currentScoreBox = byId('current-score-box');
+    // Login Elements
     private loginScreen = byId('login-screen');
-    private usernameInput = byId('usernameInput') as HTMLInputElement;
-    private loginBtn = byId('loginBtn');
-    private googleLoginBtn = byId('googleLoginBtn');
     private loginStatus = byId('loginStatus');
+    
+    // Auth Views
+    private loginView = byId('login-view');
+    private registerView = byId('register-view');
+    private setupView = byId('setup-view');
+    private socialLoginArea = byId('social-login-area');
+    
+    // Auth Tabs
+    private loginTabs = byId('loginTabs');
+    private tabLogin = byId('tab-login');
+    private tabRegister = byId('tab-register');
+    
+    // Auth Inputs & Buttons
+    private loginEmail = byId('loginEmail') as HTMLInputElement;
+    private loginPass = byId('loginPass') as HTMLInputElement;
+    private executeLoginBtn = byId('executeLoginBtn');
+    
+    private regName = byId('regName') as HTMLInputElement;
+    private regEmail = byId('regEmail') as HTMLInputElement;
+    private regPass = byId('regPass') as HTMLInputElement;
+    private executeRegisterBtn = byId('executeRegisterBtn');
+    
+    private setupNameInput = byId('setupName') as HTMLInputElement;
+    private finishSetupBtn = byId('finishSetupBtn');
+    private googleLoginBtn = byId('googleLoginBtn');
 
     // Controls
     private startBtn = byId('startBtn');
@@ -161,7 +194,9 @@ export class UISystem {
         this.renderSVGRadialMenu();
         this.setupEventListeners();
         this.subscribeToEventBus();
-        this.initLogin();
+        this.checkExistingSession();
+        this.setupAvatarUpload();
+        this.updateProfileUI(); // Cập nhật Profile ngay khi khởi tạo
     }
 
     private applyConfigToSliders() {
@@ -656,7 +691,7 @@ export class UISystem {
                 EventBus.getInstance().publish('PLAY_DING', null);
                 if (this.n2HubPage) this.n2HubPage.classList.add('hidden');
                 
-                if (this.messageCenter) this.messageCenter.classList.remove('hidden');
+                if (this.messageCenter) this.messageCenter.classList.add('hidden');
                 
                 if (this.menuControls) {
                     this.menuControls.classList.remove('hidden');
@@ -1410,6 +1445,307 @@ export class UISystem {
                 }
             }
         });
+
+        const onMatchStart = () => {
+            if (this.currentScoreBox) this.currentScoreBox.classList.remove('hidden');
+        };
+
+        const onMatchEnd = () => {
+            if (this.currentScoreBox) this.currentScoreBox.classList.add('hidden');
+            this.updateProfileUI(); // Refresh stats after match
+        };
+
+        events.subscribe('GAME_START', onMatchStart);
+        events.subscribe('GAME_START_N2', onMatchStart);
+        events.subscribe('GAME_OVER', onMatchEnd);
+        events.subscribe('STUDY_SESSION_END', onMatchEnd);
+        events.subscribe('GAME_STOPPED', onMatchEnd);
+
+        events.subscribe('AUTH_SUCCESS', (user: any) => {
+            // Kiểm tra xem user đã có tên thực sự chưa (mặc định là GUEST_AGENT nếu chưa có)
+            const isGuest = user.name === 'GUEST_AGENT';
+
+            if (isGuest) {
+                // Buộc người dùng vào View Setup Name
+                if (this.loginView) this.loginView.classList.add('hidden');
+                if (this.registerView) this.registerView.classList.add('hidden');
+                if (this.socialLoginArea) this.socialLoginArea.classList.add('hidden');
+                if (this.loginTabs) this.loginTabs.classList.add('hidden');
+                if (this.setupView) this.setupView.classList.remove('hidden');
+            } else {
+                if (this.profileCard) this.profileCard.classList.remove('hidden');
+                if (this.loginScreen) {
+                    this.loginScreen.classList.add('disappearing');
+                    setTimeout(() => {
+                        this.loginScreen?.classList.add('hidden');
+                        document.body.classList.remove('login-pending');
+                    }, 800);
+                }
+                this.updateProfileUI();
+                StateManager.getInstance().syncN2ProgressWithCloud();
+            }
+        });
+
+        events.subscribe('AUTH_LOGOUT', () => {
+            console.log("[UISystem] AUTH_LOGOUT event received. Resetting UI...");
+            // Hiển thị lại màn hình đăng nhập
+            if (this.loginScreen) {
+                this.loginScreen.classList.remove('hidden');
+                this.loginScreen.classList.remove('disappearing');
+            }
+            document.body.classList.add('login-pending');
+            
+            // Reset nội dung màn hình Login
+            if (this.loginStatus) this.loginStatus.innerText = 'STATUS: IDLE';
+            if (this.loginTabs) (this.loginTabs as HTMLElement).classList.remove('hidden');
+            if (this.loginView) this.loginView.classList.remove('hidden');
+            if (this.registerView) this.registerView.classList.add('hidden');
+            if (this.setupView) this.setupView.classList.add('hidden');
+            if (this.socialLoginArea) this.socialLoginArea.classList.remove('hidden');
+            
+            if (this.tabLogin) this.tabLogin.classList.add('active');
+            if (this.tabRegister) this.tabRegister.classList.remove('active');
+            
+            // Clear inputs
+            if (this.loginEmail) this.loginEmail.value = '';
+            if (this.loginPass) this.loginPass.value = '';
+            if (this.regName) this.regName.value = '';
+            if (this.regEmail) this.regEmail.value = '';
+            if (this.regPass) this.regPass.value = '';
+            
+            // Xóa thông tin Profile hiện tại trong UI (Stats về 0)
+            this.updateProfileUI();
+        });
+
+        // Gán sự kiện Click cho nút Logout với cơ chế kiểm tra element trực tiếp
+        document.addEventListener('click', async (e) => {
+            const target = e.target as HTMLElement;
+            if (target && (target.id === 'logoutBtn' || target.classList.contains('logout-btn'))) {
+                console.log("[UISystem] Logout process started...");
+                const auth = AuthSystem.getInstance();
+                try {
+                    await auth.logout();
+                    console.log("[UISystem] Logout successful!");
+                } catch (err) {
+                    console.error("[UISystem] Logout failed:", err);
+                }
+            }
+        });
+
+        // --- AUTH SYSTEM EVENTS ---
+        const auth = AuthSystem.getInstance();
+
+        // 1. Chuyển Tab
+        this.tabLogin?.addEventListener('click', () => {
+            this.tabLogin?.classList.add('active');
+            this.tabRegister?.classList.remove('active');
+            this.loginView?.classList.remove('hidden');
+            this.registerView?.classList.add('hidden');
+        });
+
+        this.tabRegister?.addEventListener('click', () => {
+            this.tabRegister?.classList.add('active');
+            this.tabLogin?.classList.remove('active');
+            this.registerView?.classList.remove('hidden');
+            this.loginView?.classList.add('hidden');
+        });
+
+        // 2. Logic Đăng ký
+        this.executeRegisterBtn?.addEventListener('click', async () => {
+            const email = this.regEmail.value.trim();
+            const pass = this.regPass.value.trim();
+            const name = this.regName.value.trim();
+
+            if (!email || !pass || !name) {
+                if (this.loginStatus) this.loginStatus.innerText = 'STATUS: MISSING_INFO';
+                return;
+            }
+
+            if (this.loginStatus) this.loginStatus.innerText = 'STATUS: REGISTERING...';
+            try {
+                await auth.register(email, pass, name);
+                if (this.loginStatus) this.loginStatus.innerText = 'STATUS: CHECK_EMAIL_TO_VERIFY';
+            } catch (err: any) {
+                if (this.loginStatus) this.loginStatus.innerText = `STATUS: ${err.message.toUpperCase()}`;
+            }
+        });
+
+        // 3. Logic Đăng nhập
+        this.executeLoginBtn?.addEventListener('click', async () => {
+            const email = this.loginEmail.value.trim();
+            const pass = this.loginPass.value.trim();
+
+            if (!email || !pass) {
+                if (this.loginStatus) this.loginStatus.innerText = 'STATUS: MISSING_CREDENTIALS';
+                return;
+            }
+
+            if (this.loginStatus) this.loginStatus.innerText = 'STATUS: AUTHENTICATING...';
+            try {
+                await auth.login(email, pass);
+            } catch (err: any) {
+                if (this.loginStatus) this.loginStatus.innerText = `STATUS: ${err.message.toUpperCase()}`;
+            }
+        });
+
+        // 4. Logic Setup Name (Dành cho Google/First-time)
+        this.finishSetupBtn?.addEventListener('click', async () => {
+            const name = this.setupNameInput.value.trim();
+            if (!name || name.length < 3) {
+                if (this.loginStatus) this.loginStatus.innerText = 'STATUS: NAME_TOO_SHORT';
+                return;
+            }
+
+            if (this.loginStatus) this.loginStatus.innerText = 'STATUS: UPDATING_IDENTITY...';
+            try {
+                await auth.updateProfile({ name: name });
+            } catch (err: any) {
+                if (this.loginStatus) this.loginStatus.innerText = `STATUS: ${err.message.toUpperCase()}`;
+            }
+        });
+
+        // Loop cũ của nút Google (vẫn giữ logic loginWithGoogle)
+        this.googleLoginBtn?.addEventListener('click', async () => {
+            if (this.loginStatus) this.loginStatus.innerText = 'STATUS: REDIRECTING...';
+            await auth.loginWithGoogle();
+        });
+
+        events.subscribe('N2_PROGRESS_SYNCED', () => {
+            if (this.n2HubPage && !this.n2HubPage.classList.contains('hidden')) {
+                this.renderN2Units();
+            }
+            this.updateProfileUI(); // Cập nhật cả bảng Profile (Total Score)
+        });
+    }
+
+    private updateProfileUI() {
+        const auth = AuthSystem.getInstance();
+        const state = StateManager.getInstance();
+        const user = auth.getCurrentUser();
+
+        if (this.playerNameEl) {
+            this.playerNameEl.innerText = user?.name || "GUEST_AGENT";
+        }
+        
+        // Cập nhật Avatar nếu có
+        const savedAvt = localStorage.getItem('DAKEN_PLAYER_AVATAR');
+        if (savedAvt && this.playerAvtImg) {
+            this.playerAvtImg.src = savedAvt;
+        } else if (user?.avatar && this.playerAvtImg) {
+            this.playerAvtImg.src = user.avatar;
+        }
+
+        // Tính toán các chỉ số trung bình từ StateManager
+        const n2Data = state.getN2HubData();
+        let totalStatsCount = 0;
+        let accSum = 0;
+        let wpmSum = 0;
+        let totalScoreSum = 0;
+        let rankScoreSum = 0;
+        const rankMap: Record<string, number> = {'S': 4, 'A': 3, 'B': 2, 'C': 1, 'D': 0};
+        const reverseRank = ['D', 'C', 'B', 'A', 'S'];
+
+        n2Data.forEach((unit, uIdx) => {
+            unit.sessions.forEach((_: any, sIdx: number) => {
+                const prog = state.getN2SessionProgress(uIdx, sIdx);
+                if (prog && prog.rank !== '---') {
+                    totalStatsCount++;
+                    accSum += (prog.acc || 0) * 100;
+                    wpmSum += (prog.wpm || 0);
+                    totalScoreSum += (prog.score || 0);
+                    rankScoreSum += rankMap[prog.rank] || 0;
+                }
+            });
+        });
+
+        if (this.totalScoreEl) this.totalScoreEl.innerText = totalScoreSum.toLocaleString();
+        
+        if (totalStatsCount > 0) {
+            if (this.avgAccEl) this.avgAccEl.innerText = Math.floor(accSum / totalStatsCount) + "%";
+            if (this.avgWpmEl) this.avgWpmEl.innerText = Math.floor(wpmSum / totalStatsCount).toString();
+            if (this.playerRankEl) {
+                const avgRank = reverseRank[Math.round(rankScoreSum / totalStatsCount)];
+                this.playerRankEl.innerText = `CLASS ${avgRank}`;
+                this.playerRankEl.className = `rank-value n2-rank-${avgRank}`;
+            }
+        } else {
+            if (this.avgAccEl) this.avgAccEl.innerText = "0%";
+            if (this.avgWpmEl) this.avgWpmEl.innerText = "0";
+            if (this.playerRankEl) this.playerRankEl.innerText = "UNRANKED";
+        }
+    }
+
+    private setupAvatarUpload() {
+        if (this.avatarTrigger && this.avtFileInput) {
+            this.avatarTrigger.addEventListener('click', () => {
+                const auth = AuthSystem.getInstance();
+                if (!auth.isLoggedIn()) {
+                    alert("Cần đăng nhập để lưu Avatar vĩnh viễn trên Cloud!");
+                }
+                this.avtFileInput.click();
+            });
+
+            this.avtFileInput.addEventListener('change', async (e) => {
+                const file = (e.target as HTMLInputElement).files?.[0];
+                if (file) {
+                    // Supabase metadata có giới hạn (thường < 10KB), ưu tiên ảnh siêu nhỏ hoặc URL
+                    // Ở đây ta vẫn cho Base64 nhưng cảnh báo nếu quá lớn
+                    if (file.size > 50 * 1024) { // 50KB limit for metadata safety
+                        alert("Ảnh quá lớn! Vui lòng chọn ảnh dưới 50KB để đồng bộ Cloud thành công.");
+                        return;
+                    }
+
+                    const reader = new FileReader();
+                    reader.onload = async (event) => {
+                        const base64 = event.target?.result as string;
+                        if (this.playerAvtImg) this.playerAvtImg.src = base64;
+                        
+                        // Lưu local dự phòng
+                        localStorage.setItem('DAKEN_PLAYER_AVATAR', base64);
+                        
+                        // Đồng bộ Cloud nếu đã login
+                        const auth = AuthSystem.getInstance();
+                        if (auth.isLoggedIn()) {
+                            try {
+                                await auth.updateProfile({ avatar: base64 });
+                            } catch (err) {
+                                console.error("Cloud sync failed.");
+                            }
+                        }
+                        
+                        EventBus.getInstance().publish('AUDIO_BEEP', null);
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+        }
+
+        // TÍNH NĂNG ĐỔI TÊN KHI CLICK VÀO TÊN
+        if (this.playerNameEl) {
+            this.playerNameEl.style.cursor = 'pointer';
+            this.playerNameEl.title = 'Click để đổi mật danh';
+            this.playerNameEl.addEventListener('click', async () => {
+                const auth = AuthSystem.getInstance();
+                const currentName = this.playerNameEl?.innerText || "";
+                const newName = prompt("Nhập mật danh mới của bạn (Agent Name):", currentName);
+                
+                if (newName && newName.trim() !== "" && newName !== currentName) {
+                    const finalName = newName.trim();
+                    if (this.playerNameEl) this.playerNameEl.innerText = finalName;
+                    localStorage.setItem('DAKEN_NAME', finalName);
+
+                    if (auth.isLoggedIn()) {
+                        try {
+                            await auth.updateProfile({ name: finalName });
+                            alert("Mật danh đã được đồng bộ lên Cloud!");
+                        } catch (err) {
+                            alert("Lỗi đồng bộ Cloud. Đã lưu tạm tại máy.");
+                        }
+                    }
+                    EventBus.getInstance().publish('AUDIO_BEEP', null);
+                }
+            });
+        }
     }
 
     private updateHp(hp: number) {
@@ -1484,94 +1820,14 @@ export class UISystem {
         }
     }
 
-    private initLogin() {
+    private checkExistingSession() {
         const auth = AuthSystem.getInstance();
-        
-        // Kiểm tra nhanh localStorage để gỡ bỏ blur ngay lập tức nếu đã có ID (UX mượt)
         const savedId = localStorage.getItem('DAKEN_ID');
-        if (savedId) {
+        
+        if (savedId || auth.isLoggedIn()) {
             document.body.classList.remove('login-pending');
             if (this.loginScreen) this.loginScreen.classList.add('hidden');
         }
-
-        // Hiện màn hình đăng nhập nếu chưa có gì
-        if (!savedId && !auth.isLoggedIn()) {
-            if (this.loginScreen) this.loginScreen.classList.remove('hidden');
-            if (this.usernameInput) {
-                setTimeout(() => this.usernameInput?.focus(), 1500); 
-            }
-        }
-
-        if (this.loginBtn) {
-            this.loginBtn.onclick = () => this.handleLogin();
-        }
-
-        if (this.googleLoginBtn) {
-            this.googleLoginBtn.onclick = async () => {
-                try {
-                    if (this.loginStatus) {
-                        this.loginStatus.innerText = 'REDIRECTING TO GOOGLE...';
-                        this.loginStatus.style.color = 'var(--primary)';
-                    }
-                    await auth.loginWithGoogle();
-                } catch (err) {
-                    if (this.loginStatus) {
-                        this.loginStatus.innerText = 'AUTH_ERROR: CHECK CONSOLE';
-                        this.loginStatus.style.color = 'var(--danger)';
-                    }
-                }
-            };
-        }
-
-        if (this.usernameInput) {
-            this.usernameInput.onkeydown = (e) => {
-                if (e.key === 'Enter') this.handleLogin();
-            };
-        }
-
-        // Lắng nghe sự kiện login thành công (cho OAuth redirect hoặc session bù)
-        EventBus.getInstance().subscribe('AUTH_SUCCESS', (user: any) => {
-            console.log("Auth success event received:", user);
-            if (this.loginStatus) {
-                this.loginStatus.innerText = `WELCOME, ${user.name.toUpperCase()}`;
-                this.loginStatus.style.color = 'var(--safe)';
-            }
-            // Gỡ bỏ class pending ngay lập tức
-            document.body.classList.remove('login-pending');
-            setTimeout(() => this.closeLoginScreen(), 1200);
-        });
-    }
-
-    private handleLogin() {
-        if (!this.usernameInput || !this.loginScreen || !this.loginStatus) return;
-
-        const id = this.usernameInput.value.trim().toUpperCase();
-        if (!id) {
-            this.loginStatus.innerText = 'ERROR: ID_REQUIRED';
-            this.loginStatus.style.color = 'var(--danger)';
-            return;
-        }
-
-        this.loginStatus.innerText = 'STATUS: AUTHORIZING...';
-        this.loginStatus.style.color = 'var(--primary)';
-
-        setTimeout(() => {
-            localStorage.setItem('DAKEN_ID', id);
-            this.loginStatus!.innerText = 'STATUS: LINK_ESTABLISHED';
-            this.loginStatus!.style.color = 'var(--safe)';
-            this.closeLoginScreen();
-        }, 1000);
-    }
-
-    private closeLoginScreen() {
-        if (!this.loginScreen) return;
-        this.loginScreen.classList.add('disappearing');
-
-        setTimeout(() => {
-            document.body.classList.remove('login-pending');
-            this.loginScreen!.classList.add('hidden');
-            EventBus.getInstance().publish('AUDIO_BEEP', null);
-        }, 800);
     }
 
     // --- PLAYLIST RENDERERS ---

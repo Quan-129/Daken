@@ -10,20 +10,62 @@
 <body class="login-pending">
     <!-- Login Screen overlay (Minimalist Void Link) -->
     <div id="login-screen" class="login-overlay">
-        <div class="void-line"></div>
-        <div class="login-form">
-            <div class="login-prompt">DAKEN_PROTOCOL.INITIALIZE</div>
-            <div class="input-wrapper">
-                <span class="input-label">ID:</span>
-                <input type="text" id="usernameInput" maxlength="15" autocomplete="off" spellcheck="false" placeholder="...">
+        <div class="login-container">
+            <!-- TABS -->
+            <div id="loginTabs" class="login-tabs">
+                <button id="tab-login" class="tab-btn active">LOGIN</button>
+                <button id="tab-register" class="tab-btn">REGISTER</button>
             </div>
-            <button id="loginBtn" class="void-btn">[ ESTABLISH_LINK ]</button>
-            <div class="login-divider"><span>OR</span></div>
-            <button id="googleLoginBtn" class="google-btn">
-                <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/smartlock/google.svg" alt="G">
-                SYNC WITH GOOGLE
-            </button>
-            <div class="login-status" id="loginStatus">WAITING_FOR_ID...</div>
+
+            <!-- LOGIN VIEW -->
+            <div id="login-view" class="auth-view">
+                <div class="input-group">
+                    <label>EMAIL</label>
+                    <input type="email" id="loginEmail" placeholder="Enter your email...">
+                </div>
+                <div class="input-group">
+                    <label>PASSWORD</label>
+                    <input type="password" id="loginPass" placeholder="••••••••">
+                </div>
+                <button id="executeLoginBtn" class="void-btn">[ ESTABLISH_LINK ]</button>
+            </div>
+
+            <!-- REGISTER VIEW -->
+            <div id="register-view" class="auth-view hidden">
+                <div class="input-group">
+                    <label>DISPLAY NAME</label>
+                    <input type="text" id="regName" maxlength="12" placeholder="Your in-game name...">
+                </div>
+                <div class="input-group">
+                    <label>EMAIL</label>
+                    <input type="email" id="regEmail" placeholder="your@email.com">
+                </div>
+                <div class="input-group">
+                    <label>PASSWORD</label>
+                    <input type="password" id="regPass" placeholder="Min 6 characters">
+                </div>
+                <button id="executeRegisterBtn" class="void-btn">[ CREATE_ACCOUNT ]</button>
+            </div>
+
+            <!-- SETUP NAME VIEW (Dành cho Google/Guest lần đầu) -->
+            <div id="setup-view" class="auth-view hidden">
+                <div class="login-prompt">INITIALIZING IDENTITY...</div>
+                <div class="input-group">
+                    <label>CHOOSE YOUR NAME</label>
+                    <input type="text" id="setupName" maxlength="12" placeholder="Enter name...">
+                </div>
+                <button id="finishSetupBtn" class="void-btn">[ START_GAME ]</button>
+            </div>
+
+            <div id="social-login-area">
+                <div class="login-divider"><span>OR</span></div>
+                <button id="googleLoginBtn" class="google-btn">
+                    <img src="https://www.gstatic.com/images/branding/product/1x/gsa_512dp.png" alt="G">
+                    SIGN IN WITH GOOGLE
+                </button>
+            </div>
+
+            <div class="login-status" id="loginStatus">STATUS: IDLE</div>
         </div>
     </div>
 
@@ -38,27 +80,61 @@
 
         <!-- UI Overlay -->
         <div id="ui-layer">
-            <div class="top-bar">
-                <div class="top-left-wrapper" style="display: flex; flex-direction: column; gap: 15px;">
-                    <div class="stats">
-                        <div class="score">SCORE <span id="scoreVal">0</span></div>
-                        <div id="score-feed-container" class="score-feed-container"></div>
-                        <div class="hp" style="display: none;">HP: <span id="hpVal">5</span></div>
-                        <div class="hp-battery-container" id="hpBatteryContainer" style="display: none;">
-                            <div class="battery-label">SURVIVAL CORE</div>
-                            <div class="battery-chassis">
-                                <div class="battery-grid">
-                                    <div class="battery-cell on"></div>
-                                    <div class="battery-cell on"></div>
-                                    <div class="battery-cell on"></div>
-                                    <div class="battery-cell on"></div>
-                                    <div class="battery-cell on"></div>
+                <div class="top-left-wrapper">
+                    <!-- PLAYER IDENTITY CARD (Neural Link Profile) -->
+                    <div id="player-profile-card" class="player-profile-card">
+                        <div class="profile-header">
+                            <div class="avatar-container" id="avatarTrigger">
+                                <img id="playerAvt" src="https://api.dicebear.com/7.x/bottts/svg?seed=DakenAgent" alt="Avatar">
+                                <div class="avatar-overlay">SCAN</div>
+                                <input type="file" id="avtFileInput" accept="image/*" style="display: none;">
+                            </div>
+                            <div class="profile-info">
+                                <div id="playerName" class="player-name">GUEST_AGENT</div>
+                                <div class="player-rank-row">
+                                    <span class="rank-label">CLASS:</span>
+                                    <span id="playerRank" class="rank-value">UNRANKED</span>
                                 </div>
-                                <div class="battery-cap"></div>
                             </div>
                         </div>
+                        <div class="profile-stats-grid">
+                            <div class="stat-item">
+                                <span class="stat-label">TOTAL_SCORE</span>
+                                <span id="totalScoreVal" class="stat-val">0</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">AVG_ACC</span>
+                                <span id="avgAccVal" class="stat-val">0%</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">AVG_WPM</span>
+                                <span id="avgWpmVal" class="stat-val">0</span>
+                            </div>
+                        </div>
+                        <!-- Current Match Score (Hidden when in Lobby) -->
+                        <div id="current-score-box" class="current-score-wrapper hidden">
+                            <span class="label">MATCH_SCORE:</span>
+                            <span id="scoreVal">0</span>
+                            <div id="score-feed-container" class="score-feed-container"></div>
+                        </div>
+                        <button id="logoutBtn" class="logout-btn">DISCONNECT_LINK</button>
                     </div>
-                    <button id="stopBtn" class="danger-btn hidden" style="z-index: 1000; margin: 0; padding: 10px 20px; border-radius: 8px; width: 100%;">STOP</button>
+
+                    <div class="hp-battery-container" id="hpBatteryContainer" style="display: none;">
+                        <div class="battery-label">SURVIVAL CORE</div>
+                        <div class="battery-chassis">
+                            <div class="battery-grid">
+                                <div class="battery-cell on"></div>
+                                <div class="battery-cell on"></div>
+                                <div class="battery-cell on"></div>
+                                <div class="battery-cell on"></div>
+                                <div class="battery-cell on"></div>
+                            </div>
+                            <div class="battery-cap"></div>
+                        </div>
+                    </div>
+                    <button id="stopBtn" class="danger-btn hidden">STOP SYSTEM</button>
+                    <div class="hp" style="display: none;">HP: <span id="hpVal">5</span></div>
                 </div>
 
                 <!-- NEW Wave Progress & Timer UI -->
