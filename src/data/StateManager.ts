@@ -79,13 +79,22 @@ export class StateManager {
   public async loadLevelHubData(level: string): Promise<void> {
     try {
         const mLevel = level.toUpperCase();
-        const response = await fetch('/data/vocabulary_generated.json');
-        if (!response.ok) throw new Error('Failed to fetch JSON');
-        const data = await response.json();
+        const fetchUrl = `/data/vocabulary_generated.json?v=${Date.now()}`;
+        console.log(`[StateManager] Đang tải dữ liệu từ: ${fetchUrl} cho Level: ${mLevel}`);
         
-        const levelData = data.find((d: any) => d.level === mLevel);
+        const response = await fetch(fetchUrl);
+        if (!response.ok) {
+            console.error(`[StateManager] Không thể tải file dữ liệu. Status: ${response.status}`);
+            throw new Error('Failed to fetch JSON');
+        }
+        const data = await response.json();
+        console.log(`[StateManager] Tải JSON thành công. Tổng cộng: ${data.length} records.`);
+        
+        const levelData = data.find((d: any) => d.level.toString().trim().toUpperCase() === mLevel);
+        
         if (levelData && levelData.unit_list) {
             this.n2HubData = [];
+            console.log(`[StateManager] Đã tìm thấy dữ liệu cho ${mLevel}. Đang chuẩn bị ${levelData.unit_list.length} Units...`);
             levelData.unit_list.forEach((unit: any, uIndex: number) => {
                 const words = unit.vocabulary_list || [];
                 const sessions = [];
@@ -99,10 +108,13 @@ export class StateManager {
                     sessions: sessions
                 });
             });
-            console.log('[StateManager] N2 Hub Data loaded:', this.n2HubData.length, 'Units');
+        } else {
+            this.n2HubData = []; 
+            console.error(`[StateManager] CRITICAL: Không tìm thấy level ${mLevel} trong file JSON! Các level hiện có:`, data.map((d: any) => d.level));
         }
     } catch(err) {
-        console.error('[StateManager] Lỗi load N2 Hub Data:', err);
+        console.error('[StateManager] Lỗi load Hub Data:', err);
+        this.n2HubData = [];
     }
   }
 

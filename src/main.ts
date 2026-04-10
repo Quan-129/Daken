@@ -24,7 +24,7 @@ const stateManager = StateManager.getInstance();
 
 // 1. Nạp MockData
 stateManager.loadData();
-stateManager.loadN2HubData();
+stateManager.loadLevelHubData('N2');
 
 // 2. Lấy HTML Elements UI
 const canvas = byId('gameCanvas') as HTMLCanvasElement;

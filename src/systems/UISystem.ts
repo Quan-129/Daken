@@ -71,7 +71,7 @@ export class UISystem {
     private calibSessionTitle = byId('calibration-session-title');
     private hubLevelName = byId('hubLevelName');
     private hubSealName = byId('hubSealName');
-    private n2TotalProgress = byId('n2-total-progress');
+    private n2TotalProgress = byId('jlpt-total-progress');
     private calibBgmSlider = byId('calibBgmSlider') as HTMLInputElement;
     private calibSfxSlider = byId('calibSfxSlider') as HTMLInputElement;
     private calibTtsSlider = byId('calibTtsSlider') as HTMLInputElement;
@@ -716,7 +716,7 @@ export class UISystem {
         if (this.startN2SessionBtn) {
             this.startN2SessionBtn.addEventListener('click', () => {
                 if (this.n2CalibrationModal) this.n2CalibrationModal.classList.add('hidden');
-                if (this.n2HubPage) this.n2HubPage.classList.add('hidden');
+                if (this.jlptHubPage) this.jlptHubPage.classList.add('hidden');
                 
                 this.currentMode = 'study';
                 this.currentStudyLevel = 'n2';
@@ -1355,7 +1355,7 @@ export class UISystem {
             
             // Restore UI (Show Menu, Hide Stop)
             if (this.currentMode === 'study' && this.currentStudyLevel === 'n2') {
-                this.openN2Hub();
+                this.openJLPTHub();
                 if (this.menuControls) {
                     this.menuControls.classList.add('hidden'); // Ensure menu is hidden
                 }
@@ -1410,7 +1410,7 @@ export class UISystem {
 
         events.subscribe('N2_SESSION_CLEARED', (data: { rank: string, acc: number, wpm: number, unitIdx: number, sessionIdx: number }) => {
             // Hiển thị lại N2 Hub
-            this.openN2Hub();
+            this.openJLPTHub();
             
             // Hiện thông báo popup siêu cool về Rank
             if (this.messageCenter && this.msgTitle && this.msgSub) {
@@ -1614,7 +1614,7 @@ export class UISystem {
         });
 
         events.subscribe('N2_PROGRESS_SYNCED', () => {
-            if (this.n2HubPage && !this.n2HubPage.classList.contains('hidden')) {
+            if (this.jlptHubPage && !this.jlptHubPage.classList.contains('hidden')) {
                 this.renderN2Units();
             }
             this.updateProfileUI(); // Cập nhật cả bảng Profile (Total Score)
@@ -2466,8 +2466,18 @@ export class UISystem {
     private renderN2Units() {
         const state = StateManager.getInstance();
         const data = state.getN2HubData();
-        if (!this.n2UnitsContainer) return;
+        console.log(`[UISystem] Bắt đầu render Hub. Số lượng Units nhận được: ${data.length}`);
+        
+        if (!this.n2UnitsContainer) {
+            console.error('[UISystem] Không tìm thấy n2UnitsContainer trong DOM!');
+            return;
+        }
         this.n2UnitsContainer.innerHTML = '';
+        
+        if (data.length === 0) {
+            this.n2UnitsContainer.innerHTML = '<div style="color: var(--danger); text-align: center; width: 100%; padding: 40px; font-family: monospace; font-size: 1.2rem; letter-spacing: 2px;">[ HỆ THỐNG: KHÔNG TÌM THẤY DỮ LIỆU CẤP ĐỘ NÀY ]</div>';
+            console.warn('[UISystem] Dữ liệu Hub rỗng, hiển thị thông báo trống.');
+        }
         
         let completedCount = 0;
         let totalCount = 0;
@@ -2598,14 +2608,14 @@ export class UISystem {
         let reverseRank = ['D', 'C', 'B', 'A', 'S'];
         let gRank = completedCount > 0 ? reverseRank[Math.round(globalRankScoreSum / completedCount)] : '-';
 
-        const gRankEl = byId('n2GlobalRank');
-        const gAccEl = byId('n2GlobalAcc');
-        const gWpmEl = byId('n2GlobalWpm');
-        const gScoreEl = byId('n2GlobalScore');
+        const gRankEl = byId('jlptGlobalRank');
+        const gAccEl = byId('jlptGlobalAcc');
+        const gWpmEl = byId('jlptGlobalWpm');
+        const gScoreEl = byId('jlptGlobalScore');
 
         if (gRankEl) {
             gRankEl.innerText = gRank;
-            gRankEl.className = `hud-val n2-rank-${gRank}`;
+            gRankEl.className = `hud-val jlpt-rank-${gRank}`;
         }
         if (gAccEl) gAccEl.innerText = `${gAcc}%`;
         if (gWpmEl) gWpmEl.innerText = `${gWpm}`;
