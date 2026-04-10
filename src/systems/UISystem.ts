@@ -2321,11 +2321,11 @@ export class UISystem {
 
         // --- TIER 1 --- (5 Chế độ = 72 độ mỗi Mode)
         const modes = [
-            { id: "easy", text: "EASY", start: -36, end: 36, mode: 'easy' },     // TOP 
-            { id: "study", text: "STUDY", start: 36, end: 108, mode: 'study' },  // RIGHT
-            { id: "hard", text: "HARD", start: 108, end: 180, mode: 'hard' },    // BOTTOM
-            { id: "chill", text: "CHILL", start: 180, end: 252, mode: 'chill' }, // BOTTOM-LEFT
-            { id: "medium", text: "MEDIUM", start: 252, end: 324, mode: 'medium'}// TOP-LEFT
+            { id: "easy", text: "EASY (SOON)", start: -36, end: 36, mode: 'easy', disabled: true },     // TOP 
+            { id: "study", text: "STUDY", start: 36, end: 108, mode: 'study', disabled: false },       // RIGHT
+            { id: "hard", text: "HARD (SOON)", start: 108, end: 180, mode: 'hard', disabled: true },   // BOTTOM
+            { id: "chill", text: "CHILL (SOON)", start: 180, end: 252, mode: 'chill', disabled: true }, // BOTTOM-LEFT
+            { id: "medium", text: "MEDIUM (SOON)", start: 252, end: 324, mode: 'medium', disabled: true}// TOP-LEFT
         ];
 
         let defs = document.querySelector('#radialSvg defs');
@@ -2334,6 +2334,11 @@ export class UISystem {
             let g = document.createElementNS("http://www.w3.org/2000/svg", "g");
             g.setAttribute("class", "fan-blade");
             g.setAttribute("data-mode", m.mode);
+            if ((m as any).disabled) {
+                g.classList.add("disabled-blade");
+                g.style.opacity = "0.3";
+                g.style.pointerEvents = "none"; 
+            }
             if (m.mode === "study") {
                 g.classList.add("has-sub");
                 g.setAttribute("id", "studyBlade");
