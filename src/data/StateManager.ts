@@ -42,7 +42,7 @@ export class StateManager {
         const mLevel = level.toUpperCase();
         // Since we are using Vite, fetch will serve correctly from root if mapped, or we can use dynamic import.
         // But dynamic import is safer in Vite for JSON, wait, fetch('/src/data/vocabulary_generated.json') also works.
-        const response = await fetch('/src/data/vocabulary_generated.json');
+        const response = await fetch('/data/vocabulary_generated.json');
         if (!response.ok) throw new Error('Failed to fetch JSON');
         const data = await response.json();
         
@@ -78,8 +78,8 @@ export class StateManager {
 
   public async loadN2HubData(): Promise<void> {
     try {
-        const response = await fetch('/src/data/vocabulary_generated.json');
-        if (!response.ok) throw new Error('Failed to fetch JSON');
+        const response = await fetch('/data/vocabulary_generated.json');
+       if (!response.ok) throw new Error('Failed to fetch JSON');
         const data = await response.json();
         
         const levelData = data.find((d: any) => d.level === 'N2');

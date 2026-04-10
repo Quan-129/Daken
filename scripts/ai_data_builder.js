@@ -9,7 +9,7 @@ const __dirname = path.dirname(__filename);
 
 // Input là file text thiết kế theo mảng cột (nhẹ & tiết kiệm token)
 const inputPath = path.resolve(__dirname, '../src_jlpt.txt');
-const outputPath = path.resolve(__dirname, '../src/data/vocabulary_generated.json');
+const outputPath = path.resolve(__dirname, '../public/data/vocabulary_generated.json');
 
 const unitMetadata = {
     "Unit_1": {
