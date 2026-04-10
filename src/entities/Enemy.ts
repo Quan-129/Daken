@@ -87,10 +87,10 @@ export class Enemy {
         this.aliveTime += dt;
         this.x += this.vx;
         
-        if (this.mode === 'chill' || (this.mode === 'study' && (this.studyWave === 3 || this.studyWave === 5))) {
+        if (this.mode === 'chill' || (this.mode === 'study' && this.studyWave === 3)) {
             if (this.x < -250) { // dời xa chút vì khung dynamic có thể dài
                 this.x = canvasWidth + 150;
-                let topMargin = (this.mode === 'study' && (this.studyWave === 3 || this.studyWave === 5)) ? 180 : 150;
+                let topMargin = (this.mode === 'study' && this.studyWave === 3) ? 180 : 150;
                 this.y = Math.random() * (canvasHeight - topMargin - 150) + topMargin; 
                 this.baseY = this.y;
                 if (this.isWave3Target) {

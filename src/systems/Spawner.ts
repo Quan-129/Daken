@@ -72,7 +72,7 @@ export class Spawner {
                         // Overwrite boost for Wave 5 ramping
                         enemy.vx = -(enemy.baseSpeed + currentBoost) * speedModifier;
 
-                        enemy.x = this.canvasWidth + 50 + (Math.random() * 30); 
+                        enemy.x = this.canvasWidth + 50 + (Math.random() * 120); 
                         enemy.y = startY + i * spacing;
                         enemy.baseY = enemy.y;
                         
@@ -103,6 +103,7 @@ export class Spawner {
         if (window.location.search.includes('test=wave5')) this.currentStudyWave = 5;
         else if (window.location.search.includes('test=wave4')) this.currentStudyWave = 4;
         else if (window.location.search.includes('test=wave3')) this.currentStudyWave = 3;
+        else if (window.location.search.includes('test=wave2')) this.currentStudyWave = 2;
         else this.currentStudyWave = 1;
     }
 
@@ -111,6 +112,7 @@ export class Spawner {
         if (window.location.search.includes('test=wave5')) this.currentStudyWave = 5;
         else if (window.location.search.includes('test=wave4')) this.currentStudyWave = 4;
         else if (window.location.search.includes('test=wave3')) this.currentStudyWave = 3;
+        else if (window.location.search.includes('test=wave2')) this.currentStudyWave = 2;
         else this.currentStudyWave = 1;
     }
 

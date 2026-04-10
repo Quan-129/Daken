@@ -27,6 +27,8 @@ export class TypingLogic {
         });
 
         EventBus.getInstance().subscribe('WAVE_STARTED', (data: any) => {
+            this.perfectComboCount = 0;
+            EventBus.getInstance().publish('COMBO_UPDATED', 0);
             if (data && data.waveIndex === 5) {
                 this.resetStats();
             }

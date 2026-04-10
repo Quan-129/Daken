@@ -2,6 +2,7 @@ import { EventBus } from '../utils/EventBus';
 import { StateManager } from '../data/StateManager';
 import { GameConfig } from '../config';
 import { byId } from '../utils/uiHelpers';
+import { AuthSystem } from './AuthSystem';
 export class UISystem {
     private scoreEl = byId('scoreVal');
     private hpEl = byId('hpVal');
@@ -12,6 +13,14 @@ export class UISystem {
     private messageCenter = byId('messageCenter');
     private msgTitle = byId('msgTitle');
     private msgSub = byId('msgSub');
+    private scoreFeedContainer = byId('score-feed-container');
+
+    // Login Screen
+    private loginScreen = byId('login-screen');
+    private usernameInput = byId('usernameInput') as HTMLInputElement;
+    private loginBtn = byId('loginBtn');
+    private googleLoginBtn = byId('googleLoginBtn');
+    private loginStatus = byId('loginStatus');
 
     // Controls
     private startBtn = byId('startBtn');
@@ -152,6 +161,7 @@ export class UISystem {
         this.renderSVGRadialMenu();
         this.setupEventListeners();
         this.subscribeToEventBus();
+        this.initLogin();
     }
 
     private applyConfigToSliders() {
@@ -1152,6 +1162,10 @@ export class UISystem {
             this.updateScore(this.currentScore + points);
             this.savedBaseScore += points;
             this.currentWaveBaseScore += points;
+
+            // Add to combat log
+            const label = data.combo > 1 ? `COMBO x${data.combo}` : 'WORD CLEAR';
+            this.addScoreFeedItem(points, label);
             
             // Xóa buffer UI
             if (this.bufferTyped) this.bufferTyped.innerText = "";
@@ -1162,6 +1176,8 @@ export class UISystem {
             this.currentScore -= penalty;
             if (this.currentScore < 0) this.currentScore = 0;
             this.updateScore(this.currentScore);
+
+            this.addScoreFeedItem(-penalty, 'PENALTY');
             
             // Re-sync base score
             if (this.savedBaseScore > 0) {
@@ -1218,6 +1234,7 @@ export class UISystem {
         events.subscribe('POINTS_PENALTY', (data: { points: number }) => {
             if (data && data.points > 0) {
                 this.updateScore(Math.max(0, this.currentScore - data.points));
+                this.addScoreFeedItem(-data.points, 'TYPO PENALTY');
             }
         });
 
@@ -1248,6 +1265,7 @@ export class UISystem {
                     if (bonusPoints > 0) {
                         this.updateScore(this.currentScore + bonusPoints);
                         this.currentWaveBonusScore = bonusPoints;
+                        this.addScoreFeedItem(bonusPoints, bonusLabel);
                     }
                 }
             }
@@ -1429,12 +1447,131 @@ export class UISystem {
         if (this.scoreEl) this.scoreEl.innerText = this.currentScore.toString();
     }
 
+    private addScoreFeedItem(points: number, label: string) {
+        if (!this.scoreFeedContainer) return;
+
+        const item = document.createElement('div');
+        const isPositive = points >= 0;
+        item.className = `score-feed-item ${isPositive ? 'positive' : 'negative'}`;
+        
+        const sign = isPositive ? '+' : '';
+        item.innerHTML = `
+            <span class="feed-label">${label}</span>
+            <span class="feed-value">${sign}${points}</span>
+        `;
+
+        this.scoreFeedContainer.prepend(item); // Thêm vào đầu (dưới cùng do Column-reverse)
+
+        // Tự động xóa sau 3 giây
+        setTimeout(() => {
+            item.classList.add('fade-out');
+            setTimeout(() => {
+                item.remove();
+            }, 500);
+        }, 3000);
+
+        // Giới hạn tối đa 5 dòng log để không tràn UI
+        while (this.scoreFeedContainer.children.length > 5) {
+            this.scoreFeedContainer.lastChild?.remove();
+        }
+    }
+
     private shakeScreen() {
         if (this.gameContainer) {
             this.gameContainer.classList.remove('shake');
             void this.gameContainer.offsetWidth; // trigger reflow
             this.gameContainer.classList.add('shake');
         }
+    }
+
+    private initLogin() {
+        const auth = AuthSystem.getInstance();
+        
+        // Kiểm tra nhanh localStorage để gỡ bỏ blur ngay lập tức nếu đã có ID (UX mượt)
+        const savedId = localStorage.getItem('DAKEN_ID');
+        if (savedId) {
+            document.body.classList.remove('login-pending');
+            if (this.loginScreen) this.loginScreen.classList.add('hidden');
+        }
+
+        // Hiện màn hình đăng nhập nếu chưa có gì
+        if (!savedId && !auth.isLoggedIn()) {
+            if (this.loginScreen) this.loginScreen.classList.remove('hidden');
+            if (this.usernameInput) {
+                setTimeout(() => this.usernameInput?.focus(), 1500); 
+            }
+        }
+
+        if (this.loginBtn) {
+            this.loginBtn.onclick = () => this.handleLogin();
+        }
+
+        if (this.googleLoginBtn) {
+            this.googleLoginBtn.onclick = async () => {
+                try {
+                    if (this.loginStatus) {
+                        this.loginStatus.innerText = 'REDIRECTING TO GOOGLE...';
+                        this.loginStatus.style.color = 'var(--primary)';
+                    }
+                    await auth.loginWithGoogle();
+                } catch (err) {
+                    if (this.loginStatus) {
+                        this.loginStatus.innerText = 'AUTH_ERROR: CHECK CONSOLE';
+                        this.loginStatus.style.color = 'var(--danger)';
+                    }
+                }
+            };
+        }
+
+        if (this.usernameInput) {
+            this.usernameInput.onkeydown = (e) => {
+                if (e.key === 'Enter') this.handleLogin();
+            };
+        }
+
+        // Lắng nghe sự kiện login thành công (cho OAuth redirect hoặc session bù)
+        EventBus.getInstance().subscribe('AUTH_SUCCESS', (user: any) => {
+            console.log("Auth success event received:", user);
+            if (this.loginStatus) {
+                this.loginStatus.innerText = `WELCOME, ${user.name.toUpperCase()}`;
+                this.loginStatus.style.color = 'var(--safe)';
+            }
+            // Gỡ bỏ class pending ngay lập tức
+            document.body.classList.remove('login-pending');
+            setTimeout(() => this.closeLoginScreen(), 1200);
+        });
+    }
+
+    private handleLogin() {
+        if (!this.usernameInput || !this.loginScreen || !this.loginStatus) return;
+
+        const id = this.usernameInput.value.trim().toUpperCase();
+        if (!id) {
+            this.loginStatus.innerText = 'ERROR: ID_REQUIRED';
+            this.loginStatus.style.color = 'var(--danger)';
+            return;
+        }
+
+        this.loginStatus.innerText = 'STATUS: AUTHORIZING...';
+        this.loginStatus.style.color = 'var(--primary)';
+
+        setTimeout(() => {
+            localStorage.setItem('DAKEN_ID', id);
+            this.loginStatus!.innerText = 'STATUS: LINK_ESTABLISHED';
+            this.loginStatus!.style.color = 'var(--safe)';
+            this.closeLoginScreen();
+        }, 1000);
+    }
+
+    private closeLoginScreen() {
+        if (!this.loginScreen) return;
+        this.loginScreen.classList.add('disappearing');
+
+        setTimeout(() => {
+            document.body.classList.remove('login-pending');
+            this.loginScreen!.classList.add('hidden');
+            EventBus.getInstance().publish('AUDIO_BEEP', null);
+        }, 800);
     }
 
     // --- PLAYLIST RENDERERS ---
@@ -1768,13 +1905,13 @@ export class UISystem {
         let progress = StateManager.getInstance().getProgress();
 
         // 1. Tính toán Rank dựa trên điểm số
-        const thresholds = GameConfig.difficulty.rankThresholds;
+        const thresholds = GameConfig.rankThresholds;
         let rank = 'D';
         let rankColor = 'var(--danger)';
-        if (this.currentScore >= thresholds.S) { rank = 'S'; rankColor = '#FFD700'; }
-        else if (this.currentScore >= thresholds.A) { rank = 'A'; rankColor = '#00e676'; }
-        else if (this.currentScore >= thresholds.B) { rank = 'B'; rankColor = 'var(--neon-cyan)'; }
-        else if (this.currentScore >= thresholds.C) { rank = 'C'; rankColor = 'orange'; }
+        if (thresholds && this.currentScore >= thresholds.S) { rank = 'S'; rankColor = '#FFD700'; }
+        else if (thresholds && this.currentScore >= thresholds.A) { rank = 'A'; rankColor = '#00e676'; }
+        else if (thresholds && this.currentScore >= thresholds.B) { rank = 'B'; rankColor = 'var(--neon-cyan)'; }
+        else if (thresholds && this.currentScore >= thresholds.C) { rank = 'C'; rankColor = 'orange'; }
 
         // 2. Tạo HTML cho Point Breakdown theo từng Wave
         let breakdownHtml = '<div class="wave-breakdown" style="width: 100%; margin: 15px 0; background: rgba(255,255,255,0.05); padding: 15px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.1);">';
@@ -1806,7 +1943,7 @@ export class UISystem {
         }
         
         let html = `
-            <div class="summary-content" style="max-width: 600px; max-height: 90vh; overflow-y: auto; position: relative;">
+            <div class="summary-content" style="width: 800px; max-width: 90vw; max-height: 85vh; overflow-y: auto; overflow-x: hidden; position: relative;">
                 <div style="text-align: center; margin-bottom: 20px;">
                     <h2 style="color: var(--primary-glow); text-shadow: 0 0 10px var(--primary); margin-bottom: 5px; font-family: 'Orbitron';">SESSION COMPLETED</h2>
                     <div style="font-size: 4rem; font-weight: 900; color: ${rankColor}; text-shadow: 0 0 30px ${rankColor}80; font-family: 'Arial Black', sans-serif; font-style: italic;">RANK ${rank}</div>
@@ -1821,7 +1958,7 @@ export class UISystem {
                 ${perfHtml}
 
                 <h3 style="color: #d81b60; font-family: 'Orbitron'; font-size: 1rem; margin: 25px 0 10px; text-align: center; border-top: 1px solid rgba(216, 27, 96, 0.3); padding-top: 20px;">SYNAPSE NODES UPDATE</h3>
-                <div id="synapseNodes" style="display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-bottom: 25px;">
+                <div id="synapseNodesContainer" style="display: flex; flex-wrap: wrap; gap: 15px; justify-content: center; padding: 20px; background: rgba(0,0,0,0.5); border-radius: 12px; border: 1px solid #d81b60; min-height: 200px; margin-bottom: 20px;">
                 </div>
                 
                 <div style="display: flex; justify-content: space-between; margin-bottom: 25px; font-weight: bold; background: rgba(0,0,0,0.3); padding: 12px; border-radius: 8px;">
@@ -1829,12 +1966,14 @@ export class UISystem {
                     <span style="font-size: 0.9rem;">Attention: <strong style="color: #ff3860">${progress.weak.length}</strong></span>
                 </div>
 
-                <button id="closeSynapseBtn" class="neon-button" style="width: 100%; height: 50px; font-size: 1.1rem;">HOÀN TẤT Đợt HỌC</button>
+                <div style="display: flex; justify-content: center; gap: 15px;">
+                    <button id="closeSynapseBtn" class="neon-button danger-btn" style="width: 100%; height: 50px; font-size: 1.1rem; border-radius: 8px; margin: 0;">KẾT THÚC PHIÊN</button>
+                </div>
             </div>
         `;
         this.synapseMatrixModal.innerHTML = html;
         
-        let container = byId('synapseNodes');
+        let container = this.synapseMatrixModal.querySelector('#synapseNodesContainer');
         
         // Render 5 từ cuối cùng đã học trong session này lên đầu hoặc render toàn bộ
         // Giờ ta render toàn bộ Progress hiện có
@@ -1856,7 +1995,7 @@ export class UISystem {
             });
         }
 
-        byId('closeSynapseBtn')?.addEventListener('click', () => {
+        this.synapseMatrixModal.querySelector('#closeSynapseBtn')?.addEventListener('click', () => {
             this.synapseMatrixModal?.classList.add('hidden');
             this.synapseMatrixModal?.classList.remove('show');
             if (this.menuControls) this.menuControls.classList.remove('hidden');

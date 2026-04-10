@@ -7,7 +7,26 @@
     <!-- Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@400;600&family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
 </head>
-<body>
+<body class="login-pending">
+    <!-- Login Screen overlay (Minimalist Void Link) -->
+    <div id="login-screen" class="login-overlay">
+        <div class="void-line"></div>
+        <div class="login-form">
+            <div class="login-prompt">DAKEN_PROTOCOL.INITIALIZE</div>
+            <div class="input-wrapper">
+                <span class="input-label">ID:</span>
+                <input type="text" id="usernameInput" maxlength="15" autocomplete="off" spellcheck="false" placeholder="...">
+            </div>
+            <button id="loginBtn" class="void-btn">[ ESTABLISH_LINK ]</button>
+            <div class="login-divider"><span>OR</span></div>
+            <button id="googleLoginBtn" class="google-btn">
+                <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/smartlock/google.svg" alt="G">
+                SYNC WITH GOOGLE
+            </button>
+            <div class="login-status" id="loginStatus">WAITING_FOR_ID...</div>
+        </div>
+    </div>
+
     <div id="game-container">
         <!-- Background elements -->
         <div id="background-fx"></div>
@@ -23,13 +42,20 @@
                 <div class="top-left-wrapper" style="display: flex; flex-direction: column; gap: 15px;">
                     <div class="stats">
                         <div class="score">SCORE <span id="scoreVal">0</span></div>
+                        <div id="score-feed-container" class="score-feed-container"></div>
                         <div class="hp" style="display: none;">HP: <span id="hpVal">5</span></div>
-                        <div class="hp-battery-container" id="hpBatteryContainer" style="display: flex; gap: 8px; margin-top: 10px;">
-                            <div class="battery-cell on"></div>
-                            <div class="battery-cell on"></div>
-                            <div class="battery-cell on"></div>
-                            <div class="battery-cell on"></div>
-                            <div class="battery-cell on"></div>
+                        <div class="hp-battery-container" id="hpBatteryContainer" style="display: none;">
+                            <div class="battery-label">SURVIVAL CORE</div>
+                            <div class="battery-chassis">
+                                <div class="battery-grid">
+                                    <div class="battery-cell on"></div>
+                                    <div class="battery-cell on"></div>
+                                    <div class="battery-cell on"></div>
+                                    <div class="battery-cell on"></div>
+                                    <div class="battery-cell on"></div>
+                                </div>
+                                <div class="battery-cap"></div>
+                            </div>
                         </div>
                     </div>
                     <button id="stopBtn" class="danger-btn hidden" style="z-index: 1000; margin: 0; padding: 10px 20px; border-radius: 8px; width: 100%;">STOP</button>
