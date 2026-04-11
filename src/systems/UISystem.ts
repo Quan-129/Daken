@@ -117,7 +117,7 @@ export class UISystem {
     private waveStartTime: number = 0;
 
     // Wave results for summary
-    private waveResults: Array<{ baseScore: number, bonusScore: number }> = [];
+    private waveResults: Record<number, { baseScore: number, bonusScore: number }> = {};
     private currentWaveBaseScore: number = 0;
     private currentWaveBonusScore: number = 0;
     private wave5Performance = { correct: 0, total: 0, startTime: 0, durationMs: 0 };
@@ -1090,7 +1090,10 @@ export class UISystem {
                 }
             }
 
-            this.currentWaveBaseScore = 0;
+            // Reset điểm wave hiện tại CHỈ khi không phải là phase Retry
+            if (!data || !data.isRetry) {
+                this.currentWaveBaseScore = 0;
+            }
             this.currentWaveBonusScore = 0;
             // Hack để tránh lỗi "never read" của TS
             if (this.currentWaveBonusScore < 0) console.log(this.currentWaveBonusScore);
@@ -1123,12 +1126,12 @@ export class UISystem {
         });
 
         events.subscribe('STUDY_SESSION_END', () => {
-            // Lưu kết quả của Wave 5 (Endless) trước khi hiện bảng tổng kết
+            // Lưu kết quả của Wave hiện tại (bất kể wave nào) trước khi hiện bảng tổng kết
+            this.waveResults[this.currentWaveNumber] = {
+                baseScore: this.currentWaveBaseScore,
+                bonusScore: this.currentWaveBonusScore || 0
+            };
             if (this.currentWaveNumber === 5) {
-                this.waveResults[5] = {
-                    baseScore: this.currentWaveBaseScore,
-                    bonusScore: 0
-                };
                 this.wave5Performance.durationMs = performance.now() - this.waveStartTime;
             }
             this.showSynapseMatrix();
@@ -1509,6 +1512,15 @@ export class UISystem {
             if (this.waveTimerEl) this.waveTimerEl.classList.remove('hidden');
             if (this.profileCard) this.profileCard.classList.add('hidden');
             if (this.menuControls) this.menuControls.classList.add('hidden');
+
+            // Reset dữ liệu điểm từng Wave cho phiên mới
+            this.waveResults = {};
+            this.currentScore = 0;
+            this.savedBaseScore = 0;
+            this.currentWaveBaseScore = 0;
+            this.currentWaveBonusScore = 0;
+            this.enemiesKilledThisWave = 0;
+            this.updateScore(0);
 
             // Hide Lobby Tools
             if (this.leaderboardTrigger) this.leaderboardTrigger.classList.add('hidden');
