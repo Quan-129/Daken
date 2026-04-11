@@ -250,7 +250,7 @@ export class Enemy {
         ctx.fill();
         ctx.stroke();
         
-        if (this.mode === 'study' && this.isDebt && !this.isDefeated) {
+        if (this.mode === 'study' && this.isDebt && !this.isDefeated && this.studyWave !== 4) {
             // Hiệu ứng kim tuyến viền xung quanh cá nợ
             let speed = performance.now() / 20;
             ctx.save();

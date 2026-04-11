@@ -10,18 +10,18 @@ export class Spawner {
     private getActiveEnemiesCallback: () => Enemy[];
     private canvasWidth: number;
     private canvasHeight: number;
-    
+
     // Thuộc tính riêng cho Study Mode
     private currentStudyDeck: Word[] = [];
     public currentStudyWave: number = 0;
     private currentStudyEntityIndex: number = 0;
     private studyQueue: { word: Word, revealType: 'kanji' | 'vi', isDebt?: boolean }[] = [];
-    private retryQueue: { word: Word, revealType: 'kanji' | 'vi' }[] = [];
+    private retryQueue: { word: Word, revealType: 'kanji' | 'vi', isDebt?: boolean }[] = [];
     private retryTracker: Map<string, number> = new Map();
     private wave5StartTime: number = 0;
 
     constructor(
-        canvasWidth: number, 
+        canvasWidth: number,
         canvasHeight: number,
         engineAddEnemyCallback: (enemy: Enemy) => void,
         getActiveEnemiesCallback: () => Enemy[]
@@ -41,22 +41,22 @@ export class Spawner {
         if (mode === 'chill' || mode === 'easy' || (mode === 'study' && this.currentStudyWave !== 5 && this.currentStudyWave !== 3)) return;
 
         this.spawnTimer += dt;
-             if (mode === 'study' && this.currentStudyWave === 5) {
+        if (mode === 'study' && this.currentStudyWave === 5) {
             const w5Config = GameConfig.studyMode.wave5;
             const accel = w5Config.accelerationSettings;
-            
+
             // Calculate intensity factor (0.0 at 0s -> 1.0 at rampUpTimeMs)
             const elapsed = performance.now() - this.wave5StartTime;
             const intensity = Math.min(1.0, elapsed / accel.rampUpTimeMs);
 
             // Lerp spawn interval from start to min
             const currentBaseInterval = w5Config.spawnIntervalMs - (intensity * (w5Config.spawnIntervalMs - accel.minSpawnIntervalMs));
-            let spawnThreshold = currentBaseInterval / speedModifier; 
+            let spawnThreshold = currentBaseInterval / speedModifier;
 
             if (this.spawnTimer > spawnThreshold) {
                 if (this.currentStudyDeck.length > 0) {
                     const stackSize = w5Config.minStackSize + Math.floor(Math.random() * (w5Config.maxStackSize - w5Config.minStackSize + 1));
-                    const spacing = w5Config.verticalSpacing; 
+                    const spacing = w5Config.verticalSpacing;
                     const startY = this.canvasHeight / 2 - ((stackSize - 1) * spacing) / 2;
 
                     // Calculate current dynamic speed boost
@@ -65,17 +65,17 @@ export class Spawner {
                     for (let i = 0; i < stackSize; i++) {
                         const selectedWord = this.currentStudyDeck[Math.floor(Math.random() * this.currentStudyDeck.length)];
                         const enemy = new Enemy(selectedWord, mode, speedModifier, this.canvasWidth, this.canvasHeight, this.currentStudyWave);
-                        
+
                         // Wave 5: Kiểu thuốc chỉ có kanji hoặc chỉ có nghĩa tiếng việt để học 2 chiều
                         enemy.revealType = Math.random() > 0.5 ? 'kanji' : 'vi';
 
                         // Overwrite boost for Wave 5 ramping
                         enemy.vx = -(enemy.baseSpeed + currentBoost) * speedModifier;
 
-                        enemy.x = this.canvasWidth + 50 + (Math.random() * 120); 
+                        enemy.x = this.canvasWidth + 50 + (Math.random() * 120);
                         enemy.y = startY + i * spacing;
                         enemy.baseY = enemy.y;
-                        
+
                         this.engineAddEnemyCallback(enemy);
                     }
                 }
@@ -251,7 +251,7 @@ export class Spawner {
         EventBus.getInstance().publish('WAVE_STARTED', { count: count, waveIndex: this.currentStudyWave });
     }
 
-    private spawnBatchWave3(speedModifier: number) {
+    public spawnBatchWave3(speedModifier: number) {
         const batchSize = 5;
         const spacing = 110;
         const startY = this.canvasHeight / 2 - ((batchSize - 1) * spacing) / 2;
@@ -269,7 +269,7 @@ export class Spawner {
             enemy.x = this.canvasWidth / 2;
             enemy.y = startY + i * spacing;
             enemy.baseY = enemy.y;
-            
+
             // Ép đứng yên (vx = 0)
             enemy.vx = 0;
 
@@ -290,12 +290,14 @@ export class Spawner {
         if (this.currentStudyWave === 4) {
             const trueEnemy = new Enemy(q.word, 'study', 0, this.canvasWidth, this.canvasHeight, this.currentStudyWave);
             trueEnemy.isTruth = true;
+            trueEnemy.revealType = q.revealType || 'kanji';
+            if (q.isDebt) trueEnemy.isDebt = true;
 
             // Pick 3 random distractors from remaining currentStudyDeck
             let distractors = this.currentStudyDeck.filter(w => w.romaji !== q.word.romaji);
             distractors.sort(() => Math.random() - 0.5);
             let pickedDistractors = distractors.slice(0, 3);
-            
+
             let d1 = new Enemy(pickedDistractors[0], 'study', 0, this.canvasWidth, this.canvasHeight, this.currentStudyWave);
             let d2 = new Enemy(pickedDistractors[1], 'study', 0, this.canvasWidth, this.canvasHeight, this.currentStudyWave);
             let d3 = new Enemy(pickedDistractors[2], 'study', 0, this.canvasWidth, this.canvasHeight, this.currentStudyWave);
@@ -305,10 +307,10 @@ export class Spawner {
 
             const layout = GameConfig.studyMode.wave4.layout;
             const gridCoords = [
-                {x: this.canvasWidth / 2 - layout.offsetX, y: this.canvasHeight / 2 + layout.offsetYStart},
-                {x: this.canvasWidth / 2 + layout.offsetX, y: this.canvasHeight / 2 + layout.offsetYStart},
-                {x: this.canvasWidth / 2 - layout.offsetX, y: this.canvasHeight / 2 + layout.offsetYStart + layout.offsetYSpacing},
-                {x: this.canvasWidth / 2 + layout.offsetX, y: this.canvasHeight / 2 + layout.offsetYStart + layout.offsetYSpacing},
+                { x: this.canvasWidth / 2 - layout.offsetX, y: this.canvasHeight / 2 + layout.offsetYStart },
+                { x: this.canvasWidth / 2 + layout.offsetX, y: this.canvasHeight / 2 + layout.offsetYStart },
+                { x: this.canvasWidth / 2 - layout.offsetX, y: this.canvasHeight / 2 + layout.offsetYStart + layout.offsetYSpacing },
+                { x: this.canvasWidth / 2 + layout.offsetX, y: this.canvasHeight / 2 + layout.offsetYStart + layout.offsetYSpacing },
             ];
 
             candidates.forEach((e, idx) => {
@@ -316,7 +318,7 @@ export class Spawner {
                 e.y = gridCoords[idx].y;
                 e.baseY = e.y;
                 // Wave 4 không di chuyển
-                e.dynamicStudyOffset = 0; 
+                e.dynamicStudyOffset = 0;
                 e.wave4Index = idx + 1; // Gắn số phím 1->4
                 this.engineAddEnemyCallback(e);
             });
@@ -328,7 +330,8 @@ export class Spawner {
 
         const enemy = new Enemy(q.word, 'study', speedModifier, this.canvasWidth, this.canvasHeight, this.currentStudyWave);
         enemy.revealType = q.revealType;
-        
+        if (q.isDebt) enemy.isDebt = true;
+
         this.engineAddEnemyCallback(enemy);
         EventBus.getInstance().publish('FOCUS_ENEMY', enemy);
     }
@@ -347,7 +350,7 @@ export class Spawner {
             let current = this.retryTracker.get(enemy.word.romaji) || 0;
             this.retryTracker.set(enemy.word.romaji, current + 1);
         }
-        this.retryQueue.push({ word: enemy.word, revealType: enemy.revealType || 'kanji' });
+        this.retryQueue.push({ word: enemy.word, revealType: enemy.revealType || 'kanji', isDebt: true });
     }
 
     public hasRetryEnemies(): boolean {
@@ -364,7 +367,7 @@ export class Spawner {
 
     public spawnStaticWave(mode: string, speedModifier: number) {
         const count = 5;
-        const spacing = 100; 
+        const spacing = 100;
         const startY = this.canvasHeight / 2 - ((count - 1) * spacing) / 2;
 
         for (let i = 0; i < count; i++) {
@@ -383,7 +386,7 @@ export class Spawner {
             }
 
             const enemy = new Enemy(selectedWord, mode, speedModifier, this.canvasWidth, this.canvasHeight);
-            
+
             enemy.x = this.canvasWidth / 2;
             enemy.y = startY + i * spacing;
             enemy.baseY = enemy.y;

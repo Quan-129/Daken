@@ -89,6 +89,7 @@ export class UISystem {
     private isGameActive = false;
     private waveSegmentStates: ('empty' | 'filled' | 'failed')[] = [];
     private enemiesKilledThisWave = 0;
+    private isSessionEnding = false;
 
     // Timer and Summary state
     private waveTimerEl = byId('waveTimer');
@@ -203,7 +204,7 @@ export class UISystem {
         this.setupAvatarUpload();
         this.updateProfileUI(); // Cập nhật Profile ngay khi khởi tạo
         this.setupLeaderboardLogic();
-        
+
         // Đảm bảo HP và Wave UI ẩn khi ở Lobby
         const batteryContainer = byId('hpBatteryContainer');
         if (batteryContainer) batteryContainer.style.display = 'none';
@@ -800,6 +801,7 @@ export class UISystem {
         });
 
         events.subscribe('GAME_START', (config: { mode: string }) => {
+            this.isSessionEnding = false;
             this.updateHp(5);
             this.updateScore(0);
             this.currentWaveNumber = 1;
@@ -830,6 +832,7 @@ export class UISystem {
         });
 
         events.subscribe('GAME_START_N2', (config: any) => {
+            this.isSessionEnding = false;
             this.updateHp(5);
             this.updateScore(0);
             this.currentWaveNumber = 1;
@@ -1506,7 +1509,7 @@ export class UISystem {
             if (this.waveTimerEl) this.waveTimerEl.classList.remove('hidden');
             if (this.profileCard) this.profileCard.classList.add('hidden');
             if (this.menuControls) this.menuControls.classList.add('hidden');
-            
+
             // Hide Lobby Tools
             if (this.leaderboardTrigger) this.leaderboardTrigger.classList.add('hidden');
             if (this.guideTrigger) this.guideTrigger.classList.add('hidden');
@@ -1525,7 +1528,7 @@ export class UISystem {
             if (batteryContainer) batteryContainer.style.display = 'none';
 
             this.updateProfileUI(); // Refresh stats after match
-            
+
             // Show Lobby Tools
             if (this.leaderboardTrigger) this.leaderboardTrigger.classList.remove('hidden');
             if (this.guideTrigger) this.guideTrigger.classList.remove('hidden');
@@ -1614,7 +1617,7 @@ export class UISystem {
             try {
                 await auth.updateProfile({ name: name, agentId: randomID });
                 if (this.loginStatus) this.loginStatus.innerText = 'STATUS: IDENTITY_SECURED';
-                
+
                 // Sau khi thành công, UISystem sẽ tự nhận event AUTH_SUCCESS và ẩn setup-view
             } catch (err: any) {
                 if (this.loginStatus) this.loginStatus.innerText = `STATUS: ${err.message.toUpperCase()}`;
@@ -1697,10 +1700,10 @@ export class UISystem {
 
                 const lastSyncedScore = parseInt(localStorage.getItem('LAST_SYNCED_TOTAL_SCORE') || '0');
                 if (totalScore > lastSyncedScore) {
-                    auth.updateProfile({ 
-                        total_score: totalScore, 
-                        avg_wpm: avgWpm, 
-                        avg_acc: avgAcc 
+                    auth.updateProfile({
+                        total_score: totalScore,
+                        avg_wpm: avgWpm,
+                        avg_acc: avgAcc
                     }).then(() => {
                         localStorage.setItem('LAST_SYNCED_TOTAL_SCORE', totalScore.toString());
                         console.log("[Social] Stats synchronized with Neural Hierarchy.");
@@ -1820,6 +1823,20 @@ export class UISystem {
     private updateScore(score: number) {
         this.currentScore = score;
         if (this.scoreEl) this.scoreEl.innerText = this.currentScore.toString();
+
+        // Wave 5 Victory condition: 3000 points
+        if (this.currentMode === 'study' && this.currentWaveNumber >= 5 && this.currentScore >= 3000 && !this.isSessionEnding) {
+            this.isSessionEnding = true;
+            if (this.messageCenter && this.msgTitle && this.msgSub) {
+                this.messageCenter.classList.remove('hidden');
+                this.msgTitle.innerText = "GOAL REACHED";
+                this.msgTitle.style.color = "#FFD700";
+                this.msgSub.innerText = "SIÊU CẤP ĐẠI CA ĐÃ ĐẠT 3000 ĐIỂM!";
+            }
+            setTimeout(() => {
+                EventBus.getInstance().publish('STUDY_SESSION_END', null);
+            }, 1000);
+        }
     }
 
     private addScoreFeedItem(points: number, label: string) {
@@ -2070,8 +2087,9 @@ export class UISystem {
             let processedCount = 0;
             for (let i = 0; i < this.enemiesSpawnedThisWave; i++) {
                 let state = this.waveSegmentStates && this.waveSegmentStates[i] ? this.waveSegmentStates[i] : 'empty';
-                if (this.currentMode !== 'study') {
-                    if (i < this.enemiesKilledThisWave) state = 'filled';
+                // Tự động gán trạng thái 'filled' cho các ô đã vượt qua số lượng quái bị giết
+                if (state === 'empty' && i < this.enemiesKilledThisWave) {
+                    state = 'filled';
                 }
                 if (state === 'filled' || state === 'failed') {
                     processedCount++;
@@ -2653,9 +2671,9 @@ export class UISystem {
         if (!this.closeLeaderboardBtn) this.closeLeaderboardBtn = byId('closeLeaderboardBtn');
         if (!this.leaderboardList) this.leaderboardList = byId('leaderboard-list');
 
-        console.log("[Leaderboard] Setting up logic...", { 
-            trigger: !!this.leaderboardTrigger, 
-            terminal: !!this.leaderboardTerminal 
+        console.log("[Leaderboard] Setting up logic...", {
+            trigger: !!this.leaderboardTrigger,
+            terminal: !!this.leaderboardTerminal
         });
 
         if (!this.leaderboardTrigger || !this.leaderboardTerminal || !this.closeLeaderboardBtn) {
@@ -2740,12 +2758,12 @@ export class UISystem {
             if (error) throw error;
 
             this.leaderboardList.innerHTML = '';
-            
+
             if (data && data.length > 0) {
                 data.forEach((agent, index) => {
                     const item = document.createElement('div');
                     item.className = `rank-item top-${index + 1}`;
-                    
+
                     const value = this.getFormattedMetricValue(agent);
                     const isSelf = user && agent.agent_id === user.agentId;
 
@@ -2771,7 +2789,7 @@ export class UISystem {
                 // Tìm xem mình có trong danh sách top này không để lấy rank
                 const myIndex = data ? data.findIndex(a => a.agent_id === user.agentId) : -1;
                 const myRank = myIndex !== -1 ? `#${myIndex + 1}` : '#??';
-                
+
                 // Lấy giá trị metric hiện tại của mình
                 const myValue = this.getFormattedMetricValue({
                     total_score: user.total_score,

@@ -14,7 +14,7 @@ export class Engine {
     private lastTime: number = 0;
     private particles: any[] = [];
     private isWaitingForProceed: boolean = false;
-    
+
     // Variables from game settings
     public mode: string = 'medium';
     private speedModifier: number = 1.0;
@@ -26,19 +26,19 @@ export class Engine {
         this.ctx = ctx;
 
         this.typingLogic = new TypingLogic(() => this.enemies);
-        
+
         this.spawner = new Spawner(
-            canvas.width, 
-            canvas.height, 
+            canvas.width,
+            canvas.height,
             (enemy: Enemy) => {
                 this.enemies.push(enemy);
-            }, 
+            },
             () => this.enemies
         );
 
         this.resize();
         window.addEventListener('resize', () => this.resize());
-        
+
         EventBus.getInstance().subscribe('PERFECT_RECALL', (enemy: Enemy) => {
             if (this.mode === 'study') {
                 this.createTextParticle(enemy.x, enemy.y - 20, "PERFECT RECALL!", "#FFD700");
@@ -57,7 +57,7 @@ export class Engine {
         });
 
         this.setupManualProceedListener();
-        
+
         EventBus.getInstance().subscribe('MARK_WEAK', (enemy: Enemy) => {
             if (enemy && enemy.word && enemy.word.romaji) {
                 import('../data/StateManager').then(module => {
@@ -65,7 +65,7 @@ export class Engine {
                 });
             }
         });
-        
+
         EventBus.getInstance().subscribe('MARK_MASTERED', (enemy: Enemy) => {
             if (enemy && enemy.word && enemy.word.romaji) {
                 import('../data/StateManager').then(module => {
@@ -96,7 +96,7 @@ export class Engine {
     private resize() {
         let newW = window.innerWidth;
         let newH = window.innerHeight;
-        
+
         if (this.canvas.parentElement && this.canvas.parentElement.clientWidth > 0) {
             newW = this.canvas.parentElement.clientWidth;
             newH = this.canvas.parentElement.clientHeight;
@@ -104,7 +104,7 @@ export class Engine {
 
         this.canvas.width = newW;
         this.canvas.height = newH;
-        
+
         if (this.spawner) {
             this.spawner.updateDimensions(newW, newH);
         }
@@ -135,15 +135,15 @@ export class Engine {
         this.enemies = [];
         this.particles = [];
         this.typingLogic.isKeyboardLocked = false;
-        
+
         if (typeof (this.spawner as any).resetStudySession === 'function') {
             this.spawner.resetStudySession();
         }
-        
+
         this.typingLogic.resetStats();
 
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-        
+
 
     }
 
@@ -211,21 +211,21 @@ export class Engine {
             this.ctx.beginPath();
             this.ctx.moveTo(150, 0);
             this.ctx.lineTo(150, this.canvas.height);
-            this.ctx.strokeStyle = "rgba(255, 0, 110, 0.6)"; 
+            this.ctx.strokeStyle = "rgba(255, 0, 110, 0.6)";
             this.ctx.lineWidth = 2;
             this.ctx.shadowColor = "#FF006E";
             this.ctx.shadowBlur = 10;
             this.ctx.stroke();
-            
+
             this.ctx.fillStyle = "rgba(255, 0, 110, 0.2)";
-            this.ctx.fillRect(145, 0, 10, this.canvas.height); 
+            this.ctx.fillRect(145, 0, 10, this.canvas.height);
             this.ctx.restore();
         }
 
         // Đảm bảo luôn có 1 mục tiêu trong Wave 3 và Wave 5
         if (this.mode === 'study' && (this.spawner.currentStudyWave === 3 || this.spawner.currentStudyWave === 5)) {
             let activeTarget = this.enemies.find(e => e.isWave3Target && !e.isDead);
-            
+
             if (activeTarget && activeTarget.x > this.canvas.width) {
                 activeTarget.isWave3Target = false;
                 activeTarget = undefined;
@@ -270,19 +270,19 @@ export class Engine {
         // Xử lý dọn dẹp cá chết
         for (let i = this.enemies.length - 1; i >= 0; i--) {
             let enemy = this.enemies[i];
-            
+
             if (enemy.isDead) {
                 if (this.mode === 'easy' || this.mode === 'study') {
                     this.createExplosion(enemy.x, enemy.y, enemy.color);
                 }
-                
+
                 if (this.mode === 'study' && enemy.isWeak) {
                     this.spawner.addRetryEnemy(enemy);
                 }
 
                 EventBus.getInstance().publish('ENEMY_REMOVED', enemy);
                 this.enemies.splice(i, 1);
-                
+
                 if (this.enemies.length === 0) {
                     if (this.mode === 'easy') {
                         EventBus.getInstance().publish('WAVE_CLEARED', null);
@@ -302,12 +302,17 @@ export class Engine {
                                     this.spawner.spawnNextStudyEnemy(this.speedModifier);
                                 }
                             }, 500);
-                        } else if ((this.spawner.currentStudyWave === 1 || this.spawner.currentStudyWave === 2 || this.spawner.currentStudyWave === 4) && this.spawner.hasRetryEnemies()) {
-                            // Khởi động vòng lặp đền mạng Retry Phase
+                        } else if (this.spawner.hasRetryEnemies()) {
+                            // Khởi động vòng lặp đền mạng Retry Phase cho TẤT CẢ các Wave
                             this.spawner.startRetryPhase();
                             setTimeout(() => {
                                 if (this.isRunning && this.mode === 'study') {
-                                    this.spawner.spawnNextStudyEnemy(this.speedModifier);
+                                    if (this.spawner.currentStudyWave === 3) {
+                                        // Wave 3 dùng Batch sinh 5 con
+                                        this.spawner.spawnBatchWave3(this.speedModifier);
+                                    } else {
+                                        this.spawner.spawnNextStudyEnemy(this.speedModifier);
+                                    }
                                 }
                             }, 500);
                         } else if (this.spawner.currentStudyWave === 3 && this.spawner.hasMoreStudyEnemies()) {
@@ -330,12 +335,12 @@ export class Engine {
                 p.x += p.vx;
                 p.y += p.vy;
                 p.alpha -= 1 / p.life;
-                
+
                 if (p.alpha <= 0) {
                     this.particles.splice(i, 1);
                     continue;
                 }
-                
+
                 this.ctx.save();
                 this.ctx.globalAlpha = p.alpha;
                 if (p.isText) {
@@ -363,7 +368,7 @@ export class Engine {
     private setupManualProceedListener() {
         EventBus.getInstance().subscribe('MANUAL_NEXT_WAVE', () => {
             if (!this.isRunning || !this.isWaitingForProceed) return;
-            
+
             this.isWaitingForProceed = false;
             if (this.spawner.currentStudyWave < 5) {
                 this.spawner.nextStudyWave();
