@@ -2734,6 +2734,7 @@ export class UISystem {
                 .from('profiles')
                 .select('name, agent_id, avatar, total_score, avg_wpm, avg_acc')
                 .order(sortColumn, { ascending: false })
+                .order('updated_at', { ascending: false })
                 .limit(10);
 
             if (error) throw error;
