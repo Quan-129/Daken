@@ -2776,8 +2776,27 @@ export class UISystem {
                     const item = document.createElement('div');
                     item.className = `rank-item top-${index + 1}`;
 
-                    const value = this.getFormattedMetricValue(agent);
                     const isSelf = user && agent.agent_id === user.agentId;
+                    const serverValueStr = this.getFormattedMetricValue(agent);
+                    
+                    // Local-favoring logic: Nếu điểm local cao hơn server (do trễ sync), hiện điểm local cho bản thân
+                    let displayValue = serverValueStr;
+                    if (isSelf && user) {
+                        const localData = {
+                            total_score: user.total_score || 0,
+                            avg_wpm: user.avg_wpm || 0,
+                            avg_acc: user.avg_acc || 0
+                        };
+                        const localValueStr = this.getFormattedMetricValue(localData);
+                        
+                        // Chuyển đổi sang số để so sánh chính xác (Bỏ dấu phẩy và phần trăm)
+                        const localValueNum = parseFloat(localValueStr.replace(/,/g, '').replace('%', ''));
+                        const serverValueNum = parseFloat(serverValueStr.replace(/,/g, '').replace('%', ''));
+                        
+                        if (localValueNum > serverValueNum) {
+                            displayValue = localValueStr;
+                        }
+                    }
 
                     item.innerHTML = `
                         <div class="rank-num">${index + 1}</div>
@@ -2788,7 +2807,7 @@ export class UISystem {
                             <div class="rank-name">${agent.name || 'ANONYMOUS_AGENT'} ${isSelf ? '<span style="color:var(--safe); font-size:0.6rem;">(YOU)</span>' : ''}</div>
                             <div class="rank-tag">#${agent.agent_id || '000000'}</div>
                         </div>
-                        <div class="rank-value">${value}</div>
+                        <div class="rank-value">${displayValue}</div>
                     `;
                     this.leaderboardList?.appendChild(item);
                 });
@@ -2798,21 +2817,27 @@ export class UISystem {
 
             // Sync My Ranking Footer
             if (this.myRankingFooter && user) {
-                // Tìm xem mình có trong danh sách top này không để lấy rank
+                const myInTop = data ? data.find(a => a.agent_id === user.agentId) : null;
                 const myIndex = data ? data.findIndex(a => a.agent_id === user.agentId) : -1;
                 const myRank = myIndex !== -1 ? `#${myIndex + 1}` : '#??';
 
-                // Lấy giá trị metric hiện tại của mình
-                const myValue = this.getFormattedMetricValue({
-                    total_score: user.total_score,
-                    avg_wpm: user.avg_wpm,
-                    avg_acc: user.avg_acc
-                });
+                const finalMyName = myInTop ? myInTop.name : (user.name || 'GUEST_AGENT');
+                const finalMyAvatar = myInTop ? myInTop.avatar : user.avatar;
+                
+                // Sử dụng giá trị cao nhất giữa Server và Local để đảm bảo hiển thị đúng nhất
+                const myMetricData = {
+                    total_score: Math.max(user.total_score || 0, myInTop ? myInTop.total_score : 0),
+                    avg_wpm: Math.max(user.avg_wpm || 0, myInTop ? myInTop.avg_wpm : 0),
+                    avg_acc: Math.max(user.avg_acc || 0, myInTop ? myInTop.avg_acc : 0)
+                };
+                const myValue = this.getFormattedMetricValue(myMetricData);
 
                 this.myRankingFooter.innerHTML = `
-                    <div class="rank-avatar">${user.name ? user.name[0].toUpperCase() : 'Y'}</div>
+                    <div class="rank-avatar">
+                        ${finalMyAvatar ? `<img src="${finalMyAvatar}">` : (finalMyName ? finalMyName[0].toUpperCase() : 'Y')}
+                    </div>
                     <div class="rank-info">
-                        <div class="rank-name" style="color:var(--primary);">${user.name} ${myIndex !== -1 ? '<span style="color:var(--safe); font-size:0.6rem;">(TOP PLAYER)</span>' : ''}</div>
+                        <div class="rank-name" style="color:var(--primary);">${finalMyName} ${myIndex !== -1 ? '<span style="color:var(--safe); font-size:0.6rem;">(TOP PLAYER)</span>' : ''}</div>
                         <div class="rank-tag">HIERARCHY_RANK: ${myRank}</div>
                     </div>
                     <div class="rank-value" style="font-size:1.1rem; color:var(--primary-glow);">${myValue}</div>
