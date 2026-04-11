@@ -65,6 +65,14 @@ export class Engine {
                 });
             }
         });
+        
+        EventBus.getInstance().subscribe('MARK_MASTERED', (enemy: Enemy) => {
+            if (enemy && enemy.word && enemy.word.romaji) {
+                import('../data/StateManager').then(module => {
+                    module.StateManager.getInstance().markWordMastered(enemy.word.romaji);
+                });
+            }
+        });
 
         EventBus.getInstance().subscribe('AUDIO_TTS_ENDED', (enemy: Enemy) => {
             if (this.enemies.includes(enemy)) {

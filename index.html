@@ -1,71 +1,43 @@
 <!DOCTYPE html>
 <html lang="vi">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Neon Typing Arcade</title>
     <!-- Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@400;600&family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@400;600&family=Noto+Sans+JP:wght@400;700&display=swap"
+        rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
 </head>
+
 <body class="login-pending">
     <!-- Login Screen overlay (Minimalist Void Link) -->
     <div id="login-screen" class="login-overlay">
         <div class="login-container">
-            <!-- TABS -->
-            <div id="loginTabs" class="login-tabs">
-                <button id="tab-login" class="tab-btn active">LOGIN</button>
-                <button id="tab-register" class="tab-btn">REGISTER</button>
-            </div>
-
-            <!-- LOGIN VIEW -->
-            <div id="login-view" class="auth-view">
-                <div class="input-group">
-                    <label>EMAIL</label>
-                    <input type="email" id="loginEmail" placeholder="Enter your email...">
-                </div>
-                <div class="input-group">
-                    <label>PASSWORD</label>
-                    <input type="password" id="loginPass" placeholder="••••••••">
-                </div>
-                <button id="executeLoginBtn" class="void-btn">[ ESTABLISH_LINK ]</button>
-            </div>
-
-            <!-- REGISTER VIEW -->
-            <div id="register-view" class="auth-view hidden">
-                <div class="input-group">
-                    <label>DISPLAY NAME</label>
-                    <input type="text" id="regName" maxlength="12" placeholder="Your in-game name...">
-                </div>
-                <div class="input-group">
-                    <label>EMAIL</label>
-                    <input type="email" id="regEmail" placeholder="your@email.com">
-                </div>
-                <div class="input-group">
-                    <label>PASSWORD</label>
-                    <input type="password" id="regPass" placeholder="Min 6 characters">
-                </div>
-                <button id="executeRegisterBtn" class="void-btn">[ CREATE_ACCOUNT ]</button>
-            </div>
-
-            <!-- SETUP NAME VIEW (Dành cho Google/Guest lần đầu) -->
+            <!-- IDENTITY SETUP VIEW (Dành cho First-time Agent) -->
             <div id="setup-view" class="auth-view hidden">
                 <div class="login-prompt">INITIALIZING IDENTITY...</div>
                 <div class="input-group">
-                    <label>CHOOSE YOUR NAME</label>
-                    <input type="text" id="setupName" maxlength="12" placeholder="Enter name...">
+                    <label>CHOOSE YOUR BATTLE NAME</label>
+                    <input type="text" id="setupName" maxlength="12" placeholder="Enter nickname...">
                 </div>
-                <button id="finishSetupBtn" class="void-btn">[ START_GAME ]</button>
+                <p style="font-size: 0.75rem; color: rgba(255,255,255,0.4); margin-bottom: 20px;">* Hệ thống sẽ cấp mã Agent ngẫu nhiên sau khi bạn chốt tên.</p>
+                <button id="finishSetupBtn" class="void-btn">[ SYNC_IDENTITY ]</button>
             </div>
 
+            <!-- MAIN SYNC AREA -->
             <div id="social-login-area">
-                <div class="login-divider"><span>OR</span></div>
-                <button id="googleLoginBtn" class="google-btn">
+                <div class="login-prompt">AGENT AUTHENTICATION REQUIRED</div>
+                <button id="googleLoginBtn" class="google-btn" style="width: 320px; height: 60px; font-size: 1.1rem;">
                     <img src="https://www.gstatic.com/images/branding/product/1x/gsa_512dp.png" alt="G">
-                    SIGN IN WITH GOOGLE
+                    ESTABLISH LINK VIA GMAIL
                 </button>
+                <p style="color: rgba(255,255,255,0.3); font-size: 0.8rem; margin-top: 20px;">Secure biometric sync via Google Neural Link</p>
             </div>
 
-            <div class="login-status" id="loginStatus">STATUS: IDLE</div>
+            <div class="login-status" id="loginStatus">STATUS: WAITING_FOR_SYNC</div>
         </div>
     </div>
 
@@ -80,383 +52,513 @@
 
         <!-- UI Overlay -->
         <div id="ui-layer">
-                <div class="top-left-wrapper">
-                    <!-- PLAYER IDENTITY CARD (Neural Link Profile) -->
-                    <div id="player-profile-card" class="player-profile-card">
-                        <div class="profile-header">
-                            <div class="avatar-container" id="avatarTrigger">
-                                <img id="playerAvt" src="https://api.dicebear.com/7.x/bottts/svg?seed=DakenAgent" alt="Avatar">
-                                <div class="avatar-overlay">SCAN</div>
-                                <input type="file" id="avtFileInput" accept="image/*" style="display: none;">
+            <div class="top-left-wrapper">
+                <!-- PLAYER IDENTITY CARD (Neural Link Profile) -->
+                <div id="player-profile-card" class="player-profile-card">
+                    <div class="profile-header">
+                        <div class="avatar-container" id="avatarTrigger">
+                            <img id="playerAvt" src="https://api.dicebear.com/7.x/bottts/svg?seed=DakenAgent"
+                                alt="Avatar">
+                            <div class="avatar-overlay">SCAN</div>
+                            <input type="file" id="avtFileInput" accept="image/*" style="display: none;">
+                        </div>
+                        <div class="profile-info">
+                            <div class="player-name-wrapper" style="display: flex; align-items: baseline; gap: 8px;">
+                                <span id="playerName" class="player-name">GUEST_AGENT</span>
+                                <span id="playerTag" class="player-tag" style="font-family: 'Orbitron', monospace; font-size: 0.7rem; color: rgba(255,255,255,0.3); letter-spacing: 1px;">#000000</span>
                             </div>
-                            <div class="profile-info">
-                                <div id="playerName" class="player-name">GUEST_AGENT</div>
-                                <div class="player-rank-row">
-                                    <span class="rank-label">CLASS:</span>
-                                    <span id="playerRank" class="rank-value">UNRANKED</span>
+                            <div class="player-rank-row">
+                                <span class="rank-label">CLASS:</span>
+                                <span id="playerRank" class="rank-value">UNRANKED</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="profile-stats-grid">
+                        <div class="stat-item">
+                            <span class="stat-label">TOTAL_SCORE</span>
+                            <span id="totalScoreVal" class="stat-val">0</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">AVG_ACC</span>
+                            <span id="avgAccVal" class="stat-val">0%</span>
+                        </div>
+                    <div class="stat-item">
+                        <span class="stat-label">AVG_WPM</span>
+                        <span id="avgWpmVal" class="stat-val">0</span>
+                    </div>
+                </div>
+                <button id="logoutBtn" class="logout-btn">DISCONNECT_LINK</button>
+            </div>
+
+            <!-- Current Match Score (Always visible in-game, independent of profile) -->
+            <div id="current-score-box" class="current-score-wrapper-independent hidden">
+                <span class="label">MATCH_SCORE:</span>
+                <span id="scoreVal">0</span>
+                <div id="score-feed-container" class="score-feed-container"></div>
+            </div>
+
+            <div class="hp-battery-container" id="hpBatteryContainer" style="display: none;">
+                <div class="battery-label">SURVIVAL CORE</div>
+                <div class="battery-chassis">
+                    <div class="battery-grid">
+                        <div class="battery-cell on"></div>
+                        <div class="battery-cell on"></div>
+                        <div class="battery-cell on"></div>
+                        <div class="battery-cell on"></div>
+                        <div class="battery-cell on"></div>
+                    </div>
+                    <div class="battery-cap"></div>
+                </div>
+            </div>
+
+            </div>
+
+            <div class="bottom-left-wrapper">
+                <button id="stopBtn" class="danger-btn hidden">STOP SYSTEM</button>
+                <div class="hp" style="display: none;">HP: <span id="hpVal">5</span></div>
+            </div>
+
+            <!-- NEW Wave Progress & Timer UI -->
+            <div class="wave-progress-container hidden" id="waveProgressContainer">
+                <div class="wave-header-row">
+                    <div class="wave-label" id="waveLabel">WAVE 01</div>
+                    <div class="combo-label hidden" id="comboLabel">COMBO x2</div>
+                </div>
+                <!-- PERCENTAGE PROGRESS BAR -->
+                <div
+                    style="display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; font-weight: bold; margin-bottom: 4px; padding: 0 2px; width: 220px;">
+                    <span id="wavePercentText"
+                        style="color: var(--neon-cyan); text-shadow: 0 0 5px var(--neon-cyan);">0%</span>
+                    <span id="waveRetryLabel" class="hidden"
+                        style="color: #ff4757; text-shadow: 0 0 10px #ff4757; letter-spacing: 1px;">[ RETRY ]</span>
+                </div>
+                <div class="wave-progress-bar-wrapper"
+                    style="width: 220px; height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; margin-bottom: 8px; overflow: hidden; position: relative;">
+                    <div id="waveProgressBarFill"
+                        style="width: 0%; height: 100%; background: var(--safe); box-shadow: 0 0 10px var(--safe); transition: width 0.3s ease;">
+                    </div>
+                </div>
+            </div>
+
+            <div class="right-container"
+                style="display: flex; flex-direction: column; align-items: flex-end; gap: 10px;">
+                <!-- HUD Playlist Xổ Xuống Kế Bên -->
+                <div id="main-playlist-hud" class="hidden">
+                    <div class="hud-playlist-header">
+                        <span id="hudPlaylistName">📁 Folder</span>
+                    </div>
+                    <div id="hudPlaylistSongs" class="hud-playlist-songs"></div>
+                </div>
+            </div>
+
+            <div class="top-right-controls"
+                style="display: flex; flex-direction: column; gap: 10px; align-items: flex-end;">
+                <!-- TOP ROW: Currencies + Mini Player -->
+                <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 5px;">
+                    <div style="display: flex; flex-direction: row; gap: 15px; align-items: center;">
+                        <!-- HUD Currencies -->
+                        <div class="currency-hud" style="display: none; gap: 15px;">
+                            <div class="cyber-coins">
+                                🪙 <span id="coinVal">0</span>
+                                <button class="add-funds-btn" title="Nạp Tiền">+</button>
+                            </div>
+                            <div class="cyber-diamonds">
+                                💎 <span id="diamondVal">0</span>
+                                <button class="add-funds-btn" title="Nạp Kim Cương">+</button>
+                            </div>
+                        </div>
+
+                        <!-- Mini Music Player (Áp dụng ý tưởng Smart Audio Pod) -->
+                        <div id="mini-player" class="mini-player" style="margin-bottom: 0;">
+                            <div id="mini-disc" class="mini-disc-vinyl"></div>
+                            <div class="mini-info">
+                                <div id="mini-title" class="mini-title scroll-text">Chưa có bài hát...</div>
+                                <div class="mini-progress-bg">
+                                    <div id="mini-progress-fill" class="mini-progress-fill"></div>
                                 </div>
                             </div>
-                        </div>
-                        <div class="profile-stats-grid">
-                            <div class="stat-item">
-                                <span class="stat-label">TOTAL_SCORE</span>
-                                <span id="totalScoreVal" class="stat-val">0</span>
-                            </div>
-                            <div class="stat-item">
-                                <span class="stat-label">AVG_ACC</span>
-                                <span id="avgAccVal" class="stat-val">0%</span>
-                            </div>
-                            <div class="stat-item">
-                                <span class="stat-label">AVG_WPM</span>
-                                <span id="avgWpmVal" class="stat-val">0</span>
-                            </div>
-                        </div>
-                        <!-- Current Match Score (Hidden when in Lobby) -->
-                        <div id="current-score-box" class="current-score-wrapper hidden">
-                            <span class="label">MATCH_SCORE:</span>
-                            <span id="scoreVal">0</span>
-                            <div id="score-feed-container" class="score-feed-container"></div>
-                        </div>
-                        <button id="logoutBtn" class="logout-btn">DISCONNECT_LINK</button>
-                    </div>
-
-                    <div class="hp-battery-container" id="hpBatteryContainer" style="display: none;">
-                        <div class="battery-label">SURVIVAL CORE</div>
-                        <div class="battery-chassis">
-                            <div class="battery-grid">
-                                <div class="battery-cell on"></div>
-                                <div class="battery-cell on"></div>
-                                <div class="battery-cell on"></div>
-                                <div class="battery-cell on"></div>
-                                <div class="battery-cell on"></div>
-                            </div>
-                            <div class="battery-cap"></div>
-                        </div>
-                    </div>
-                    <button id="stopBtn" class="danger-btn hidden">STOP SYSTEM</button>
-                    <div class="hp" style="display: none;">HP: <span id="hpVal">5</span></div>
-                </div>
-
-                <!-- NEW Wave Progress & Timer UI -->
-                <div class="wave-progress-container hidden" id="waveProgressContainer">
-                    <div class="wave-header-row">
-                        <div class="wave-label" id="waveLabel">WAVE 01</div>
-                        <div class="combo-label hidden" id="comboLabel">COMBO x2</div>
-                    </div>
-                    <div class="wave-segments hidden" id="waveSegments" style="display: none !important;">
-                        <!-- segments injected by JS -->
-                    </div>
-                    <!-- PERCENTAGE PROGRESS BAR -->
-                    <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; font-weight: bold; margin-bottom: 4px; padding: 0 2px; width: 220px;">
-                        <span id="wavePercentText" style="color: var(--neon-cyan); text-shadow: 0 0 5px var(--neon-cyan);">0%</span>
-                        <span id="waveRetryLabel" class="hidden" style="color: #ff4757; text-shadow: 0 0 10px #ff4757; letter-spacing: 1px;">[ RETRY ]</span>
-                    </div>
-                    <div class="wave-progress-bar-wrapper" style="width: 220px; height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; margin-bottom: 8px; overflow: hidden; position: relative;">
-                        <div id="waveProgressBarFill" style="width: 0%; height: 100%; background: var(--safe); box-shadow: 0 0 10px var(--safe); transition: width 0.3s ease;"></div>
-                    </div>
-                </div>
-                
-                <div class="right-container" style="display: flex; flex-direction: column; align-items: flex-end; gap: 10px;">
-                    <!-- HUD Playlist Xổ Xuống Kế Bên -->
-                    <div id="main-playlist-hud" class="hidden">
-                        <div class="hud-playlist-header">
-                            <span id="hudPlaylistName">📁 Folder</span>
-                        </div>
-                        <div id="hudPlaylistSongs" class="hud-playlist-songs"></div>
-                    </div>
-                </div>
-
-                    <div class="top-right-controls" style="display: flex; flex-direction: column; gap: 10px; align-items: flex-end;">
-                        <!-- TOP ROW: Currencies + Mini Player -->
-                        <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 5px;">
-                            <div style="display: flex; flex-direction: row; gap: 15px; align-items: center;">
-                                <!-- HUD Currencies -->
-                                <div class="currency-hud" style="display: none; gap: 15px;">
-                                    <div class="cyber-coins">
-                                        🪙 <span id="coinVal">0</span>
-                                        <button class="add-funds-btn" title="Nạp Tiền">+</button>
-                                    </div>
-                                    <div class="cyber-diamonds">
-                                        💎 <span id="diamondVal">0</span>
-                                        <button class="add-funds-btn" title="Nạp Kim Cương">+</button>
-                                    </div>
+                            <div class="mini-controls">
+                                <button id="mini-prev" class="mc-btn">⏮</button>
+                                <button id="mini-play" class="mc-btn">▶</button>
+                                <button id="mini-next" class="mc-btn">⏭</button>
+                                <div class="mc-vol-wrapper">
+                                    <span>🔊</span>
+                                    <input type="range" id="mini-vol" min="0" max="2" step="0.1" value="1.0">
                                 </div>
-
-                                <!-- Mini Music Player (Áp dụng ý tưởng Smart Audio Pod) -->
-                                <div id="mini-player" class="mini-player" style="margin-bottom: 0;">
-                                    <div id="mini-disc" class="mini-disc-vinyl"></div>
-                                    <div class="mini-info">
-                                        <div id="mini-title" class="mini-title scroll-text">Chưa có bài hát...</div>
-                                        <div class="mini-progress-bg"><div id="mini-progress-fill" class="mini-progress-fill"></div></div>
-                                    </div>
-                                    <div class="mini-controls">
-                                        <button id="mini-prev" class="mc-btn">⏮</button>
-                                        <button id="mini-play" class="mc-btn">▶</button>
-                                        <button id="mini-next" class="mc-btn">⏭</button>
-                                        <div class="mc-vol-wrapper">
-                                            <span>🔊</span>
-                                            <input type="range" id="mini-vol" min="0" max="2" step="0.1" value="1.0">
-                                        </div>
-                                        <button id="mini-settings-btn" class="mc-btn" style="margin-left: 8px !important;" title="Settings">⚙️</button>
-                                    </div>
-                                </div>
+                                <button id="mini-settings-btn" class="mc-btn" style="margin-left: 8px !important;"
+                                    title="Settings">⚙️</button>
                             </div>
-                            <!-- THỜI GIAN ĐÃ CHƠI -->
-                            <div class="wave-timer hidden" id="waveTimer" style="font-family: 'Orbitron', monospace; color: #fff; font-size: 0.95rem; letter-spacing: 2px; font-weight: bold; text-shadow: 0 0 5px rgba(255,255,255,0.8); margin-right: 5px;">00:00.0</div>
-                        </div>
-                        <div id="audioMixerDropdown" class="audio-mixer-dropdown hidden">
-                            <button id="playlistBtn" style="width: 100%; border-radius: 4px; margin-bottom: 15px;">⚙️ My Playlist</button>
-                            <h3 style="margin-bottom: 10px; padding-top: 5px; border-top: 1px solid rgba(0,245,255,0.2);">AUDIO MIXER</h3>
-                            <div class="mixer-row">
-                                <label>Vocals</label>
-                                <input type="range" id="ttsVolSlider" min="0" max="2" step="0.1" value="1.0">
-                            </div>
-                            <div class="mixer-row">
-                                <label>BGM</label>
-                                <input type="range" id="bgmVolSlider" min="0" max="2" step="0.1" value="1.0">
-                            </div>
-                            <div class="mixer-row">
-                                <label>SFX</label>
-                                <input type="range" id="sfxVolSlider" min="0" max="2" step="0.1" value="1.0">
-                            </div>
-                            <div class="mixer-row">
-                                <label>TTS Rate</label>
-                                <select id="ttsRateSelect">
-                                    <option value="0.7">0.7x (Chậm)</option>
-                                    <option value="0.9" selected>0.9x (Vừa)</option>
-                                    <option value="1.2">1.2x (Nhanh)</option>
-                                </select>
-                            </div>
-                        </div>
-                    </div> <!-- Closes top-right-controls -->
-                </div> <!-- Closes top-bar -->
-
-
-
-            <!-- Hype & Combo -->
-            <div class="hype-container">
-                <div class="hype-bar"><div id="hypeFill"></div></div>
-                <div id="comboText"></div>
-            </div>
-
-            <!-- Input Buffer Display -->
-            <div id="input-buffer-display">
-                <span class="trash-text" id="bufferTrash"></span><span class="typed-text" id="bufferTyped"></span><span class="cursor">_</span>
-            </div>
-            
-             <!-- Message Center overlay -->
-             <!-- Central UI Area: For Main Menu and Wave Transitions -->
-             <div id="central-ui-wrapper" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 100; pointer-events: none; display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; height: 100%;">
-                 
-                 <!-- Message Center overlay: For notifications between waves -->
-                 <div id="messageCenter" class="hidden" style="position: absolute; width: 100%; height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; pointer-events: none; background: rgba(0,0,0,0.3); backdrop-filter: blur(5px); z-index: 501;">
-                    <div id="msgTitle" style="font-family: 'Orbitron'; font-size: 3.5rem; font-weight: 900; letter-spacing: 5px; text-shadow: 0 0 20px rgba(0, 245, 255, 0.5); margin-bottom: 10px; color: var(--neon-cyan);">WAVE CLEARED</div>
-                    <div id="msgSub" style="font-family: 'Orbitron'; font-size: 1.2rem; font-weight: 400; letter-spacing: 2px; opacity: 0.9; text-transform: uppercase; color: #fff; text-align: center; white-space: pre-line;">Chuẩn bị đợt mới...</div>
-                 </div>
-
-                 <div class="daken-osucore-wrapper" id="menuControls" style="pointer-events: auto; z-index: 500;">
-                    <!-- SVG Khung Vành Khuyên HUD -->
-                    <svg id="radialSvg" class="radial-svg" viewBox="0 0 500 500" width="100%" height="100%" style="position:absolute; top:0; left:0; z-index:40; pointer-events: none;">
-                        <defs>
-                            <filter id="neon-glow" x="-50%" y="-50%" width="200%" height="200%">
-                                <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
-                                <feMerge>
-                                    <feMergeNode in="coloredBlur"/>
-                                    <feMergeNode in="coloredBlur"/>
-                                    <feMergeNode in="SourceGraphic"/>
-                                </feMerge>
-                            </filter>
-                        </defs>
-                        <g id="svgTier1" style="transform-origin: 250px 250px; opacity: 0; transform: scale(0.5); transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);"></g>
-                        <g id="svgTier2" style="transform-origin: 250px 250px; opacity: 0; transform: scale(0.8) rotate(30deg); transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);"></g>
-                    </svg>
-
-                    <!-- Lõi Logo Bấm Phát Chơi Luôn (Sẽ mutate) -->
-                    <div class="daken-core" id="startBtn" data-mode="" data-level="">打検</div>
-                    
-                    <select id="bgmSource" style="display: none;">
-                        <option value="HSOtku1j600" selected>Nhạc Mặc Định</option>
-                    </select>
-                    <div id="errorLog" class="hidden"></div>
-                </div>
-            </div>
-            
-            <!-- HUD Terminal for Study Mode -->
-            <div id="hud-terminal" class="hud-terminal hidden"></div>
-            
-            <!-- JLPT Hub Page Overlay (Dùng chung cho N1-N5) -->
-            <div id="jlpt-hub-page" class="hidden">
-                <!-- Nút trở về sảnh ở góc trên trái -->
-                <button id="hubBackBtn" class="zen-back-btn" style="position: absolute; top: 25px; left: 50px; z-index: 300;">
-                    <span class="back-icon">◄</span> TRỞ VỀ SẢNH
-                </button>
-                
-                <div class="jlpt-hub-header" style="flex-direction: column; align-items: center; justify-content: center; width: 100%; gap: 15px;">
-                    <h2 class="zen-title">
-                        <span id="hubLevelName">N2</span> 語彙 TÀNG KINH CÁC 
-                        <span class="red-seal" id="hubSealName">二級</span>
-                    </h2>
-                    
-                    <div class="zen-hud-stats" id="jlptGlobalHud">
-                        <div class="zen-stat">
-                            <span class="zen-label">OVERALL RANK</span>
-                            <span class="zen-val" id="jlptGlobalRank">-</span>
-                        </div>
-                        <div class="zen-divider">|</div>
-                        <div class="zen-stat">
-                            <span class="zen-label">AVG ACCURACY</span>
-                            <span class="zen-val" id="jlptGlobalAcc">0%</span>
-                        </div>
-                        <div class="zen-divider">|</div>
-                        <div class="zen-stat">
-                            <span class="zen-label">TOTAL SCORE</span>
-                            <span class="zen-val" id="jlptGlobalScore" style="color: var(--primary);">0</span>
-                        </div>
-                        <div class="zen-divider">|</div>
-                        <div class="zen-stat">
-                            <span class="zen-label">AVG WPM</span>
-                            <span class="zen-val" id="jlptGlobalWpm">0</span>
-                        </div>
-                        <div class="zen-divider">|</div>
-                        <div class="zen-stat">
-                            <span class="zen-label" style="color: var(--safe);">PROGRESS</span>
-                            <span class="zen-val" id="jlpt-total-progress" style="color: var(--safe); text-shadow: 0 0 10px var(--safe);">0/0</span>
                         </div>
                     </div>
+                    <!-- THỜI GIAN ĐÃ CHƠI -->
+                    <div class="wave-timer hidden" id="waveTimer"
+                        style="font-family: 'Orbitron', monospace; color: #fff; font-size: 0.95rem; letter-spacing: 2px; font-weight: bold; text-shadow: 0 0 5px rgba(255,255,255,0.8); margin-right: 5px;">
+                        00:00.0</div>
                 </div>
-                <div class="jlpt-units-container" id="jlptUnitsContainer">
-                    <!-- Javascript will inject Units and Sessions here -->
-                </div>
-            </div>
-
-            <!-- N2 Calibration Modal (Pre-match Setup) -->
-            <div id="jlpt-calibration-modal" class="hidden">
-                <div class="summary-content" style="max-width: 450px; background: rgba(10, 10, 15, 0.95); border-color: var(--neon-cyan); box-shadow: 0 0 30px rgba(0, 245, 255, 0.2);">
-                    <button id="closeCalibrationBtn" style="position: absolute; top: 10px; right: 15px; background: transparent; border: none; color: var(--neon-cyan); font-size: 28px; cursor: pointer; text-shadow: 0 0 10px;">&times;</button>
-                    <h2 class="summary-title" style="color: var(--neon-cyan); text-shadow: 0 0 15px var(--neon-cyan); font-size: 1.5rem; margin-bottom: 20px;">CALIBRATION</h2>
-                    <h3 id="calibration-session-title" style="text-align: center; color: #fff; margin-bottom: 20px;">Unit 1 - Session 1</h3>
-                    
+                <div id="audioMixerDropdown" class="audio-mixer-dropdown hidden">
+                    <button id="playlistBtn" style="width: 100%; border-radius: 4px; margin-bottom: 15px;">⚙️ My
+                        Playlist</button>
+                    <h3 style="margin-bottom: 10px; padding-top: 5px; border-top: 1px solid rgba(0,245,255,0.2);">AUDIO
+                        MIXER</h3>
+                    <div class="mixer-row">
+                        <label>Vocals</label>
+                        <input type="range" id="ttsVolSlider" min="0" max="2" step="0.1" value="1.0">
+                    </div>
                     <div class="mixer-row">
                         <label>BGM</label>
-                        <input type="range" id="calibBgmSlider" min="0" max="2" step="0.1" value="1.0">
+                        <input type="range" id="bgmVolSlider" min="0" max="2" step="0.1" value="1.0">
                     </div>
                     <div class="mixer-row">
                         <label>SFX</label>
-                        <input type="range" id="calibSfxSlider" min="0" max="2" step="0.1" value="1.0">
+                        <input type="range" id="sfxVolSlider" min="0" max="2" step="0.1" value="1.0">
                     </div>
                     <div class="mixer-row">
-                        <label>Voices</label>
-                        <input type="range" id="calibTtsSlider" min="0" max="2" step="0.1" value="1.0">
-                    </div>
-
-                    
-                    <button class="menu-btn" id="startJLPTSessionBtn" style="width: 100%; margin-top: 25px; font-size: 1.2rem; background: rgba(0,245,255,0.1); border-color: var(--neon-cyan); color: var(--neon-cyan); box-shadow: 0 0 15px rgba(0,245,255,0.4);">[ BẮT ĐẦU KẾT ẤN ]</button>
-                </div>
-            </div>
-            
-            <!-- Playlist View & Modals -->
-            
-            <!-- Summary Modal -->
-            <div class="summary-modal hidden" id="summaryModal">
-                <div class="summary-content">
-                    <h2 class="summary-title" style="color: var(--safe); text-shadow: 0 0 10px var(--safe);">TUTORIAL COMPLETE</h2>
-                    <div class="summary-stats">
-                        <div class="stat-row">
-                            <span>Base Score:</span>
-                            <span id="sumBaseScore">0</span>
-                        </div>
-                        <div class="stat-row">
-                            <span>Max Perfect Combo:</span>
-                            <span id="sumMaxCombo" style="color: var(--safe);">0</span>
-                        </div>
-                        <div class="stat-row">
-                            <span>Time Taken:</span>
-                            <span id="sumTime">00:00.0</span>
-                        </div>
-                        <div class="stat-row">
-                            <span>Time Bonus:</span>
-                            <span id="sumTimeBonus" style="color: #00e676;">+0</span>
-                        </div>
-                        <hr style="border-color: rgba(255,255,255,0.2);">
-                        <div class="stat-row final">
-                            <span>FINAL SCORE:</span>
-                            <span id="sumFinalScore" style="color: var(--primary); font-size: 1.5rem; text-shadow: 0 0 10px var(--primary);">0</span>
-                        </div>
-                        <div class="stat-row rank-box">
-                            <span>RANK</span>
-                            <span id="sumRank" style="font-size: 2.5rem; font-family: 'Arial Black', Impact, sans-serif; font-style: italic; text-shadow: 0 0 15px;">S</span>
-                        </div>
-                    </div>
-                    <button class="menu-btn" id="summaryCloseBtn" style="margin-top:20px; width:100%;">TIẾP TỤC</button>
-                </div>
-            </div>
-            
-            <!-- Synapse Matrix Modal (Study Mode Summary) -->
-            <div class="summary-modal hidden" id="synapseMatrixModal">
-                <div class="summary-content" style="max-width: 800px; width: 90%;">
-                    <h2 class="summary-title" style="color: #d81b60; text-shadow: 0 0 15px #d81b60;">SYNAPSE MATRIX</h2>
-                    <p style="text-align: center; color: #fff; margin-bottom: 20px;">Trạng thái hấp thụ từ vựng của bạn</p>
-                    <div id="synapseNodesContainer" style="display: flex; flex-wrap: wrap; gap: 15px; justify-content: center; padding: 20px; background: rgba(0,0,0,0.5); border-radius: 12px; border: 1px solid #d81b60; min-height: 200px; margin-bottom: 20px;">
-                        <!-- Các node từ vựng được render ở đây -->
-                    </div>
-                    <button class="menu-btn danger-btn" id="synapseCloseBtn" style="width:100%;">KẾT THÚC PHIÊN</button>
-                </div>
-            </div>
-
-            <!-- Stop Confirm Modal -->
-            <div class="summary-modal hidden" id="stopConfirmModal">
-                <div class="summary-content" style="position: relative; max-width: 400px; border-color: #ff00ff; box-shadow: 0 0 20px #ff00ff;">
-                    <button id="cancelStopBtn" style="position: absolute; top: 10px; right: 15px; background: transparent; border: none; color: #ff00ff; font-size: 28px; cursor: pointer; font-family: 'Orbitron'; text-shadow: 0 0 10px #ff00ff; padding: 0;">&times;</button>
-                    <h2 class="summary-title" style="color: #ff00ff; text-shadow: 0 0 15px #ff00ff; font-size: 1.8rem; margin-bottom: 5px; margin-top: 10px;">HỆ THỐNG CẢNH BÁO</h2>
-                    <p style="text-align: center; color: #fff; margin-bottom: 25px; line-height: 1.5;">Bạn có chắc chắn muốn dừng tiến trình?<br><span style="color: #ff4757; font-weight: bold;">Cảnh báo: Dữ liệu chưa lưu sẽ bị mất vĩnh viễn!</span></p>
-                    <div style="display: flex; gap: 15px; justify-content: center;">
-                        <button class="menu-btn danger-btn" id="confirmStopBtn" style="width: 200px; font-size: 1.1rem;">XÁC NHẬN DỪNG</button>
+                        <label>TTS Rate</label>
+                        <select id="ttsRateSelect">
+                            <option value="0.7">0.7x (Chậm)</option>
+                            <option value="0.9" selected>0.9x (Vừa)</option>
+                            <option value="1.2">1.2x (Nhanh)</option>
+                        </select>
                     </div>
                 </div>
+            </div> <!-- Closes top-right-controls -->
+        </div> <!-- Closes top-bar -->
+
+
+
+        <div id="input-buffer-display">
+            <span class="trash-text" id="bufferTrash"></span><span class="typed-text" id="bufferTyped"></span><span
+                class="cursor">_</span>
+        </div>
+
+        <!-- Message Center overlay -->
+        <!-- Central UI Area: For Main Menu and Wave Transitions -->
+        <div id="central-ui-wrapper"
+            style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 100; pointer-events: none; display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; height: 100%;">
+
+            <!-- Message Center overlay: For notifications between waves -->
+            <div id="messageCenter" class="hidden"
+                style="position: absolute; width: 100%; height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; pointer-events: none; background: rgba(0,0,0,0.3); backdrop-filter: blur(5px); z-index: 501;">
+                <div id="msgTitle"
+                    style="font-family: 'Orbitron'; font-size: 3.5rem; font-weight: 900; letter-spacing: 5px; text-shadow: 0 0 20px rgba(0, 245, 255, 0.5); margin-bottom: 10px; color: var(--neon-cyan);">
+                    WAVE CLEARED</div>
+                <div id="msgSub"
+                    style="font-family: 'Orbitron'; font-size: 1.2rem; font-weight: 400; letter-spacing: 2px; opacity: 0.9; text-transform: uppercase; color: #fff; text-align: center; white-space: pre-line;">
+                    Chuẩn bị đợt mới...</div>
             </div>
 
-            <!-- Resume Countdown Overlay -->
-            <div id="resumeCountdown" style="display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; justify-content: center; align-items: center; z-index: 9999; font-family: 'Orbitron'; font-size: 15rem; font-weight: bold; color: #00e676; text-shadow: 0 0 50px #00e676; background: rgba(0,0,0,0.6);">
-                3
+            <div class="daken-osucore-wrapper" id="menuControls" style="pointer-events: auto; z-index: 500;">
+                <!-- SVG Khung Vành Khuyên HUD -->
+                <svg id="radialSvg" class="radial-svg" viewBox="0 0 500 500" width="100%" height="100%"
+                    style="position:absolute; top:0; left:0; z-index:40; pointer-events: none;">
+                    <defs>
+                        <filter id="neon-glow" x="-50%" y="-50%" width="200%" height="200%">
+                            <feGaussianBlur stdDeviation="3" result="coloredBlur" />
+                            <feMerge>
+                                <feMergeNode in="coloredBlur" />
+                                <feMergeNode in="coloredBlur" />
+                                <feMergeNode in="SourceGraphic" />
+                            </feMerge>
+                        </filter>
+                    </defs>
+                    <g id="svgTier1"
+                        style="transform-origin: 250px 250px; opacity: 0; transform: scale(0.5); transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);">
+                    </g>
+                    <g id="svgTier2"
+                        style="transform-origin: 250px 250px; opacity: 0; transform: scale(0.8) rotate(30deg); transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);">
+                    </g>
+                </svg>
+
+                <!-- Lõi Logo Bấm Phát Chơi Luôn (Sẽ mutate) -->
+                <div class="daken-core" id="startBtn" data-mode="" data-level="">打検</div>
+
+                <select id="bgmSource" style="display: none;">
+                    <option value="HSOtku1j600" selected>Nhạc Mặc Định</option>
+                </select>
+                <div id="errorLog" class="hidden"></div>
             </div>
+        </div>
 
-            
-            <div id="playlist-modal" class="hidden">
-                <div class="modal-content">
-                    <!-- VIEW 1: Danh Sách Folder -->
-                    <div id="folder-view">
-                        <h2>Thư Viện Nhạc Của Tôi</h2>
-                        <div class="add-song"> <!-- Mượn style add-song cho input Folder -->
-                            <input type="text" id="newFolderName" placeholder="Tên Folder mới (VD: Nhạc Chill)...">
-                            <button id="addFolderBtn">Tạo</button>
-                        </div>
-                        <ul id="folderList" class="my-list-block">
-                           <!-- list folder -->
-                        </ul>
-                        <button id="closeFolderBtn" class="danger-btn">Đóng</button>
-                    </div>
+        <!-- HUD Terminal for Study Mode -->
+        <div id="hud-terminal" class="hud-terminal hidden"></div>
 
-                    <!-- VIEW 2: Danh sách Bài hát trong 1 Folder -->
-                    <div id="song-view" class="hidden">
-                        <h2>🎵 <span id="currentFolderName">Tên</span></h2>
-                        <div class="add-song">
-                            <input type="text" id="newSongUrl" placeholder="Dán link YouTube mới...">
-                            <button id="addSongBtn">Thêm</button>
-                        </div>
-                        <ul id="playlistList" class="my-list-block">
-                           <!-- list bai hat -->
-                        </ul>
-                        <button id="backToFoldersBtn" class="dark-btn">⬅ Quay Lại</button>
+        <!-- JLPT Hub Page Overlay (Dùng chung cho N1-N5) -->
+        <div id="jlpt-hub-page" class="hidden">
+            <!-- Nút trở về sảnh ở góc trên trái -->
+            <button id="hubBackBtn" class="zen-back-btn"
+                style="position: absolute; top: 25px; left: 50px; z-index: 300;">
+                <span class="back-icon">◄</span> TRỞ VỀ SẢNH
+            </button>
+
+            <div class="jlpt-hub-header"
+                style="flex-direction: column; align-items: center; justify-content: center; width: 100%; gap: 15px;">
+                <h2 class="zen-title">
+                    <span id="hubLevelName">N2</span> 語彙 TÀNG KINH CÁC
+                    <span class="red-seal" id="hubSealName">二級</span>
+                </h2>
+
+                <div class="zen-hud-stats" id="jlptGlobalHud">
+                    <div class="zen-stat">
+                        <span class="zen-label">OVERALL RANK</span>
+                        <span class="zen-val" id="jlptGlobalRank">-</span>
                     </div>
+                    <div class="zen-divider">|</div>
+                    <div class="zen-stat">
+                        <span class="zen-label">AVG ACCURACY</span>
+                        <span class="zen-val" id="jlptGlobalAcc">0%</span>
+                    </div>
+                    <div class="zen-divider">|</div>
+                    <div class="zen-stat">
+                        <span class="zen-label">TOTAL SCORE</span>
+                        <span class="zen-val" id="jlptGlobalScore" style="color: var(--primary);">0</span>
+                    </div>
+                    <div class="zen-divider">|</div>
+                    <div class="zen-stat">
+                        <span class="zen-label">AVG WPM</span>
+                        <span class="zen-val" id="jlptGlobalWpm">0</span>
+                    </div>
+                    <div class="zen-divider">|</div>
+                    <div class="zen-stat">
+                        <span class="zen-label" style="color: var(--safe);">PROGRESS</span>
+                        <span class="zen-val" id="jlpt-total-progress"
+                            style="color: var(--safe); text-shadow: 0 0 10px var(--safe);">0/0</span>
+                    </div>
+                </div>
+            </div>
+            <div class="jlpt-units-container" id="jlptUnitsContainer">
+                <!-- Javascript will inject Units and Sessions here -->
+            </div>
+        </div>
+
+        <!-- N2 Calibration Modal (Pre-match Setup) -->
+        <div id="jlpt-calibration-modal" class="hidden">
+            <div class="summary-content"
+                style="max-width: 450px; background: rgba(10, 10, 15, 0.95); border-color: var(--neon-cyan); box-shadow: 0 0 30px rgba(0, 245, 255, 0.2);">
+                <button id="closeCalibrationBtn"
+                    style="position: absolute; top: 10px; right: 15px; background: transparent; border: none; color: var(--neon-cyan); font-size: 28px; cursor: pointer; text-shadow: 0 0 10px;">&times;</button>
+                <h2 class="summary-title"
+                    style="color: var(--neon-cyan); text-shadow: 0 0 15px var(--neon-cyan); font-size: 1.5rem; margin-bottom: 20px;">
+                    CALIBRATION</h2>
+                <h3 id="calibration-session-title" style="text-align: center; color: #fff; margin-bottom: 20px;">Unit 1
+                    - Session 1</h3>
+
+                <div class="mixer-row">
+                    <label>BGM</label>
+                    <input type="range" id="calibBgmSlider" min="0" max="2" step="0.1" value="1.0">
+                </div>
+                <div class="mixer-row">
+                    <label>SFX</label>
+                    <input type="range" id="calibSfxSlider" min="0" max="2" step="0.1" value="1.0">
+                </div>
+                <div class="mixer-row">
+                    <label>Voices</label>
+                    <input type="range" id="calibTtsSlider" min="0" max="2" step="0.1" value="1.0">
+                </div>
+
+
+                <button class="menu-btn" id="startJLPTSessionBtn"
+                    style="width: 100%; margin-top: 25px; font-size: 1.2rem; background: rgba(0,245,255,0.1); border-color: var(--neon-cyan); color: var(--neon-cyan); box-shadow: 0 0 15px rgba(0,245,255,0.4);">[
+                    BẮT ĐẦU KẾT ẤN ]</button>
+            </div>
+        </div>
+
+        <!-- Playlist View & Modals -->
+
+        <!-- Summary Modal -->
+        <div class="summary-modal hidden" id="summaryModal">
+            <div class="summary-content">
+                <h2 class="summary-title" style="color: var(--safe); text-shadow: 0 0 10px var(--safe);">TUTORIAL
+                    COMPLETE</h2>
+                <div class="summary-stats">
+                    <div class="stat-row">
+                        <span>Base Score:</span>
+                        <span id="sumBaseScore">0</span>
+                    </div>
+                    <div class="stat-row">
+                        <span>Max Perfect Combo:</span>
+                        <span id="sumMaxCombo" style="color: var(--safe);">0</span>
+                    </div>
+                    <div class="stat-row">
+                        <span>Time Taken:</span>
+                        <span id="sumTime">00:00.0</span>
+                    </div>
+                    <div class="stat-row">
+                        <span>Time Bonus:</span>
+                        <span id="sumTimeBonus" style="color: #00e676;">+0</span>
+                    </div>
+                    <hr style="border-color: rgba(255,255,255,0.2);">
+                    <div class="stat-row final">
+                        <span>FINAL SCORE:</span>
+                        <span id="sumFinalScore"
+                            style="color: var(--primary); font-size: 1.5rem; text-shadow: 0 0 10px var(--primary);">0</span>
+                    </div>
+                    <div class="stat-row rank-box">
+                        <span>RANK</span>
+                        <span id="sumRank"
+                            style="font-size: 2.5rem; font-family: 'Arial Black', Impact, sans-serif; font-style: italic; text-shadow: 0 0 15px;">S</span>
+                    </div>
+                </div>
+                <button class="menu-btn" id="summaryCloseBtn" style="margin-top:20px; width:100%;">TIẾP TỤC</button>
+            </div>
+        </div>
+
+        <!-- Synapse Matrix Modal (Study Mode Summary) -->
+        <div class="summary-modal hidden" id="synapseMatrixModal">
+            <div class="summary-content" style="max-width: 800px; width: 90%;">
+                <h2 class="summary-title" style="color: #d81b60; text-shadow: 0 0 15px #d81b60;">SYNAPSE MATRIX</h2>
+                <p style="text-align: center; color: #fff; margin-bottom: 20px;">Trạng thái hấp thụ từ vựng của bạn</p>
+                <div id="synapseNodesContainer"
+                    style="display: flex; flex-wrap: wrap; gap: 15px; justify-content: center; padding: 20px; background: rgba(0,0,0,0.5); border-radius: 12px; border: 1px solid #d81b60; min-height: 200px; margin-bottom: 20px;">
+                    <!-- Các node từ vựng được render ở đây -->
+                </div>
+                <button class="menu-btn danger-btn" id="synapseCloseBtn" style="width:100%;">KẾT THÚC PHIÊN</button>
+            </div>
+        </div>
+
+        <!-- Stop Confirm Modal -->
+        <div class="summary-modal hidden" id="stopConfirmModal">
+            <div class="summary-content"
+                style="position: relative; max-width: 400px; border-color: #ff00ff; box-shadow: 0 0 20px #ff00ff;">
+                <button id="cancelStopBtn"
+                    style="position: absolute; top: 10px; right: 15px; background: transparent; border: none; color: #ff00ff; font-size: 28px; cursor: pointer; font-family: 'Orbitron'; text-shadow: 0 0 10px #ff00ff; padding: 0;">&times;</button>
+                <h2 class="summary-title"
+                    style="color: #ff00ff; text-shadow: 0 0 15px #ff00ff; font-size: 1.8rem; margin-bottom: 5px; margin-top: 10px;">
+                    HỆ THỐNG CẢNH BÁO</h2>
+                <p style="text-align: center; color: #fff; margin-bottom: 25px; line-height: 1.5;">Bạn có chắc chắn muốn
+                    dừng tiến trình?<br><span style="color: #ff4757; font-weight: bold;">Cảnh báo: Dữ liệu chưa lưu sẽ
+                        bị mất vĩnh viễn!</span></p>
+                <div style="display: flex; gap: 15px; justify-content: center;">
+                    <button class="menu-btn danger-btn" id="confirmStopBtn" style="width: 200px; font-size: 1.1rem;">XÁC
+                        NHẬN DỪNG</button>
                 </div>
             </div>
         </div>
-        
-        <!-- YOUTUBE BGM PLAYER (Mẹo chống Chrome tự động tắt video khi khuất màn hình) -->
-        <div id="youtube-player" style="position: absolute; bottom: 0; left: 0; width: 20px; height: 20px; opacity: 0.05; pointer-events: none; z-index: -99;"></div>
+
+        <!-- Resume Countdown Overlay -->
+        <div id="resumeCountdown"
+            style="display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; justify-content: center; align-items: center; z-index: 9999; font-family: 'Orbitron'; font-size: 15rem; font-weight: bold; color: #00e676; text-shadow: 0 0 50px #00e676; background: rgba(0,0,0,0.6);">
+            3
+        </div>
+
+
+        <div id="playlist-modal" class="hidden">
+            <div class="modal-content">
+                <!-- VIEW 1: Danh Sách Folder -->
+                <div id="folder-view">
+                    <h2>Thư Viện Nhạc Của Tôi</h2>
+                    <div class="add-song"> <!-- Mượn style add-song cho input Folder -->
+                        <input type="text" id="newFolderName" placeholder="Tên Folder mới (VD: Nhạc Chill)...">
+                        <button id="addFolderBtn">Tạo</button>
+                    </div>
+                    <ul id="folderList" class="my-list-block">
+                        <!-- list folder -->
+                    </ul>
+                    <button id="closeFolderBtn" class="danger-btn">Đóng</button>
+                </div>
+
+                <!-- VIEW 2: Danh sách Bài hát trong 1 Folder -->
+                <div id="song-view" class="hidden">
+                    <h2>🎵 <span id="currentFolderName">Tên</span></h2>
+                    <div class="add-song">
+                        <input type="text" id="newSongUrl" placeholder="Dán link YouTube mới...">
+                        <button id="addSongBtn">Thêm</button>
+                    </div>
+                    <ul id="playlistList" class="my-list-block">
+                        <!-- list bai hat -->
+                    </ul>
+                    <button id="backToFoldersBtn" class="dark-btn">⬅ Quay Lại</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- HELP ICON (Floating ?) -->
+        <div id="guideTrigger" class="guide-trigger" title="Neural Link Protocol">?</div>
+
+        <!-- LEADERBOARD TRIGGER ICON -->
+        <div id="leaderboard-trigger" class="lobby-trigger-icon" title="Neural Hierarchy">
+            <span class="material-icons">leaderboard</span>
+        </div>
+
+        <!-- LEADERBOARD SLIDE-OUT TERMINAL -->
+        <div id="leaderboard-terminal" class="leaderboard-panel hidden">
+            <div class="leaderboard-header">
+                <div class="header-title-block">
+                    <span class="glitch-text" data-text="NEURAL_HIERARCHY">NEURAL_HIERARCHY</span>
+                </div>
+                <button id="closeLeaderboardBtn" class="close-terminal-btn">×</button>
+            </div>
+            
+            <div class="leaderboard-controls">
+                <div class="scope-row">
+                    <button class="scope-btn active" data-scope="global">GLOBAL</button>
+                    <button class="scope-btn" data-scope="friends">FRIENDS</button>
+                </div>
+                <div class="metric-row">
+                    <button class="metric-btn active" data-metric="score">SCORE</button>
+                    <button class="metric-btn" data-metric="wpm">WPM</button>
+                    <button class="metric-btn" data-metric="accuracy">ACC</button>
+                </div>
+            </div>
+
+            <div id="leaderboard-list" class="leaderboard-body">
+                <div class="loading-spinner">SYNCING_DATA...</div>
+            </div>
+
+            <div id="my-ranking" class="my-ranking-footer">
+                <!-- User's own rank will be injected here -->
+            </div>
+        </div>
+
+        <!-- GENERAL GUIDE MODAL -->
+        <div id="general-guide-modal" class="modal-overlay hidden">
+            <div class="guide-modal-content">
+                <div class="guide-header">
+                    <span class="icon">⚡</span>
+                    <h2>NEURAL LINK PROTOCOL</h2>
+                    <span class="version">v0.9.9</span>
+                </div>
+                
+                <div class="guide-body">
+                    <div class="guide-section">
+                        <h3><span class="badge sync">WAVE 1 & 2</span> SYNC PHASES</h3>
+                        <p><strong>Không áp lực thời gian.</strong> Đây là lúc nạp dữ liệu. Hãy tập trung ghi nhớ Kanji và Nghĩa để làm nền tảng cho các đợt sau.</p>
+                    </div>
+
+                    <div class="guide-section">
+                        <h3><span class="badge combat">WAVE 3 & 5</span> COMBAT MODES</h3>
+                        <p><strong>Tốc độ & Chính xác.</strong> Gõ nhanh để tích lũy Combo (Max x2.5). Sai lầm sẽ khiến Combo về không.</p>
+                    </div>
+
+                    <div class="guide-section">
+                        <h3><span class="badge link">WAVE 4</span> CONTEXT LINK</h3>
+                        <p><strong>Giải mã Ngữ pháp.</strong> Các mẫu câu được lặp lại từ Sóng 1 & 2. Sử dụng phím tắt <strong>1-4</strong> để chốt hạ nhanh.</p>
+                    </div>
+
+                    <div class="guide-section">
+                        <h3><span class="badge danger">HP</span> SURVIVAL CORE</h3>
+                        <p>Để quái vật lọt qua vạch đỏ sẽ làm tiêu tốn 1 vạch Pin. Cạn 5 vạch = Kết thúc phiên học.</p>
+                    </div>
+                </div>
+
+                <div class="guide-footer">
+                    <label class="dont-show-again">
+                        <input type="checkbox" id="dontShowGuide">
+                        <span>Không hiện lại thông báo này</span>
+                    </label>
+                    <button id="closeGuideBtn" class="confirm-btn">TÔI ĐÃ HIỂU</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- YOUTUBE BGM PLAYER (Mẹo chống Chrome tự động tắt video khi khuất màn hình) -->
+    <div id="youtube-player"
+        style="position: absolute; bottom: 0; left: 0; width: 20px; height: 20px; opacity: 0.05; pointer-events: none; z-index: -99;">
+    </div>
     </div>
 
     <!-- MOCK CSV DATA & ENGINE -->
     <script type="module" src="/src/main.ts"></script>
 </body>
+
 </html>

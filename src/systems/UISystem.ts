@@ -3,12 +3,13 @@ import { StateManager } from '../data/StateManager';
 import { GameConfig } from '../config';
 import { byId } from '../utils/uiHelpers';
 import { AuthSystem } from './AuthSystem';
+import { supabase } from '../utils/supabase';
 export class UISystem {
     private scoreEl = byId('scoreVal');
     private hpEl = byId('hpVal');
     private bufferTrash = byId('bufferTrash');
     private bufferTyped = byId('bufferTyped');
-    
+
     // UI Panels
     private messageCenter = byId('messageCenter');
     private msgTitle = byId('msgTitle');
@@ -18,6 +19,7 @@ export class UISystem {
     // Profile Card UI
     private profileCard = byId('player-profile-card');
     private playerNameEl = byId('playerName');
+    private playerTagEl = byId('playerTag');
     private playerRankEl = byId('playerRank');
     private totalScoreEl = byId('totalScoreVal');
     private avgAccEl = byId('avgAccVal');
@@ -29,28 +31,12 @@ export class UISystem {
     // Login Elements
     private loginScreen = byId('login-screen');
     private loginStatus = byId('loginStatus');
-    
+
     // Auth Views
-    private loginView = byId('login-view');
-    private registerView = byId('register-view');
     private setupView = byId('setup-view');
     private socialLoginArea = byId('social-login-area');
-    
-    // Auth Tabs
-    private loginTabs = byId('loginTabs');
-    private tabLogin = byId('tab-login');
-    private tabRegister = byId('tab-register');
-    
+
     // Auth Inputs & Buttons
-    private loginEmail = byId('loginEmail') as HTMLInputElement;
-    private loginPass = byId('loginPass') as HTMLInputElement;
-    private executeLoginBtn = byId('executeLoginBtn');
-    
-    private regName = byId('regName') as HTMLInputElement;
-    private regEmail = byId('regEmail') as HTMLInputElement;
-    private regPass = byId('regPass') as HTMLInputElement;
-    private executeRegisterBtn = byId('executeRegisterBtn');
-    
     private setupNameInput = byId('setupName') as HTMLInputElement;
     private finishSetupBtn = byId('finishSetupBtn');
     private googleLoginBtn = byId('googleLoginBtn');
@@ -83,12 +69,24 @@ export class UISystem {
     // Wave Progress State
     private waveProgressContainer = byId('waveProgressContainer');
     private waveLabel = byId('waveLabel');
-    private waveSegments = byId('waveSegments');
     private currentWaveNumber = 1;
     private currentMode = 'medium';
     private currentStudyLevel = 'n5';
     private enemiesSpawnedThisWave = 0;
     private isRetryPhase = false;
+
+    // Leaderboard UI
+    private leaderboardTrigger = byId('leaderboard-trigger');
+    private leaderboardTerminal = byId('leaderboard-terminal');
+    private closeLeaderboardBtn = byId('closeLeaderboardBtn');
+    private leaderboardList = byId('leaderboard-list');
+    private myRankingFooter = byId('my-ranking');
+    private rankScopeBtns: NodeListOf<Element> | null = null;
+    private rankMetricBtns: NodeListOf<Element> | null = null;
+
+    private currentRankScope: 'global' | 'friends' = 'global';
+    private currentRankMetric: 'score' | 'wpm' | 'accuracy' = 'score';
+    private isGameActive = false;
     private waveSegmentStates: ('empty' | 'filled' | 'failed')[] = [];
     private enemiesKilledThisWave = 0;
 
@@ -97,6 +95,10 @@ export class UISystem {
     private comboLabel = byId('comboLabel');
     private summaryModal = byId('summaryModal');
     private synapseMatrixModal = byId('synapseMatrixModal');
+    private generalGuideModal = byId('general-guide-modal');
+    private closeGuideBtn = byId('closeGuideBtn');
+    private guideTrigger = byId('guideTrigger');
+    private dontShowGuideCheckbox = byId('dontShowGuide') as HTMLInputElement;
     private sumBaseScore = byId('sumBaseScore');
     private sumMaxCombo = byId('sumMaxCombo');
     private sumTime = byId('sumTime');
@@ -112,7 +114,7 @@ export class UISystem {
     private maxComboAchieved: number = 0;
     private savedBaseScore: number = 0;
     private waveStartTime: number = 0;
-    
+
     // Wave results for summary
     private waveResults: Array<{ baseScore: number, bonusScore: number }> = [];
     private currentWaveBaseScore: number = 0;
@@ -138,13 +140,13 @@ export class UISystem {
     private newFolderName = byId('newFolderName') as HTMLInputElement;
     private addFolderBtn = byId('addFolderBtn');
     private closeFolderBtn = byId('closeFolderBtn');
-    
+
     private currentFolderName = byId('currentFolderName');
     private playlistList = byId('playlistList');
     private newSongUrl = byId('newSongUrl') as HTMLInputElement;
     private addSongBtn = byId('addSongBtn');
     private backToFoldersBtn = byId('backToFoldersBtn');
-    
+
     private mainPlaylistHud = byId('main-playlist-hud');
     private hudPlaylistName = byId('hudPlaylistName');
     private hudPlaylistSongs = byId('hudPlaylistSongs');
@@ -172,16 +174,16 @@ export class UISystem {
 
     public alignEnemyToTerminal(enemy: any) {
         if (!this.hudTerminal || !this.gameContainer || !enemy) return;
-        
+
         const hudRect = this.hudTerminal.getBoundingClientRect();
         const canvasRect = this.gameContainer.getBoundingClientRect();
         const terminalTop = hudRect.top - canvasRect.top;
-        
+
         // Terminal top tính từ mép trên canvas
         // Cạnh dưới của hình render Enemy là: enemy.y + drawOffsetY + 35
         // Chúng ta cần: Cạnh dưới đó = terminalTop - 15px
         // => enemy.y = terminalTop - 50 - drawOffsetY
-        
+
         let drawOffsetY = 0;
         if (enemy.mode === 'easy' || (enemy.mode === 'study' && (enemy.studyWave === 1 || enemy.studyWave === 2 || enemy.studyWave === 4))) {
             drawOffsetY = -200;
@@ -200,6 +202,32 @@ export class UISystem {
         this.checkExistingSession();
         this.setupAvatarUpload();
         this.updateProfileUI(); // Cập nhật Profile ngay khi khởi tạo
+        this.setupLeaderboardLogic();
+        
+        // Đảm bảo HP và Wave UI ẩn khi ở Lobby
+        const batteryContainer = byId('hpBatteryContainer');
+        if (batteryContainer) batteryContainer.style.display = 'none';
+        if (this.waveProgressContainer) this.waveProgressContainer.classList.add('hidden');
+
+        this.setupGuideLogic();
+    }
+
+    private setupGuideLogic() {
+        if (!this.generalGuideModal || !this.closeGuideBtn || !this.guideTrigger) return;
+
+        // Xử lý nút ? (Help Icon)
+        this.guideTrigger.addEventListener('click', () => {
+            this.generalGuideModal?.classList.remove('hidden');
+        });
+
+        // Xử lý nút Đóng
+        this.closeGuideBtn.addEventListener('click', () => {
+            if (this.dontShowGuideCheckbox?.checked) {
+                localStorage.setItem('DAKEN_GUIDE_SHOWN', 'true');
+            }
+            this.generalGuideModal?.classList.add('hidden');
+            EventBus.getInstance().publish('AUDIO_BEEP', null);
+        });
     }
 
     private applyConfigToSliders() {
@@ -213,7 +241,7 @@ export class UISystem {
         if (prefsStr) {
             try {
                 prefs = { ...prefs, ...JSON.parse(prefsStr) };
-            } catch(e) {}
+            } catch (e) { }
         }
 
         if (this.ttsVolSlider) this.ttsVolSlider.value = prefs.tts.toString();
@@ -221,7 +249,7 @@ export class UISystem {
         if (this.sfxVolSlider) this.sfxVolSlider.value = prefs.sfx.toString();
         if (this.ttsRateSelect) this.ttsRateSelect.value = prefs.rate.toString();
         if (this.miniVolSlider) this.miniVolSlider.value = prefs.bgm.toString();
-        
+
         // Push initial config to AudioSystem after short delay
         setTimeout(() => {
             EventBus.getInstance().publish('TTS_VOL_CHANGED', prefs.tts);
@@ -254,7 +282,7 @@ export class UISystem {
             this.activeFolderId = this.myLibrary[0].id;
         }
         this.updatePlaylistBtnName();
-        
+
         // Cập nhật danh sách nhạc cho AudioSystem ngay khi mở web
         setTimeout(() => {
             let activeFolder = this.myLibrary.find(f => f.id === this.activeFolderId);
@@ -314,7 +342,7 @@ export class UISystem {
                     }
                 }
             };
-            
+
             byId('svgTier1')?.addEventListener('mouseleave', handleMouseLeave);
             byId('svgTier2')?.addEventListener('mouseleave', handleMouseLeave);
             this.startBtn.addEventListener('mouseleave', handleMouseLeave);
@@ -332,7 +360,7 @@ export class UISystem {
             opt.addEventListener('mouseenter', (e) => {
                 if (this.menuControls?.classList.contains('collapsed')) return;
                 let mode = (e.currentTarget as HTMLElement).getAttribute('data-mode');
-                
+
                 if (textHoverTimeout) clearTimeout(textHoverTimeout);
                 textHoverTimeout = setTimeout(() => {
                     if (mode && this.startBtn) {
@@ -348,13 +376,13 @@ export class UISystem {
                 const target = e.target as HTMLElement;
                 // Nếu click dính vào sub-blade thì nhường cho sub-blade xử lý
                 if (target.closest('.sub-blade')) return;
-                
+
                 let mode = (e.currentTarget as HTMLElement).getAttribute('data-mode');
                 if (mode && mode !== 'study') {
                     this.currentMode = mode;
                     document.querySelectorAll('.fan-blade').forEach(p => p.classList.remove('active'));
                     (e.currentTarget as HTMLElement).classList.add('active');
-                    
+
                     // Mutate The Core Text & Collapse
                     if (this.startBtn) {
                         this.startBtn.innerText = mode.toUpperCase();
@@ -376,7 +404,7 @@ export class UISystem {
             opt.addEventListener('mouseenter', (e) => {
                 if (this.menuControls?.classList.contains('collapsed')) return;
                 let level = (e.currentTarget as HTMLElement).getAttribute('data-level');
-                
+
                 if (textHoverTimeout) clearTimeout(textHoverTimeout);
                 textHoverTimeout = setTimeout(() => {
                     if (level && this.startBtn) {
@@ -393,10 +421,10 @@ export class UISystem {
                 if (level) {
                     this.currentStudyLevel = level;
                     this.currentMode = 'study';
-                    
+
                     document.querySelectorAll('.fan-blade, .sub-blade').forEach(p => p.classList.remove('active'));
                     const pOpt = byId('studyBlade');
-                    if(pOpt) pOpt.classList.add('active');
+                    if (pOpt) pOpt.classList.add('active');
                     (e.currentTarget as HTMLElement).classList.add('active');
 
                     // Mutate The Core Text to N1-N5 & Collapse
@@ -410,7 +438,7 @@ export class UISystem {
                     }
 
                     (document.activeElement as HTMLElement)?.blur();
-                    
+
                     if (level.startsWith('n')) {
                         setTimeout(() => this.openJLPTHub(level), 300); // Đợi menu gập lại mượt mà
                     } else {
@@ -427,19 +455,19 @@ export class UISystem {
                 const selectedMode = this.startBtn?.getAttribute('data-mode');
                 if (!selectedMode || selectedMode === '') {
                     // Chưa chọn mode thì không làm gì cả, vờ như Lõi chỉ là nút trang trí!
-                    return; 
+                    return;
                 }
 
                 // Hide message center
                 if (this.messageCenter) this.messageCenter.classList.add('hidden');
-                
+
                 const mode = this.currentMode || 'medium';
                 const studyLevel = this.currentStudyLevel || 'n5';
-                
+
                 // Reset states
                 this.updateHp(5);
                 this.updateScore(0);
-                
+
                 // Nạp playlist xuống AudioSystem - ALWAYS ENABLED FOR ALL MODES
                 let useYoutube = true;
                 if (useYoutube) {
@@ -462,13 +490,13 @@ export class UISystem {
                     if (this.miniPlayer) this.miniPlayer.classList.add('hidden');
                     if (this.mainPlaylistHud) this.mainPlaylistHud.classList.add('hidden');
                 }
-                
+
                 // Hide menu, show Stop
                 if (this.menuControls) this.menuControls.classList.add('hidden');
                 if (this.stopBtn) this.stopBtn.classList.remove('hidden');
                 // Fire Start Event so Engine can listen
-                EventBus.getInstance().publish('GAME_START', { 
-                    mode, 
+                EventBus.getInstance().publish('GAME_START', {
+                    mode,
                     studyLevel,
                     useYoutube: useYoutube
                 });
@@ -491,7 +519,7 @@ export class UISystem {
                 }
             });
         }
-        
+
         if (this.confirmStopBtn) {
             this.confirmStopBtn.addEventListener('click', () => {
                 if (this.stopConfirmModal) {
@@ -510,14 +538,14 @@ export class UISystem {
                     this.stopConfirmModal.classList.add('hidden');
                     this.stopConfirmModal.classList.remove('show');
                 }
-                
+
                 let countdownEl = byId('resumeCountdown');
                 if (countdownEl) {
                     countdownEl.style.display = 'flex';
                     let count = 3;
                     countdownEl.innerText = count.toString();
                     EventBus.getInstance().publish('AUDIO_BEEP', null);
-                    
+
                     let interval = setInterval(() => {
                         count--;
                         if (count > 0) {
@@ -602,16 +630,16 @@ export class UISystem {
                 if (u && folder) {
                     this.addSongBtn!.innerText = "Đang lấy...";
                     (this.addSongBtn as HTMLButtonElement).disabled = true;
-                    let songTitle = u; 
+                    let songTitle = u;
                     try {
                         let res = await fetch(`https://noembed.com/embed?url=${u}`);
                         let data = await res.json();
                         if (data && data.title) songTitle = data.title;
-                    } catch(e) {}
-                    
+                    } catch (e) { }
+
                     folder.songs.push({ url: u, title: songTitle });
                     this.saveLibrary();
-                    
+
                     this.addSongBtn!.innerText = "Thêm";
                     (this.addSongBtn as HTMLButtonElement).disabled = false;
                     this.newSongUrl.value = "";
@@ -635,7 +663,7 @@ export class UISystem {
                 }
             });
         }
-        
+
         if (this.ttsVolSlider) {
             this.ttsVolSlider.addEventListener('input', (e) => {
                 EventBus.getInstance().publish('TTS_VOL_CHANGED', parseFloat((e.target as HTMLInputElement).value));
@@ -664,7 +692,7 @@ export class UISystem {
         }
 
 
-        
+
         [this.calibBgmSlider, this.calibSfxSlider, this.calibTtsSlider].forEach(slider => {
             if (slider) {
                 slider.addEventListener('input', () => {
@@ -693,18 +721,18 @@ export class UISystem {
             this.hubBackBtn.addEventListener('click', () => {
                 EventBus.getInstance().publish('PLAY_DING', null);
                 if (this.jlptHubPage) this.jlptHubPage.classList.add('hidden');
-                
+
                 if (this.messageCenter) this.messageCenter.classList.add('hidden');
-                
+
                 if (this.menuControls) {
                     this.menuControls.classList.remove('hidden');
                     this.menuControls.classList.remove('collapsed');
                 }
                 if (this.profileCard) this.profileCard.classList.remove('hidden');
-                
+
                 // Clear active states of radial menu
                 document.querySelectorAll('.fan-blade, .sub-blade').forEach(p => p.classList.remove('active'));
-                
+
                 if (this.startBtn) {
                     this.startBtn.innerText = "打検";
                     this.startBtn.setAttribute('data-mode', '');
@@ -718,22 +746,22 @@ export class UISystem {
             this.startJLPTSessionBtn.addEventListener('click', () => {
                 if (this.jlptCalibrationModal) this.jlptCalibrationModal.classList.add('hidden');
                 if (this.jlptHubPage) this.jlptHubPage.classList.add('hidden');
-                
+
                 this.currentMode = 'study';
                 this.currentStudyLevel = 'n2';
-                
+
                 const data = StateManager.getInstance().getN2HubData();
                 if (this.currentN2Context && data) {
                     const sessionWords = data[this.currentN2Context.unitIdx].sessions[this.currentN2Context.sessionIdx];
-                    
+
                     this.updateHp(5);
                     this.updateScore(0);
-                    
+
                     if (this.menuControls) this.menuControls.classList.add('hidden');
                     if (this.stopBtn) this.stopBtn.classList.remove('hidden');
-                    
-                    EventBus.getInstance().publish('GAME_START_N2', { 
-                        mode: 'study', 
+
+                    EventBus.getInstance().publish('GAME_START_N2', {
+                        mode: 'study',
                         studyLevel: 'n2',
                         words: sessionWords,
                         unitIdx: this.currentN2Context.unitIdx,
@@ -759,7 +787,8 @@ export class UISystem {
                 }
             }
             if (this.stopBtn) this.stopBtn.classList.add('hidden');
-            
+            if (this.currentScoreBox) this.currentScoreBox.classList.add('hidden');
+
             // Xoá trạng thái lưu của mode, trả Lõi về form gốc để các nan quạt bung ra
             if (this.startBtn) {
                 this.startBtn.innerText = "打検";
@@ -781,16 +810,18 @@ export class UISystem {
                 this.summaryModal.classList.add('hidden');
                 this.summaryModal.classList.remove('show');
             }
-            
+
             this.stopTimer();
             this.currentMode = config.mode;
             if (config.mode === 'easy' || config.mode === 'study') {
                 if (this.waveProgressContainer) this.waveProgressContainer.classList.remove('hidden');
                 if (this.waveTimerEl) this.waveTimerEl.classList.remove('hidden');
+                if (this.currentScoreBox) this.currentScoreBox.classList.remove('hidden');
                 this.startTimer();
             } else {
                 if (this.waveProgressContainer) this.waveProgressContainer.classList.add('hidden');
                 if (this.waveTimerEl) this.waveTimerEl.classList.add('hidden');
+                if (this.currentScoreBox) this.currentScoreBox.classList.add('hidden');
             }
         });
 
@@ -809,11 +840,12 @@ export class UISystem {
                 this.summaryModal.classList.add('hidden');
                 this.summaryModal.classList.remove('show');
             }
-            
+
             this.stopTimer();
             this.currentMode = config.mode;
             if (this.waveProgressContainer) this.waveProgressContainer.classList.remove('hidden');
             if (this.waveTimerEl) this.waveTimerEl.classList.remove('hidden');
+            if (this.currentScoreBox) this.currentScoreBox.classList.remove('hidden');
             this.startTimer();
         });
 
@@ -843,7 +875,7 @@ export class UISystem {
                 this.summaryModal.classList.remove('hidden');
                 this.summaryModal.classList.add('show');
             }
-            
+
             // Xóa rỗng các thông số UI tức thì
             if (this.sumBaseScore) this.sumBaseScore.innerText = "0";
             if (this.sumMaxCombo) this.sumMaxCombo.innerText = "0";
@@ -855,47 +887,47 @@ export class UISystem {
                 this.sumRank.classList.remove('stamp');
                 this.sumRank.style.opacity = '0';
             }
-            
+
             let elapsedSec = (performance.now() - this.startTime) / 1000;
             let mins = Math.floor(elapsedSec / 60);
             let secs = Math.floor(elapsedSec % 60);
             let ms = Math.floor((elapsedSec * 10) % 10);
             let timeStr = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}.${ms}`;
-            
+
             let timeBonus = 0;
             if (elapsedSec < 60) {
                 timeBonus = Math.floor((60 - elapsedSec) * 30);
             }
-            
+
             let finalScore = this.savedBaseScore + timeBonus;
-            
+
             let rank = 'D';
             let rankColor = '#ff4757'; // Red
             if (finalScore > 2500) { rank = 'S'; rankColor = '#ffd700'; } // Gold
             else if (finalScore > 1800) { rank = 'A'; rankColor = '#00e676'; } // Green
             else if (finalScore > 1200) { rank = 'B'; rankColor = '#00f5ff'; } // Cyan
             else if (finalScore > 800) { rank = 'C'; rankColor = '#ff9800'; } // Orange
-            
+
             // Lần lượt hiển thị các thông số (Kéo dài gấp đôi để tạo hồi hộp)
             setTimeout(() => { this.animateValue(this.sumBaseScore, 0, this.savedBaseScore, 800); }, 1500);
-            
-            setTimeout(() => { 
+
+            setTimeout(() => {
                 EventBus.getInstance().publish('AUDIO_BEEP', null);
-                if (this.sumMaxCombo) this.sumMaxCombo.innerText = this.maxComboAchieved.toString(); 
+                if (this.sumMaxCombo) this.sumMaxCombo.innerText = this.maxComboAchieved.toString();
             }, 3000);
-            
-            setTimeout(() => { 
+
+            setTimeout(() => {
                 EventBus.getInstance().publish('AUDIO_BEEP', null);
-                if (this.sumTime) this.sumTime.innerText = timeStr; 
+                if (this.sumTime) this.sumTime.innerText = timeStr;
             }, 4000);
-            
-            setTimeout(() => { 
+
+            setTimeout(() => {
                 EventBus.getInstance().publish('AUDIO_BEEP', null);
-                if (this.sumTimeBonus) this.sumTimeBonus.innerText = '+' + timeBonus.toString(); 
+                if (this.sumTimeBonus) this.sumTimeBonus.innerText = '+' + timeBonus.toString();
             }, 5000);
-            
+
             setTimeout(() => { this.animateValue(this.sumFinalScore, 0, finalScore, 1200); }, 6500);
-            
+
             setTimeout(() => {
                 if (this.sumRank) {
                     EventBus.getInstance().publish('AUDIO_SLAM', null);
@@ -904,8 +936,8 @@ export class UISystem {
                     this.sumRank.style.textShadow = `0 0 15px ${rankColor}`;
                     this.sumRank.style.opacity = '1';
                     this.sumRank.classList.add('stamp');
-                    
-                    this.shakeScreen(); 
+
+                    this.shakeScreen();
                     this.triggerParticles(rankColor);
                 }
             }, 8500);
@@ -928,7 +960,7 @@ export class UISystem {
                 // Tô khoảng trống
                 exampleJpRaw = exampleJpRaw.replace(/\[(.*?)\]/g, '<span style="color: var(--neon-cyan); letter-spacing: 2px;">[ _ _ _ _ ]</span>');
                 let exampleJp = exampleJpRaw.replace(/\{([^|]+)\|([^}]+)\}/g, '<ruby>$1<rt>$2</rt></ruby>');
-                
+
                 let html = `
                     <div class="bubble-header" style="align-items: center; justify-content: center; margin-bottom: 20px;">
                         <span style="font-size: 1.2rem; font-weight: 700; color: #fff; opacity: 0.7;">Q: Hãy điền vào chỗ trống</span>
@@ -941,7 +973,7 @@ export class UISystem {
                 this.hudTerminal.classList.add('center-screen');
                 this.hudTerminal.classList.remove('hidden');
                 this.hudTerminal.classList.add('show');
-                
+
                 requestAnimationFrame(() => {
                     if (this.hudTerminal) {
                         this.hudTerminal.style.top = '40%';
@@ -950,16 +982,16 @@ export class UISystem {
                 });
                 return;
             }
-            
+
             // Xóa inline style thừa từ Wave 4 nếu có
             if (this.hudTerminal) {
                 this.hudTerminal.style.top = '';
                 this.hudTerminal.style.transform = '';
             }
-            
+
             // Mặc định giấu thông tin
             let isHidden = false;
-            
+
             if (enemy.mode === 'study' && enemy.studyWave >= 2) {
                 if (enemy.studyWave === 2) {
                     isHidden = !enemy.isDefeated; // Wave 2: Sài sai vẫn giấu, chỉ hiện khi đã Defeat/Skip
@@ -967,7 +999,7 @@ export class UISystem {
                     isHidden = !enemy.isDefeated && !enemy.isWeak;
                 }
             }
-            
+
             // Ở wave 2, nếu đang ẩn thông tin thì giấu luôn cả bảng card (bóp lại thành viên thuốc)
             if (enemy.mode === 'study' && enemy.studyWave === 2 && isHidden) {
                 this.hudTerminal.classList.remove('show');
@@ -977,10 +1009,10 @@ export class UISystem {
             let exampleJpRaw = word.example_jp || word.visual;
             // Tô sáng phần trong ngoặc bằng màu vàng
             exampleJpRaw = exampleJpRaw.replace(/\[(.*?)\]/g, '<span style="color: #ffd700; text-shadow: 0 0 5px rgba(255,215,0,0.5);">$1</span>');
-            let exampleJp = isHidden 
+            let exampleJp = isHidden
                 ? (enemy.revealType === 'vi' ? "???" : exampleJpRaw.replace(/\{([^|]+)\|([^}]+)\}/g, '$1')) // Nếu là chiều Vi->Romaji thì giấu sạch câu Nhật
                 : exampleJpRaw.replace(/\{([^|]+)\|([^}]+)\}/g, '<ruby>$1<rt>$2</rt></ruby>');
-            
+
             let romajiText = isHidden ? "???" : word.romaji;
             let viText = isHidden ? (enemy.revealType === 'vi' ? word.vi : "???") : (word.vi || '');
             let exampleViText = isHidden ? "???" : (word.example_vi || '');
@@ -1003,13 +1035,13 @@ export class UISystem {
                 ${(word.grammar_vi || word.grammar) ? `<div class="bubble-grammar"><span class="grammar-icon">💡</span> ${word.grammar_vi || word.grammar}</div>` : ''}
             `;
             this.hudTerminal.innerHTML = html;
-            
+
             const replayBtn = byId('ttsReplayBtn');
             if (replayBtn) {
                 replayBtn.addEventListener('click', (e) => {
                     e.preventDefault();
                     // Để tránh bị mất focus bàn phím
-                    this.startBtn?.focus(); 
+                    this.startBtn?.focus();
                     (<HTMLElement>document.activeElement)?.blur();
                     EventBus.getInstance().publish('REPLAY_TTS', word);
                 });
@@ -1064,6 +1096,10 @@ export class UISystem {
                     batteryContainer.style.display = 'flex'; // Ép hiển thị
                     batteryContainer.classList.remove('hidden');
                 }
+            } else {
+                // Tắt pin ở các wave tutorial (1-4)
+                const batteryContainer = byId('hpBatteryContainer');
+                if (batteryContainer) batteryContainer.classList.add('hidden');
             }
 
             this.waveSegmentStates = new Array(this.enemiesSpawnedThisWave).fill('empty');
@@ -1101,7 +1137,7 @@ export class UISystem {
             }
 
             if (!this.hudTerminal) return;
-            
+
             // Ở Wave 4, sau khi trả lời, thẻ chuyển từ "Câu hỏi" (top 40%) sang "Giải thích"
             // Xóa inline style và class canh giữa để thẻ Giải thích rớt xuống sát ô nhập text
             if (enemy.mode === 'study' && enemy.studyWave === 4) {
@@ -1123,7 +1159,7 @@ export class UISystem {
             // Tô sáng phần trong ngoặc bằng màu vàng
             exampleJp = exampleJp.replace(/\[(.*?)\]/g, '<span style="color: #ffd700; text-shadow: 0 0 5px rgba(255,215,0,0.5);">$1</span>');
             exampleJp = exampleJp.replace(/\{([^|]+)\|([^}]+)\}/g, '<ruby>$1<rt>$2</rt></ruby>');
-            
+
             // If enemy is skipped/weak, show red text instead of green
             let resultColor = enemy.isWeak ? '#ff4757' : '#00e676';
             if (this.hudTerminal) {
@@ -1137,7 +1173,7 @@ export class UISystem {
                     this.hudTerminal.style.backgroundColor = 'rgba(0, 230, 118, 0.1)';
                 }
             }
-            
+
             let html = `
                 <div class="bubble-header" style="align-items: baseline;">
                     <div>
@@ -1160,7 +1196,7 @@ export class UISystem {
                     this.alignEnemyToTerminal(enemy);
                 });
             }
-            
+
             const replayBtnDefeated = byId('ttsReplayBtnDefeated');
             if (replayBtnDefeated) {
                 replayBtnDefeated.addEventListener('click', (e) => {
@@ -1176,14 +1212,14 @@ export class UISystem {
             if (!this.bufferTrash || !this.bufferTyped) return;
             let trashPart = data.buffer;
             let typedPart = data.prefix;
-            
+
             if (typedPart) {
                 trashPart = data.buffer.substring(0, data.buffer.length - typedPart.length);
                 this.bufferTyped.innerText = typedPart;
             } else {
                 this.bufferTyped.innerText = "";
             }
-            
+
             if (!trashPart && !typedPart && this.currentWaveNumber >= 2) {
                 this.bufferTrash.innerHTML = `<span style="color: rgba(255,255,255,0.2); font-size: 0.7em;">[ Nhấn ENTER nếu quên từ ]</span>`;
             } else {
@@ -1205,7 +1241,7 @@ export class UISystem {
             // Add to combat log
             const label = data.combo > 1 ? `COMBO x${data.combo}` : 'WORD CLEAR';
             this.addScoreFeedItem(points, label);
-            
+
             // Xóa buffer UI
             if (this.bufferTyped) this.bufferTyped.innerText = "";
             if (this.bufferTrash) this.bufferTrash.innerText = "";
@@ -1217,13 +1253,13 @@ export class UISystem {
             this.updateScore(this.currentScore);
 
             this.addScoreFeedItem(-penalty, 'PENALTY');
-            
+
             // Re-sync base score
             if (this.savedBaseScore > 0) {
                 this.savedBaseScore -= penalty;
                 if (this.savedBaseScore < 0) this.savedBaseScore = 0;
             }
-            
+
             // Visual feedback đỏ chớp màn hình nhẹ
             if (this.gameContainer) {
                 this.gameContainer.classList.add('penalty-flash');
@@ -1265,7 +1301,7 @@ export class UISystem {
         events.subscribe('ENEMY_PASSED_DEADLINE', () => {
             // Từ Wave 1-4 không mất máu trong Study Mode
             if (this.currentMode === 'study' && this.currentWaveNumber < 5) return;
-            
+
             this.updateHp(this.currentHp - 1);
             this.shakeScreen();
         });
@@ -1279,16 +1315,16 @@ export class UISystem {
 
         events.subscribe('WAVE_CLEARED', (data: any) => {
             const isWaitingManual = data && data.isWaitingManual;
-            
+
             // Tính toán thưởng thời gian (Time Bonus) chỉ cho Study Mode Wave 3
             let bonusPoints = 0;
             let bonusLabel = "";
-            
+
             if (this.currentWaveNumber === 3 || this.currentWaveNumber === 4) {
                 const elapsedMs = performance.now() - this.waveStartTime;
                 const waveKey = this.currentWaveNumber === 3 ? 'wave3' : 'wave4';
                 const config = (GameConfig.studyMode as any)[waveKey].timeBonuses;
-                
+
                 if (config) {
                     if (elapsedMs < config.gold.timeMs) {
                         bonusPoints = config.gold.points;
@@ -1300,7 +1336,7 @@ export class UISystem {
                         bonusPoints = config.bronze.points;
                         bonusLabel = "BRONZE CLEAR";
                     }
-                    
+
                     if (bonusPoints > 0) {
                         this.updateScore(this.currentScore + bonusPoints);
                         this.currentWaveBonusScore = bonusPoints;
@@ -1314,10 +1350,10 @@ export class UISystem {
                 baseScore: this.currentWaveBaseScore,
                 bonusScore: bonusPoints
             };
-            
+
             if (this.messageCenter && this.msgTitle && this.msgSub) {
                 this.messageCenter.classList.remove('hidden');
-                
+
                 if (bonusPoints > 0) {
                     this.msgTitle.innerText = bonusLabel;
                     this.msgTitle.style.color = bonusLabel === "GOLD CLEAR" ? "#ffd700" : (bonusLabel === "SILVER CLEAR" ? "#c0c0c0" : "#cd7f32");
@@ -1327,9 +1363,9 @@ export class UISystem {
                     this.msgTitle.style.color = "#00e676";
                     this.msgSub.innerText = isWaitingManual ? "[ BẤM SPACE ĐỂ TIẾP TỤC ]" : "Chuẩn bị đợt mới...";
                 }
-                
+
                 this.msgSub.style.color = "#fff";
-                
+
                 if (!isWaitingManual) {
                     setTimeout(() => {
                         this.messageCenter!.classList.add('hidden');
@@ -1347,13 +1383,13 @@ export class UISystem {
             if (this.comboLabel) this.comboLabel.classList.add('hidden');
             if (this.waveProgressContainer) this.waveProgressContainer.classList.add('hidden');
             if (this.waveTimerEl) this.waveTimerEl.classList.add('hidden');
-            
+
             // Ẩn Confirm popup nếu còn đang mở
             if (this.stopConfirmModal) {
                 this.stopConfirmModal.classList.add('hidden');
                 this.stopConfirmModal.classList.remove('show');
             }
-            
+
             // Restore UI (Show Menu, Hide Stop)
             if (this.currentMode === 'study' && this.currentStudyLevel === 'n2') {
                 this.openJLPTHub();
@@ -1412,7 +1448,7 @@ export class UISystem {
         events.subscribe('N2_SESSION_CLEARED', (data: { rank: string, acc: number, wpm: number, unitIdx: number, sessionIdx: number }) => {
             // Hiển thị lại N2 Hub
             this.openJLPTHub();
-            
+
             // Hiện thông báo popup siêu cool về Rank
             if (this.messageCenter && this.msgTitle && this.msgSub) {
                 this.messageCenter.classList.remove('hidden');
@@ -1423,10 +1459,10 @@ export class UISystem {
                 if (data.rank === 'B') color = "var(--neon-cyan)";
                 if (data.rank === 'C') color = "orange";
                 if (data.rank === 'D') color = "var(--danger)";
-                
+
                 this.msgTitle.style.color = color;
                 this.msgSub.innerText = `Accuracy: ${(data.acc * 100).toFixed(0)}%  |  WPM: ${data.wpm}`;
-                
+
                 setTimeout(() => {
                     this.messageCenter?.classList.add('hidden');
                 }, 4000); // 4 seconds to view
@@ -1437,7 +1473,7 @@ export class UISystem {
         events.subscribe('MUSIC_INFO_UPDATED', (data: { title: string, progress: number, playing: boolean }) => {
             if (this.miniTitle) this.miniTitle.innerText = data.title;
             if (this.miniProgressFill) this.miniProgressFill.style.width = `${data.progress}%`;
-            
+
             if (this.miniPlayBtn) {
                 this.miniPlayBtn.innerText = data.playing ? '⏸' : '▶';
             }
@@ -1451,12 +1487,41 @@ export class UISystem {
         });
 
         const onMatchStart = () => {
-            if (this.currentScoreBox) this.currentScoreBox.classList.remove('hidden');
+            this.isGameActive = true;
+            if (this.currentScoreBox) {
+                this.currentScoreBox.classList.remove('hidden');
+                this.currentScoreBox.style.display = 'flex';
+            }
+            if (this.messageCenter) this.messageCenter.classList.add('hidden');
+            if (this.jlptHubPage) this.jlptHubPage.classList.add('hidden');
+            if (this.summaryModal) this.summaryModal.classList.add('hidden');
+            if (this.synapseMatrixModal) this.synapseMatrixModal.classList.add('hidden');
+            if (this.stopConfirmModal) this.stopConfirmModal.classList.add('hidden');
+            if (this.waveProgressContainer) this.waveProgressContainer.classList.remove('hidden');
+            if (this.waveLabel) this.waveLabel.classList.remove('hidden');
+            if (this.waveTimerEl) this.waveTimerEl.classList.remove('hidden');
+            if (this.profileCard) this.profileCard.classList.add('hidden');
+            if (this.menuControls) this.menuControls.classList.add('hidden');
         };
 
         const onMatchEnd = () => {
-            if (this.currentScoreBox) this.currentScoreBox.classList.add('hidden');
+            this.isGameActive = false;
+            if (this.currentScoreBox) {
+                this.currentScoreBox.classList.add('hidden');
+                this.currentScoreBox.style.display = 'none';
+            }
+            if (this.waveProgressContainer) this.waveProgressContainer.classList.add('hidden');
+            if (this.waveLabel) this.waveLabel.classList.add('hidden');
+            if (this.waveTimerEl) this.waveTimerEl.classList.add('hidden');
+            const batteryContainer = byId('hpBatteryContainer');
+            if (batteryContainer) batteryContainer.style.display = 'none';
+
             this.updateProfileUI(); // Refresh stats after match
+            
+            // Hiện lại profile card nếu đang ở Lobby
+            if (this.profileCard && AuthSystem.getInstance().isLoggedIn()) {
+                this.profileCard.classList.remove('hidden');
+            }
         };
 
         events.subscribe('GAME_START', onMatchStart);
@@ -1466,18 +1531,14 @@ export class UISystem {
         events.subscribe('GAME_STOPPED', onMatchEnd);
 
         events.subscribe('AUTH_SUCCESS', (user: any) => {
-            // Kiểm tra xem user đã có tên thực sự chưa (mặc định là GUEST_AGENT nếu chưa có)
-            const isGuest = user.name === 'GUEST_AGENT';
+            // Kiểm tra: Nếu chưa có tên thực sự HOẶC chưa có mã Agent ID (#000000)
+            const isNewAgent = user.name === 'GUEST_AGENT' || !user.agentId || user.agentId === '000000';
 
-            if (isGuest) {
-                // Buộc người dùng vào View Setup Name
-                if (this.loginView) this.loginView.classList.add('hidden');
-                if (this.registerView) this.registerView.classList.add('hidden');
+            if (isNewAgent) {
                 if (this.socialLoginArea) this.socialLoginArea.classList.add('hidden');
-                if (this.loginTabs) this.loginTabs.classList.add('hidden');
                 if (this.setupView) this.setupView.classList.remove('hidden');
             } else {
-                if (this.profileCard) this.profileCard.classList.remove('hidden');
+                if (this.profileCard && !this.isGameActive) this.profileCard.classList.remove('hidden');
                 if (this.loginScreen) {
                     this.loginScreen.classList.add('disappearing');
                     setTimeout(() => {
@@ -1487,37 +1548,24 @@ export class UISystem {
                 }
                 this.updateProfileUI();
                 StateManager.getInstance().syncN2ProgressWithCloud();
+
+                const guideShown = localStorage.getItem('DAKEN_GUIDE_SHOWN');
+                if (!guideShown && this.generalGuideModal) {
+                    setTimeout(() => {
+                        this.generalGuideModal?.classList.remove('hidden');
+                    }, 2000);
+                }
             }
         });
 
         events.subscribe('AUTH_LOGOUT', () => {
             console.log("[UISystem] AUTH_LOGOUT event received. Resetting UI...");
-            // Hiển thị lại màn hình đăng nhập
             if (this.loginScreen) {
-                this.loginScreen.classList.remove('hidden');
-                this.loginScreen.classList.remove('disappearing');
+                this.loginScreen.classList.remove('hidden', 'disappearing');
+                document.body.classList.add('login-pending');
             }
-            document.body.classList.add('login-pending');
-            
-            // Reset nội dung màn hình Login
-            if (this.loginStatus) this.loginStatus.innerText = 'STATUS: IDLE';
-            if (this.loginTabs) (this.loginTabs as HTMLElement).classList.remove('hidden');
-            if (this.loginView) this.loginView.classList.remove('hidden');
-            if (this.registerView) this.registerView.classList.add('hidden');
-            if (this.setupView) this.setupView.classList.add('hidden');
             if (this.socialLoginArea) this.socialLoginArea.classList.remove('hidden');
-            
-            if (this.tabLogin) this.tabLogin.classList.add('active');
-            if (this.tabRegister) this.tabRegister.classList.remove('active');
-            
-            // Clear inputs
-            if (this.loginEmail) this.loginEmail.value = '';
-            if (this.loginPass) this.loginPass.value = '';
-            if (this.regName) this.regName.value = '';
-            if (this.regEmail) this.regEmail.value = '';
-            if (this.regPass) this.regPass.value = '';
-            
-            // Xóa thông tin Profile hiện tại trong UI (Stats về 0)
+
             this.updateProfileUI();
         });
 
@@ -1539,60 +1587,7 @@ export class UISystem {
         // --- AUTH SYSTEM EVENTS ---
         const auth = AuthSystem.getInstance();
 
-        // 1. Chuyển Tab
-        this.tabLogin?.addEventListener('click', () => {
-            this.tabLogin?.classList.add('active');
-            this.tabRegister?.classList.remove('active');
-            this.loginView?.classList.remove('hidden');
-            this.registerView?.classList.add('hidden');
-        });
-
-        this.tabRegister?.addEventListener('click', () => {
-            this.tabRegister?.classList.add('active');
-            this.tabLogin?.classList.remove('active');
-            this.registerView?.classList.remove('hidden');
-            this.loginView?.classList.add('hidden');
-        });
-
-        // 2. Logic Đăng ký
-        this.executeRegisterBtn?.addEventListener('click', async () => {
-            const email = this.regEmail.value.trim();
-            const pass = this.regPass.value.trim();
-            const name = this.regName.value.trim();
-
-            if (!email || !pass || !name) {
-                if (this.loginStatus) this.loginStatus.innerText = 'STATUS: MISSING_INFO';
-                return;
-            }
-
-            if (this.loginStatus) this.loginStatus.innerText = 'STATUS: REGISTERING...';
-            try {
-                await auth.register(email, pass, name);
-                if (this.loginStatus) this.loginStatus.innerText = 'STATUS: CHECK_EMAIL_TO_VERIFY';
-            } catch (err: any) {
-                if (this.loginStatus) this.loginStatus.innerText = `STATUS: ${err.message.toUpperCase()}`;
-            }
-        });
-
-        // 3. Logic Đăng nhập
-        this.executeLoginBtn?.addEventListener('click', async () => {
-            const email = this.loginEmail.value.trim();
-            const pass = this.loginPass.value.trim();
-
-            if (!email || !pass) {
-                if (this.loginStatus) this.loginStatus.innerText = 'STATUS: MISSING_CREDENTIALS';
-                return;
-            }
-
-            if (this.loginStatus) this.loginStatus.innerText = 'STATUS: AUTHENTICATING...';
-            try {
-                await auth.login(email, pass);
-            } catch (err: any) {
-                if (this.loginStatus) this.loginStatus.innerText = `STATUS: ${err.message.toUpperCase()}`;
-            }
-        });
-
-        // 4. Logic Setup Name (Dành cho Google/First-time)
+        // 1. Logic Setup Name (Dành cho Google/First-time)
         this.finishSetupBtn?.addEventListener('click', async () => {
             const name = this.setupNameInput.value.trim();
             if (!name || name.length < 3) {
@@ -1600,9 +1595,15 @@ export class UISystem {
                 return;
             }
 
-            if (this.loginStatus) this.loginStatus.innerText = 'STATUS: UPDATING_IDENTITY...';
+            // Tạo mã Agent ID ngẫu nhiên sáu số
+            const randomID = Math.floor(100000 + Math.random() * 900000).toString();
+
+            if (this.loginStatus) this.loginStatus.innerText = 'STATUS: SYNCING_IDENTITY...';
             try {
-                await auth.updateProfile({ name: name });
+                await auth.updateProfile({ name: name, agentId: randomID });
+                if (this.loginStatus) this.loginStatus.innerText = 'STATUS: IDENTITY_SECURED';
+                
+                // Sau khi thành công, UISystem sẽ tự nhận event AUTH_SUCCESS và ẩn setup-view
             } catch (err: any) {
                 if (this.loginStatus) this.loginStatus.innerText = `STATUS: ${err.message.toUpperCase()}`;
             }
@@ -1630,7 +1631,10 @@ export class UISystem {
         if (this.playerNameEl) {
             this.playerNameEl.innerText = user?.name || "GUEST_AGENT";
         }
-        
+        if (this.playerTagEl) {
+            this.playerTagEl.innerText = `#${user?.agentId || '000000'}`;
+        }
+
         // Cập nhật Avatar nếu có
         const savedAvt = localStorage.getItem('DAKEN_PLAYER_AVATAR');
         if (savedAvt && this.playerAvtImg) {
@@ -1646,7 +1650,7 @@ export class UISystem {
         let wpmSum = 0;
         let totalScoreSum = 0;
         let rankScoreSum = 0;
-        const rankMap: Record<string, number> = {'S': 4, 'A': 3, 'B': 2, 'C': 1, 'D': 0};
+        const rankMap: Record<string, number> = { 'S': 4, 'A': 3, 'B': 2, 'C': 1, 'D': 0 };
         const reverseRank = ['D', 'C', 'B', 'A', 'S'];
 
         n2Data.forEach((unit, uIdx) => {
@@ -1663,7 +1667,7 @@ export class UISystem {
         });
 
         if (this.totalScoreEl) this.totalScoreEl.innerText = totalScoreSum.toLocaleString();
-        
+
         if (totalStatsCount > 0) {
             if (this.avgAccEl) this.avgAccEl.innerText = Math.floor(accSum / totalStatsCount) + "%";
             if (this.avgWpmEl) this.avgWpmEl.innerText = Math.floor(wpmSum / totalStatsCount).toString();
@@ -1671,6 +1675,25 @@ export class UISystem {
                 const avgRank = reverseRank[Math.round(rankScoreSum / totalStatsCount)];
                 this.playerRankEl.innerText = `CLASS ${avgRank}`;
                 this.playerRankEl.className = `rank-value jlpt-rank-${avgRank}`;
+            }
+
+            // [LEADERBOARD] Tự động đồng bộ các chỉ số tổng hợp lên Cloud
+            if (auth.isLoggedIn()) {
+                const totalScore = totalScoreSum;
+                const avgWpm = Math.floor(wpmSum / totalStatsCount);
+                const avgAcc = Math.floor(accSum / totalStatsCount);
+
+                const lastSyncedScore = parseInt(localStorage.getItem('LAST_SYNCED_TOTAL_SCORE') || '0');
+                if (totalScore > lastSyncedScore) {
+                    auth.updateProfile({ 
+                        total_score: totalScore, 
+                        avg_wpm: avgWpm, 
+                        avg_acc: avgAcc 
+                    }).then(() => {
+                        localStorage.setItem('LAST_SYNCED_TOTAL_SCORE', totalScore.toString());
+                        console.log("[Social] Stats synchronized with Neural Hierarchy.");
+                    }).catch(err => console.error("[Social] Link synchronization failed:", err));
+                }
             }
         } else {
             if (this.avgAccEl) this.avgAccEl.innerText = "0%";
@@ -1703,10 +1726,10 @@ export class UISystem {
                     reader.onload = async (event) => {
                         const base64 = event.target?.result as string;
                         if (this.playerAvtImg) this.playerAvtImg.src = base64;
-                        
+
                         // Lưu local dự phòng
                         localStorage.setItem('DAKEN_PLAYER_AVATAR', base64);
-                        
+
                         // Đồng bộ Cloud nếu đã login
                         const auth = AuthSystem.getInstance();
                         if (auth.isLoggedIn()) {
@@ -1716,7 +1739,7 @@ export class UISystem {
                                 console.error("Cloud sync failed.");
                             }
                         }
-                        
+
                         EventBus.getInstance().publish('AUDIO_BEEP', null);
                     };
                     reader.readAsDataURL(file);
@@ -1732,7 +1755,7 @@ export class UISystem {
                 const auth = AuthSystem.getInstance();
                 const currentName = this.playerNameEl?.innerText || "";
                 const newName = prompt("Nhập mật danh mới của bạn (Agent Name):", currentName);
-                
+
                 if (newName && newName.trim() !== "" && newName !== currentName) {
                     const finalName = newName.trim();
                     if (this.playerNameEl) this.playerNameEl.innerText = finalName;
@@ -1793,7 +1816,7 @@ export class UISystem {
         const item = document.createElement('div');
         const isPositive = points >= 0;
         item.className = `score-feed-item ${isPositive ? 'positive' : 'negative'}`;
-        
+
         const sign = isPositive ? '+' : '';
         item.innerHTML = `
             <span class="feed-label">${label}</span>
@@ -1827,7 +1850,7 @@ export class UISystem {
     private checkExistingSession() {
         const auth = AuthSystem.getInstance();
         const savedId = localStorage.getItem('DAKEN_ID');
-        
+
         if (savedId || auth.isLoggedIn()) {
             document.body.classList.remove('login-pending');
             if (this.loginScreen) this.loginScreen.classList.add('hidden');
@@ -1844,28 +1867,28 @@ export class UISystem {
     private renderLibrary() {
         if (!this.folderList) return;
         this.folderList.innerHTML = "";
-        
+
         this.myLibrary.forEach(folder => {
             let li = document.createElement('li');
             let isPlaying = folder.id === this.activeFolderId;
             li.className = "folder-item" + (isPlaying ? " active" : "");
-            
+
             let header = document.createElement('div');
             header.className = "folder-item-header";
-            
+
             let txt = document.createElement('span');
             txt.innerText = `📁 ${folder.name} (${folder.songs.length})`;
-            
+
             let acts = document.createElement('div');
             acts.className = "song-actions";
-            
-            let btnPlay = document.createElement('button'); 
-            btnPlay.innerText = isPlaying ? "Playing" : "▶ Play"; 
+
+            let btnPlay = document.createElement('button');
+            btnPlay.innerText = isPlaying ? "Playing" : "▶ Play";
             btnPlay.className = "play-btn";
-            btnPlay.onclick = () => { 
-                this.activeFolderId = folder.id; 
+            btnPlay.onclick = () => {
+                this.activeFolderId = folder.id;
                 this.saveLibrary();
-                this.renderLibrary(); 
+                this.renderLibrary();
                 if (this.playlistModal) this.playlistModal.classList.add('hidden');
                 this.renderMainHUDPlaylist();
                 // Push active folder list to audio system if game running
@@ -1873,16 +1896,16 @@ export class UISystem {
                 EventBus.getInstance().publish('MUSIC_PLAY_INDEX', 0);
                 this.updatePlaylistBtnName();
             };
-            
-            let btnOpen = document.createElement('button'); 
-            btnOpen.innerText = "Mở"; 
+
+            let btnOpen = document.createElement('button');
+            btnOpen.innerText = "Mở";
             btnOpen.className = "open-btn";
             btnOpen.onclick = () => this.openFolder(folder.id);
-            
-            let btnEdit = document.createElement('button'); 
-            btnEdit.innerText = "✎"; 
+
+            let btnEdit = document.createElement('button');
+            btnEdit.innerText = "✎";
             btnEdit.title = "Đổi tên Folder";
-            btnEdit.onclick = () => { 
+            btnEdit.onclick = () => {
                 let newName = prompt("Nhập tên mới cho Folder:", folder.name);
                 if (newName && newName.trim() !== "") {
                     folder.name = newName.trim();
@@ -1891,10 +1914,10 @@ export class UISystem {
                     this.renderMainHUDPlaylist();
                 }
             };
-            
-            let btnRm = document.createElement('button'); 
-            btnRm.innerText = "✖"; 
-            btnRm.onclick = () => { 
+
+            let btnRm = document.createElement('button');
+            btnRm.innerText = "✖";
+            btnRm.onclick = () => {
                 if (this.myLibrary.length > 1) {
                     this.myLibrary = this.myLibrary.filter(f => f.id !== folder.id);
                     if (this.activeFolderId === folder.id) this.activeFolderId = this.myLibrary[0].id;
@@ -1905,11 +1928,11 @@ export class UISystem {
                     alert("Phải giữ lại ít nhất 1 Folder!");
                 }
             };
-            
+
             acts.appendChild(btnPlay); acts.appendChild(btnOpen); acts.appendChild(btnEdit); acts.appendChild(btnRm);
             header.appendChild(txt); header.appendChild(acts);
             li.appendChild(header);
-            
+
             this.folderList!.appendChild(li);
         });
     }
@@ -1918,7 +1941,7 @@ export class UISystem {
         this.viewingFolderId = folderId;
         let folder = this.myLibrary.find(f => f.id === folderId);
         if (!folder) return;
-        
+
         if (this.currentFolderName) this.currentFolderName.innerText = folder.name;
         if (this.folderView) this.folderView.classList.add('hidden');
         if (this.songView) this.songView.classList.remove('hidden');
@@ -1930,26 +1953,26 @@ export class UISystem {
         this.playlistList.innerHTML = "";
         let folder = this.myLibrary.find(f => f.id === this.viewingFolderId);
         if (!folder) return;
-        
+
         folder.songs.forEach((item, i) => {
             let li = document.createElement('li');
             let txt = document.createElement('span');
-            txt.innerText = `${i+1}. ${item.title || item.url}`;
+            txt.innerText = `${i + 1}. ${item.title || item.url}`;
             txt.title = item.url;
-            
+
             let acts = document.createElement('div');
             acts.className = "song-actions";
-            
+
             let btnUp = document.createElement('button'); btnUp.innerText = "▲"; btnUp.onclick = () => this.moveSong(i, -1);
             let btnDn = document.createElement('button'); btnDn.innerText = "▼"; btnDn.onclick = () => this.moveSong(i, 1);
-            let btnRm = document.createElement('button'); btnRm.innerText = "✖"; 
-            btnRm.onclick = () => { 
-                folder!.songs.splice(i, 1); 
+            let btnRm = document.createElement('button'); btnRm.innerText = "✖";
+            btnRm.onclick = () => {
+                folder!.songs.splice(i, 1);
                 this.saveLibrary();
-                this.renderSongList(); 
-                this.renderLibrary(); 
+                this.renderSongList();
+                this.renderLibrary();
             };
-            
+
             acts.appendChild(btnUp); acts.appendChild(btnDn); acts.appendChild(btnRm);
             li.appendChild(txt); li.appendChild(acts);
             this.playlistList!.appendChild(li);
@@ -1960,7 +1983,7 @@ export class UISystem {
         let folder = this.myLibrary.find(f => f.id === this.viewingFolderId);
         if (!folder) return;
         if (idx + dir < 0 || idx + dir >= folder.songs.length) return;
-        
+
         let temp = folder.songs[idx];
         folder.songs[idx] = folder.songs[idx + dir];
         folder.songs[idx + dir] = temp;
@@ -1972,13 +1995,13 @@ export class UISystem {
         if (!this.mainPlaylistHud) return;
         let folder = this.myLibrary.find(f => f.id === this.activeFolderId);
         if (!folder) return;
-        
+
         this.mainPlaylistHud.classList.remove('hidden');
         if (this.hudPlaylistName) this.hudPlaylistName.innerText = `📁 ${folder.name}`;
-        
+
         if (!this.hudPlaylistSongs) return;
         this.hudPlaylistSongs.innerHTML = "";
-        
+
         if (folder.songs.length === 0) {
             let emptyDiv = document.createElement('div');
             emptyDiv.className = "dropdown-song-item";
@@ -1987,18 +2010,18 @@ export class UISystem {
             this.hudPlaylistSongs.appendChild(emptyDiv);
             return;
         }
-        
+
         folder.songs.forEach((song, i) => {
             let songDiv = document.createElement('div');
             songDiv.id = `hud-song-${this.activeFolderId}-${i}`;
             songDiv.className = "dropdown-song-item";
-            songDiv.innerText = `${i+1}. ${song.title || song.url}`;
-            
+            songDiv.innerText = `${i + 1}. ${song.title || song.url}`;
+
             songDiv.addEventListener('click', () => {
                 EventBus.getInstance().publish('MUSIC_PLAYLIST_UPDATE', folder!.songs);
                 EventBus.getInstance().publish('MUSIC_PLAY_INDEX', i);
             });
-            
+
             this.hudPlaylistSongs!.appendChild(songDiv);
         });
     }
@@ -2014,44 +2037,34 @@ export class UISystem {
     }
 
     private renderWaveSegments() {
-        if (!this.waveLabel || !this.waveSegments || !this.waveProgressContainer) return;
+        if (!this.waveLabel || !this.waveProgressContainer) return;
         if (this.waveProgressContainer.classList.contains('hidden')) return;
 
         if (this.currentWaveNumber === 5) {
             this.waveLabel.innerText = `WAVE 05 (ENDLESS)`;
             // Hides the segments and progress bar in Endless Sprint
-            this.waveSegments.style.display = 'none';
             const barFill = byId('waveProgressBarFill');
             const pctText = byId('wavePercentText');
             if (barFill) barFill.parentElement!.style.display = 'none';
             if (pctText) pctText.parentElement!.style.display = 'none';
         } else {
-            this.waveSegments.style.display = 'flex';
             this.waveLabel.innerText = `WAVE ${this.currentWaveNumber.toString().padStart(2, '0')}`;
-            
+
             const barFill = byId('waveProgressBarFill');
             const pctText = byId('wavePercentText');
             if (barFill) barFill.parentElement!.style.display = 'block';
             if (pctText) pctText.parentElement!.style.display = 'flex';
 
             let processedCount = 0;
-            let html = '';
             for (let i = 0; i < this.enemiesSpawnedThisWave; i++) {
                 let state = this.waveSegmentStates && this.waveSegmentStates[i] ? this.waveSegmentStates[i] : 'empty';
                 if (this.currentMode !== 'study') {
                     if (i < this.enemiesKilledThisWave) state = 'filled';
                 }
-                if (state === 'filled') {
-                    html += `<div class="segment filled"></div>`;
+                if (state === 'filled' || state === 'failed') {
                     processedCount++;
-                } else if (state === 'failed') {
-                    html += `<div class="segment failed" style="border-color: #ff4757; box-shadow: 0 0 10px #ff4757; background: rgba(255, 71, 87, 0.2);"></div>`;
-                    processedCount++;
-                } else {
-                    html += `<div class="segment"></div>`;
                 }
             }
-            this.waveSegments.innerHTML = html;
 
             let pct = this.enemiesSpawnedThisWave > 0 ? Math.floor((processedCount / this.enemiesSpawnedThisWave) * 100) : 0;
             if (barFill) barFill.style.width = `${pct}%`;
@@ -2072,7 +2085,7 @@ export class UISystem {
         this.startTime = performance.now();
         this.isTimerPaused = false;
         this.timeElapsedBeforePause = 0;
-        
+
         const update = () => {
             if (!this.waveTimerEl) return;
             if (!this.isTimerPaused) {
@@ -2087,7 +2100,7 @@ export class UISystem {
         };
         this.timerInterval = requestAnimationFrame(update);
     }
-    
+
     private pauseTimer() {
         this.isTimerPaused = true;
         this.timeElapsedBeforePause += (performance.now() - this.startTime);
@@ -2097,7 +2110,7 @@ export class UISystem {
         this.isTimerPaused = false;
         this.startTime = performance.now();
     }
-    
+
     private stopTimer() {
         if (this.timerInterval !== null) {
             cancelAnimationFrame(this.timerInterval);
@@ -2113,9 +2126,9 @@ export class UISystem {
             if (!startTime) startTime = timestamp;
             let progress = Math.min((timestamp - startTime) / duration, 1);
             elem.innerText = Math.floor(progress * (end - start) + start).toString();
-            
+
             // Beep liên hoàn khi chạy số
-            if (timestamp - lastBeepTime > 60 && progress < 1) { 
+            if (timestamp - lastBeepTime > 60 && progress < 1) {
                 EventBus.getInstance().publish('AUDIO_BEEP', null);
                 lastBeepTime = timestamp;
             }
@@ -2133,20 +2146,20 @@ export class UISystem {
         let rect = this.sumRank.getBoundingClientRect();
         let cx = rect.left + rect.width / 2;
         let cy = rect.top + rect.height / 2;
-        
+
         for (let i = 0; i < 60; i++) {
             let p = document.createElement('div');
             p.className = 'rank-particle';
             p.style.backgroundColor = color;
             p.style.boxShadow = `0 0 10px ${color}`;
-            
+
             let angle = Math.random() * Math.PI * 2;
-            let distance = Math.random() * 200 + 50; 
+            let distance = Math.random() * 200 + 50;
             let tx = Math.cos(angle) * distance;
             let ty = Math.sin(angle) * distance;
             p.style.setProperty('--tx', `${tx}px`);
             p.style.setProperty('--ty', `${ty}px`);
-            
+
             p.style.left = `${cx}px`;
             p.style.top = `${cy}px`;
             document.body.appendChild(p);
@@ -2159,10 +2172,9 @@ export class UISystem {
         if (!this.synapseMatrixModal) return;
         this.synapseMatrixModal.classList.remove('hidden');
         this.synapseMatrixModal.classList.add('show');
-        
+
         EventBus.getInstance().publish('GAME_OVER', null);
 
-        let progress = StateManager.getInstance().getProgress();
 
         // 1. Tính toán Rank dựa trên điểm số
         const thresholds = GameConfig.rankThresholds;
@@ -2201,59 +2213,28 @@ export class UISystem {
                 </div>
             `;
         }
-        
+
         let html = `
-            <div class="summary-content" style="width: 800px; max-width: 90vw; max-height: 85vh; overflow-y: auto; overflow-x: hidden; position: relative;">
+            <div class="summary-content" style="width: 600px; max-width: 90vw; max-height: 80vh; overflow-y: auto; overflow-x: hidden; position: relative; padding: 20px;">
                 <div style="text-align: center; margin-bottom: 20px;">
                     <h2 style="color: var(--primary-glow); text-shadow: 0 0 10px var(--primary); margin-bottom: 5px; font-family: 'Orbitron';">SESSION COMPLETED</h2>
-                    <div style="font-size: 4rem; font-weight: 900; color: ${rankColor}; text-shadow: 0 0 30px ${rankColor}80; font-family: 'Arial Black', sans-serif; font-style: italic;">RANK ${rank}</div>
+                    <div style="font-size: 3.5rem; font-weight: 900; color: ${rankColor}; text-shadow: 0 0 30px ${rankColor}80; font-family: 'Arial Black', sans-serif; font-style: italic;">RANK ${rank}</div>
                 </div>
 
-                <div style="text-align: center; margin-bottom: 10px; font-size: 1.8rem; font-weight: bold;">
-                    <span style="color: #aaa; font-size: 0.8rem; display: block; margin-bottom: 5px;">TOTAL SCORE</span>
+                <div style="text-align: center; margin-bottom: 15px; font-size: 1.8rem; font-weight: bold;">
+                    <span style="color: #aaa; font-size: 0.75rem; display: block; margin-bottom: 5px; letter-spacing: 2px;">TOTAL SCORE</span>
                     <span style="color: var(--primary); text-shadow: 0 0 15px var(--primary);">${this.currentScore}</span>
                 </div>
 
                 ${breakdownHtml}
                 ${perfHtml}
 
-                <h3 style="color: #d81b60; font-family: 'Orbitron'; font-size: 1rem; margin: 25px 0 10px; text-align: center; border-top: 1px solid rgba(216, 27, 96, 0.3); padding-top: 20px;">SYNAPSE NODES UPDATE</h3>
-                <div id="synapseNodesContainer" style="display: flex; flex-wrap: wrap; gap: 15px; justify-content: center; padding: 20px; background: rgba(0,0,0,0.5); border-radius: 12px; border: 1px solid #d81b60; min-height: 200px; margin-bottom: 20px;">
-                </div>
-                
-                <div style="display: flex; justify-content: space-between; margin-bottom: 25px; font-weight: bold; background: rgba(0,0,0,0.3); padding: 12px; border-radius: 8px;">
-                    <span style="font-size: 0.9rem;">Mastered: <strong style="color: var(--safe)">${progress.mastered.length}</strong></span>
-                    <span style="font-size: 0.9rem;">Attention: <strong style="color: #ff3860">${progress.weak.length}</strong></span>
-                </div>
-
-                <div style="display: flex; justify-content: center; gap: 15px;">
+                <div style="display: flex; justify-content: center; gap: 15px; margin-top: 30px;">
                     <button id="closeSynapseBtn" class="neon-button danger-btn" style="width: 100%; height: 50px; font-size: 1.1rem; border-radius: 8px; margin: 0;">KẾT THÚC PHIÊN</button>
                 </div>
             </div>
         `;
         this.synapseMatrixModal.innerHTML = html;
-        
-        let container = this.synapseMatrixModal.querySelector('#synapseNodesContainer');
-        
-        // Render 5 từ cuối cùng đã học trong session này lên đầu hoặc render toàn bộ
-        // Giờ ta render toàn bộ Progress hiện có
-        let allNodes = [
-            ...progress.mastered.map(v => ({ romaji: v, type: 'mastered'})), 
-            ...progress.weak.map(v => ({ romaji: v, type: 'weak'}))
-        ];
-        
-        // Sắp xếp lại hiển thị đẹp mắt, trộn một chút
-        allNodes.sort(() => Math.random() - 0.5);
-
-        if (container) {
-            allNodes.forEach((node) => {
-                let div = document.createElement('div');
-                div.className = `synapse-node ${node.type}`;
-                div.innerText = node.romaji;
-                div.style.animationDelay = `${Math.random() * 0.5}s`;
-                container.appendChild(div);
-            });
-        }
 
         this.synapseMatrixModal.querySelector('#closeSynapseBtn')?.addEventListener('click', () => {
             this.synapseMatrixModal?.classList.add('hidden');
@@ -2329,7 +2310,7 @@ export class UISystem {
             { id: "study", text: "STUDY", start: 36, end: 108, mode: 'study', disabled: false },       // RIGHT
             { id: "hard", text: "HARD (SOON)", start: 108, end: 180, mode: 'hard', disabled: true },   // BOTTOM
             { id: "chill", text: "CHILL (SOON)", start: 180, end: 252, mode: 'chill', disabled: true }, // BOTTOM-LEFT
-            { id: "medium", text: "MEDIUM (SOON)", start: 252, end: 324, mode: 'medium', disabled: true}// TOP-LEFT
+            { id: "medium", text: "MEDIUM (SOON)", start: 252, end: 324, mode: 'medium', disabled: true }// TOP-LEFT
         ];
 
         let defs = document.querySelector('#radialSvg defs');
@@ -2341,12 +2322,12 @@ export class UISystem {
             if ((m as any).disabled) {
                 g.classList.add("disabled-blade");
                 g.style.opacity = "0.3";
-                g.style.pointerEvents = "none"; 
+                g.style.pointerEvents = "none";
             }
             if (m.mode === "study") {
                 g.classList.add("has-sub");
                 g.setAttribute("id", "studyBlade");
-                
+
                 // Cầu nối tàng hình giúp duy trì hover từ Tier 1 qua Tier 2, chống bug "né chuột"
                 let studyBridge = document.createElementNS("http://www.w3.org/2000/svg", "path");
                 studyBridge.setAttribute("d", this.describeArc(cx, cy, 200, 255, m.start - 5, m.end + 5, true));
@@ -2358,9 +2339,9 @@ export class UISystem {
             let path = document.createElementNS("http://www.w3.org/2000/svg", "path");
             path.setAttribute("d", this.describeArc(cx, cy, 150, 205, m.start, m.end));
             path.setAttribute("class", "svg-blade-path");
-            
+
             // Text Path
-            let isBottom = m.start > 90 && m.start < 270; 
+            let isBottom = m.start > 90 && m.start < 270;
             let tpId = `text-path-${m.id}`;
             let tPath = document.createElementNS("http://www.w3.org/2000/svg", "path");
             tPath.setAttribute("id", tpId);
@@ -2405,7 +2386,7 @@ export class UISystem {
         nLevels.forEach((nl, i) => {
             let start = 36 + i * segment;
             let end = start + segment;
-            
+
             let g = document.createElementNS("http://www.w3.org/2000/svg", "g");
             g.setAttribute("class", "sub-blade");
             g.setAttribute("data-level", nl.level);
@@ -2444,12 +2425,12 @@ export class UISystem {
         if (this.menuControls) this.menuControls.classList.add('hidden');
         if (this.messageCenter) this.messageCenter.classList.add('hidden');
         if (this.profileCard) this.profileCard.classList.add('hidden');
-        
+
         // Cập nhật nhãn Level và Con dấu (Seal)
         const sealNames: Record<string, string> = {
             'N1': '一級', 'N2': '二級', 'N3': '三級', 'N4': '四級', 'N5': '五級'
         };
-        
+
         if (this.hubLevelName) this.hubLevelName.innerText = mLevel;
         if (this.hubSealName) this.hubSealName.innerText = sealNames[mLevel] || '---';
 
@@ -2460,7 +2441,7 @@ export class UISystem {
                 this.renderJLPTUnits(); // Vẫn dùng renderJLPTUnits vì nó lấy dữ liệu từ state.n2HubData đã được cập nhật
             }
         });
-        
+
         // Hiện thanh âm nhạc
         if (this.miniPlayer) this.miniPlayer.classList.remove('hidden');
     }
@@ -2469,18 +2450,18 @@ export class UISystem {
         const state = StateManager.getInstance();
         const data = state.getN2HubData();
         console.log(`[UISystem] Bắt đầu render Hub. Số lượng Units nhận được: ${data.length}`);
-        
+
         if (!this.jlptUnitsContainer) {
             console.error('[UISystem] Không tìm thấy jlptUnitsContainer trong DOM!');
             return;
         }
         this.jlptUnitsContainer.innerHTML = '';
-        
+
         if (data.length === 0) {
             this.jlptUnitsContainer.innerHTML = '<div style="color: var(--danger); text-align: center; width: 100%; padding: 40px; font-family: monospace; font-size: 1.2rem; letter-spacing: 2px;">[ HỆ THỐNG: KHÔNG TÌM THẤY DỮ LIỆU CẤP ĐỘ NÀY ]</div>';
             console.warn('[UISystem] Dữ liệu Hub rỗng, hiển thị thông báo trống.');
         }
-        
+
         let completedCount = 0;
         let totalCount = 0;
 
@@ -2495,12 +2476,12 @@ export class UISystem {
             let unitSessCompleted = 0;
             let unitScoreSum = 0;
             let rankScoreSum = 0; // S=4, A=3, B=2, C=1, D=0
-            
+
             // Render Sessions trước để lấy Data tổng
             let sessionsContainer = document.createElement('div');
             sessionsContainer.className = 'jlpt-unit-sessions';
-            
-            let rankMap: Record<string, number> = {'S': 4, 'A': 3, 'B': 2, 'C': 1, 'D': 0};
+
+            let rankMap: Record<string, number> = { 'S': 4, 'A': 3, 'B': 2, 'C': 1, 'D': 0 };
             let reverseRank = ['D', 'C', 'B', 'A', 'S'];
 
             unit.sessions.forEach((_sess: any[], sIdx: number) => {
@@ -2510,7 +2491,7 @@ export class UISystem {
                 let acc = prog ? Math.floor(prog.acc * 100) : 0;
                 let wpm = prog ? prog.wpm : 0;
                 let score = prog && prog.score ? prog.score : 0;
-                
+
                 if (prog && prog.rank !== '---') {
                     completedCount++;
                     unitSessCompleted++;
@@ -2522,7 +2503,7 @@ export class UISystem {
                     // Global stats
                     globalAccSum += acc;
                     globalWpmSum += wpm;
-                    globalScoreSum += score; 
+                    globalScoreSum += score;
                     globalRankScoreSum += (rankMap[rank] || 0);
                 }
 
@@ -2537,7 +2518,7 @@ export class UISystem {
                         <span>WPM: ${wpm}</span>
                     </div>
                 `;
-                
+
                 sessCard.addEventListener('click', (e) => {
                     e.stopPropagation(); // Ngăn nện click lan lên header
                     this.currentN2Context = { unitIdx: uIdx, sessionIdx: sIdx };
@@ -2553,17 +2534,17 @@ export class UISystem {
 
             let unitCard = document.createElement('div');
             unitCard.className = 'jlpt-unit-card';
-            
+
             let header = document.createElement('div');
             header.className = 'jlpt-unit-header';
-            
+
             // Xây dựng Bố cục Cyber-Bamboo (Hollow Engraving)
             header.innerHTML = `
                 <div class="jlpt-unit-rope left-rope"></div>
                 
                 <div class="jlpt-unit-title-box">
                     <div class="jlpt-ja-title" title="${unit.studyName_JA}">${unit.studyName_JA}</div>
-                    <div class="jlpt-en-title" title="[ ${unit.unitName.replace('_',' ')}: ${unit.studyName_ENG.toUpperCase()} ]">[ ${unit.unitName.replace('_',' ')}: ${unit.studyName_ENG.toUpperCase()} ]</div>
+                    <div class="jlpt-en-title" title="[ ${unit.unitName.replace('_', ' ')}: ${unit.studyName_ENG.toUpperCase()} ]">[ ${unit.unitName.replace('_', ' ')}: ${unit.studyName_ENG.toUpperCase()} ]</div>
                 </div>
 
                 <div class="jlpt-unit-hud">
@@ -2588,9 +2569,9 @@ export class UISystem {
                 
                 <div class="jlpt-unit-rope right-rope"></div>
             `;
-                
 
-            
+
+
             header.addEventListener('mouseenter', () => {
                 EventBus.getInstance().publish('PLAY_HOVER');
             });
@@ -2598,7 +2579,7 @@ export class UISystem {
                 EventBus.getInstance().publish('PLAY_DING');
                 unitCard.classList.toggle('expanded');
             });
-            
+
             unitCard.appendChild(header);
             unitCard.appendChild(sessionsContainer);
             this.jlptUnitsContainer!.appendChild(unitCard);
@@ -2631,7 +2612,7 @@ export class UISystem {
 
     private openjlptCalibrationModal(unitName: string, sessionNum: number) {
         if (!this.jlptCalibrationModal) return;
-        
+
         // Cập nhật giá trị UI theo cache Audio hiện tại
         if (this.bgmVolSlider && this.calibBgmSlider) this.calibBgmSlider.value = this.bgmVolSlider.value;
         if (this.sfxVolSlider && this.calibSfxSlider) this.calibSfxSlider.value = this.sfxVolSlider.value;
@@ -2641,7 +2622,157 @@ export class UISystem {
         if (this.calibSessionTitle) {
             this.calibSessionTitle.innerText = `${unitName} - Session ${sessionNum}`;
         }
-        
+
         this.jlptCalibrationModal.classList.remove('hidden');
+    }
+
+    // ============================================================
+    // NEURAL HIERARCHY (LEADERBOARD) LOGIC
+    // ============================================================
+
+    private setupLeaderboardLogic() {
+        // Dự phòng: Lấy lại element nếu bị null lúc khởi tạo class
+        if (!this.leaderboardTrigger) this.leaderboardTrigger = byId('leaderboard-trigger');
+        if (!this.leaderboardTerminal) this.leaderboardTerminal = byId('leaderboard-terminal');
+        if (!this.closeLeaderboardBtn) this.closeLeaderboardBtn = byId('closeLeaderboardBtn');
+        if (!this.leaderboardList) this.leaderboardList = byId('leaderboard-list');
+
+        console.log("[Leaderboard] Setting up logic...", { 
+            trigger: !!this.leaderboardTrigger, 
+            terminal: !!this.leaderboardTerminal 
+        });
+
+        if (!this.leaderboardTrigger || !this.leaderboardTerminal || !this.closeLeaderboardBtn) {
+            console.warn("[Leaderboard] Essential UI elements missing!");
+            return;
+        }
+
+        this.leaderboardTrigger.addEventListener('click', () => {
+            console.log("[Leaderboard] Click detected.");
+            if (this.leaderboardTerminal) {
+                this.leaderboardTerminal.classList.remove('hidden');
+                console.log("[Leaderboard] Terminal visibility updated.");
+                this.refreshLeaderboard().catch(e => console.error("Refresh failed:", e));
+            } else {
+                console.error("[Leaderboard] Terminal is null!");
+            }
+            EventBus.getInstance().publish('AUDIO_BEEP', null);
+        });
+
+        this.closeLeaderboardBtn.addEventListener('click', () => {
+            this.leaderboardTerminal!.classList.add('hidden');
+            EventBus.getInstance().publish('AUDIO_BEEP', null);
+        });
+
+        // Initialize NodeLists
+        this.rankScopeBtns = document.querySelectorAll('.scope-btn');
+        this.rankMetricBtns = document.querySelectorAll('.metric-btn');
+
+        // Scope Switch (Global / Friends)
+        this.rankScopeBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                this.rankScopeBtns!.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                const targetScope = (btn as HTMLElement).dataset.scope;
+                if (targetScope === 'global' || targetScope === 'friends') {
+                    this.currentRankScope = targetScope;
+                }
+                this.refreshLeaderboard();
+            });
+        });
+
+        // Metric Switch (Score / WPM / Accuracy)
+        this.rankMetricBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                this.rankMetricBtns!.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                const targetMetric = (btn as HTMLElement).dataset.metric;
+                if (targetMetric === 'score' || targetMetric === 'wpm' || targetMetric === 'accuracy') {
+                    this.currentRankMetric = targetMetric;
+                }
+                this.refreshLeaderboard();
+            });
+        });
+    }
+
+    private async refreshLeaderboard() {
+        if (!this.leaderboardList) return;
+        this.leaderboardList.innerHTML = '<div class="loading-spinner">SYNCING_DATA...</div>';
+
+        const auth = AuthSystem.getInstance();
+        const user = auth.getCurrentUser();
+
+        if (this.currentRankScope === 'friends') {
+            this.leaderboardList.innerHTML = '<div style="padding:40px; text-align:center; color:rgba(255,255,255,0.3); font-size:0.8rem;">FRIEND_SYSTEM_OFFLINE<br>(COMMING SOON WITH AGENT_LINK UPDATE)</div>';
+            return;
+        }
+
+        try {
+            // Xác định cột để sort
+            let sortColumn = 'total_score';
+            if (this.currentRankMetric === 'wpm') sortColumn = 'avg_wpm';
+            if (this.currentRankMetric === 'accuracy') sortColumn = 'avg_acc';
+
+            // Query từ bảng profiles (giả định có các cột này, fallback nếu lỗi)
+            const { data, error } = await supabase
+                .from('profiles')
+                .select('name, agentId, avatar, total_score, avg_wpm, avg_acc')
+                .order(sortColumn, { ascending: false })
+                .limit(10);
+
+            if (error) throw error;
+
+            this.leaderboardList.innerHTML = '';
+            
+            if (data && data.length > 0) {
+                data.forEach((agent, index) => {
+                    const item = document.createElement('div');
+                    item.className = `rank-item top-${index + 1}`;
+                    
+                    const value = this.getFormattedMetricValue(agent);
+                    const isSelf = user && agent.agentId === user.agentId;
+
+                    item.innerHTML = `
+                        <div class="rank-num">${index + 1}</div>
+                        <div class="rank-avatar">
+                            ${agent.avatar ? `<img src="${agent.avatar}">` : (agent.name ? agent.name[0].toUpperCase() : 'A')}
+                        </div>
+                        <div class="rank-info">
+                            <div class="rank-name">${agent.name || 'ANONYMOUS_AGENT'} ${isSelf ? '<span style="color:var(--safe); font-size:0.6rem;">(YOU)</span>' : ''}</div>
+                            <div class="rank-tag">#${agent.agentId || '000000'}</div>
+                        </div>
+                        <div class="rank-value">${value}</div>
+                    `;
+                    this.leaderboardList?.appendChild(item);
+                });
+            } else {
+                this.leaderboardList.innerHTML = '<div style="padding:40px; text-align:center; color:rgba(255,255,255,0.3);">NO_AGENT_DATA_FOUND</div>';
+            }
+
+            // Sync My Ranking Footer
+            if (this.myRankingFooter && user) {
+                this.myRankingFooter.innerHTML = `
+                    <div class="rank-avatar">${user.name ? user.name[0].toUpperCase() : 'Y'}</div>
+                    <div class="rank-info">
+                        <div class="rank-name" style="color:var(--primary);">${user.name}</div>
+                        <div class="rank-tag">HIERARCHY_LEVEL: MASTER</div>
+                    </div>
+                    <div class="rank-value" style="font-size:0.8rem;">#OFFLINE_TRACKING</div>
+                `;
+            }
+
+        } catch (err) {
+            console.error('[Leaderboard] Sync Error:', err);
+            this.leaderboardList.innerHTML = '<div style="padding:40px; text-align:center; color:#ff4757;">CONNECTION_INTERRUPTED</div>';
+        }
+    }
+
+    private getFormattedMetricValue(agent: any): string {
+        switch (this.currentRankMetric) {
+            case 'score': return (agent.total_score || 0).toLocaleString();
+            case 'wpm': return (agent.avg_wpm || 0).toFixed(1);
+            case 'accuracy': return (agent.avg_acc || 0) + '%';
+            default: return '0';
+        }
     }
 }

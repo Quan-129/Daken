@@ -23,6 +23,7 @@ export class AudioSystem {
     private currentIndex: number = 0;
     
     private wasPlayingBeforePause: boolean = false;
+    private activeUtterances: Set<SpeechSynthesisUtterance> = new Set();
 
     constructor() {
         this.audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
@@ -623,11 +624,18 @@ export class AudioSystem {
             const utter = new SpeechSynthesisUtterance(text);
             utter.lang = 'ja-JP';
             utter.rate = this.ttsRate;
-            utter.volume = GameConfig.audio.defaultVocalsVolume * this.ttsVolMultiplier; 
-            if (isLast) {
-                utter.onend = restoreBGM;
-                utter.onerror = restoreBGM; // Fallback
-            }
+            utter.volume = (GameConfig.audio.defaultVocalsVolume || 0.8) * this.ttsVolMultiplier; 
+            
+            // Lưu reference để tránh GC làm chết tiếng giữa chừng
+            this.activeUtterances.add(utter);
+
+            const cleanup = () => {
+                this.activeUtterances.delete(utter);
+                if (isLast) restoreBGM();
+            };
+
+            utter.onend = cleanup;
+            utter.onerror = cleanup;
             return utter;
         };
 

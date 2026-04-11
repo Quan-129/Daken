@@ -16,6 +16,8 @@ import './components/rank-board.js';
 
 console.log('--- NEON TYPING ARCADE: PHASE 4 ---');
 
+import { GameConfig } from './config';
+
 // 0. Khởi động Auto-fit Text Toàn Dự Án
 initAutoFitText();
 
@@ -97,15 +99,16 @@ eventBus.subscribe('STUDY_SESSION_END', () => {
     const acc = typing.totalKeystrokes > 0 ? typing.correctKeystrokes / typing.totalKeystrokes : 0;
     const wpm = elapsedMins > 0 ? Math.round((typing.correctKeystrokes / 5) / elapsedMins) : 0;
     
-    // Calculate Rank! S, A, B, C, D
-    let rank = 'D';
-    if (acc >= 0.95 && wpm >= 70) rank = 'S';
-    else if (acc >= 0.90 && wpm >= 50) rank = 'A';
-    else if (acc >= 0.80 && wpm >= 30) rank = 'B';
-    else if (acc >= 0.60 && wpm >= 20) rank = 'C';
-
     const scoreEl = byId('scoreVal');
     const score = scoreEl ? parseInt(scoreEl.innerText) || 0 : 0;
+
+    // Calculate Rank based on Score thresholds in GameConfig
+    const thresholds = GameConfig.rankThresholds;
+    let rank = 'D';
+    if (score >= thresholds.S) rank = 'S';
+    else if (score >= thresholds.A) rank = 'A';
+    else if (score >= thresholds.B) rank = 'B';
+    else if (score >= thresholds.C) rank = 'C';
 
     const ctx = (engine as any).currentN2Context;
     if (ctx) {

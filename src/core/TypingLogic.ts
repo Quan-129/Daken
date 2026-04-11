@@ -101,6 +101,7 @@ export class TypingLogic {
                             let multiplier = 1;
                             if (this.currentWordTypoCount === 0) {
                                 this.perfectComboCount++;
+                                EventBus.getInstance().publish('MARK_MASTERED', target);
                                 if (this.perfectComboCount >= GameConfig.difficulty.perfectComboRequirement) {
                                     multiplier = Math.min(GameConfig.difficulty.maxMultiplier, 1 + (this.perfectComboCount - (GameConfig.difficulty.perfectComboRequirement - 1)) * GameConfig.difficulty.multiplierStep);
                                 }
@@ -243,6 +244,10 @@ export class TypingLogic {
                         
                         EventBus.getInstance().publish('ENEMY_KILLED', { enemy: w3Target, points: earnedPoints, combo: this.perfectComboCount });
                         EventBus.getInstance().publish('COMBO_UPDATED', this.perfectComboCount);
+                        
+                        if (this.currentWordTypoCount === 0) {
+                            EventBus.getInstance().publish('MARK_MASTERED', w3Target);
+                        }
                         this.currentWordTypoCount = 0;
                         EventBus.getInstance().publish('TYPING_UPDATED', { buffer: "", prefix: "" });
                     } else {
@@ -457,6 +462,10 @@ export class TypingLogic {
                         target.isWeak = true;
                         EventBus.getInstance().publish('SCORE_PENALTY', GameConfig.studyMode.learningPhase.penaltyPoints);
                     }
+                    if (this.currentWordTypoCount === 0) {
+                        EventBus.getInstance().publish('MARK_MASTERED', target);
+                    }
+                    
                     EventBus.getInstance().publish('ENEMY_DEFEATED', target);
                     
                     // Thưởng "Perfect Recall" nếu diệt xong trước 4 giây Sóng 2 (khi timer chưa kịp chạy nhắc tuồng)

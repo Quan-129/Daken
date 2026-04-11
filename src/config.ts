@@ -36,9 +36,13 @@ export const GameConfig: any = {
     // HỆ ÂM THANH KỸ THUẬT SỐ
     // ---------------------------------------------------------
     audio: {
-        defaultTtsRate: 0.9,            // Tốc độ đọc tiếng Nhật chuẩn của Text-to-Speech (0.9 là tự nhiên, không bị líu lưỡi)
-        bgmVolume: 0.6,                 // Mức âm lượng mặc định của Nhạc nền BGM (60%)
-        sfxVolume: 0.5                  // Mức âm lượng mặc định của Hiệu ứng âm thanh (Bắn, Nổ, Kêu lách cách - 50%)
+        defaultTtsRate: 0.9,            // Tốc độ đọc tiếng Nhật chuẩn
+        bgmVolume: 0.6,                 // Tổng volume nhạc nền
+        sfxVolume: 0.5,                 // Tổng volume hiệu ứng sfx
+        defaultBgmVolume: 60,           // Mức volume YouTube (0-100)
+        defaultSfxVolume: 0.5,           // Mức volume Gain WebAudio (0-1.0)
+        defaultVocalsVolume: 0.8,        // Mức volume TTS (0-1.0)
+        bgmDuckVolume: 15               // Mức volume nhạc nền khi đang đọc TTS (0-100)
     },
 
     // ---------------------------------------------------------
