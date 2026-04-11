@@ -216,8 +216,55 @@ export class UISystem {
     private setupGuideLogic() {
         if (!this.generalGuideModal || !this.closeGuideBtn || !this.guideTrigger) return;
 
+        const slides = this.generalGuideModal.querySelectorAll('.guide-slide');
+        const dots = this.generalGuideModal.querySelectorAll('.dot');
+        const prevBtn = byId('prevSlideBtn');
+        const nextBtn = byId('nextSlideBtn');
+        let currentSlide = 0;
+
+        const updateSlides = () => {
+            slides.forEach((s, i) => {
+                s.classList.toggle('active', i === currentSlide);
+            });
+            dots.forEach((d, i) => {
+                d.classList.toggle('active', i === currentSlide);
+            });
+            // Cập nhật trạng thái nút
+            if (prevBtn) (prevBtn as HTMLButtonElement).disabled = (currentSlide === 0);
+            if (nextBtn) (nextBtn as HTMLButtonElement).disabled = (currentSlide === slides.length - 1);
+        };
+
+        // Khởi tạo trang thái đầu
+        updateSlides();
+
+        prevBtn?.addEventListener('click', () => {
+            if (currentSlide > 0) {
+                currentSlide--;
+                updateSlides();
+                EventBus.getInstance().publish('AUDIO_BEEP', null);
+            }
+        });
+
+        nextBtn?.addEventListener('click', () => {
+            if (currentSlide < slides.length - 1) {
+                currentSlide++;
+                updateSlides();
+                EventBus.getInstance().publish('AUDIO_BEEP', null);
+            }
+        });
+
+        dots.forEach((dot, index) => {
+            dot.addEventListener('click', () => {
+                currentSlide = index;
+                updateSlides();
+                EventBus.getInstance().publish('AUDIO_BEEP', null);
+            });
+        });
+
         // Xử lý nút ? (Help Icon)
         this.guideTrigger.addEventListener('click', () => {
+            currentSlide = 0; // Luôn mở lại ở slide đầu
+            updateSlides();
             this.generalGuideModal?.classList.remove('hidden');
         });
 
@@ -910,10 +957,10 @@ export class UISystem {
 
             let rank = 'D';
             let rankColor = '#ff4757'; // Red
-            if (finalScore > 2500) { rank = 'S'; rankColor = '#ffd700'; } // Gold
-            else if (finalScore > 1800) { rank = 'A'; rankColor = '#00e676'; } // Green
-            else if (finalScore > 1200) { rank = 'B'; rankColor = '#00f5ff'; } // Cyan
-            else if (finalScore > 800) { rank = 'C'; rankColor = '#ff9800'; } // Orange
+            if (finalScore >= 2000) { rank = 'S'; rankColor = '#ffd700'; } // Gold
+            else if (finalScore >= 1500) { rank = 'A'; rankColor = '#00e676'; } // Green
+            else if (finalScore >= 1000) { rank = 'B'; rankColor = '#00f5ff'; } // Cyan
+            else if (finalScore >= 500) { rank = 'C'; rankColor = '#ff9800'; } // Orange
 
             // Lần lượt hiển thị các thông số (Kéo dài gấp đôi để tạo hồi hộp)
             setTimeout(() => { this.animateValue(this.sumBaseScore, 0, this.savedBaseScore, 800); }, 1500);
@@ -1247,6 +1294,13 @@ export class UISystem {
             this.updateScore(this.currentScore + points);
             this.savedBaseScore += points;
             this.currentWaveBaseScore += points;
+
+            // Wave 5: Tự động chốt đơn khi đạt 3000 điểm
+            if (this.currentMode === 'study' && this.currentWaveNumber === 5 && this.currentScore >= 3000) {
+                setTimeout(() => {
+                    EventBus.getInstance().publish('STUDY_SESSION_END', null);
+                }, 500);
+            }
 
             // Add to combat log
             const label = data.combo > 1 ? `COMBO x${data.combo}` : 'WORD CLEAR';

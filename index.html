@@ -520,24 +520,103 @@
                 </div>
                 
                 <div class="guide-body">
-                    <div class="guide-section">
-                        <h3><span class="badge sync">WAVE 1 & 2</span> SYNC PHASES</h3>
-                        <p><strong>Không áp lực thời gian.</strong> Đây là lúc nạp dữ liệu. Hãy tập trung ghi nhớ Kanji và Nghĩa để làm nền tảng cho các đợt sau.</p>
+                    <div class="guide-carousel" id="guideCarousel">
+                        <!-- Slide 1: Wave 1 & 2 -->
+                        <div class="guide-slide active" data-index="0">
+                            <div class="guide-slide-header">
+                                <span class="badge sync">WAVE 1 & 2</span>
+                                <h3>NHẬP MÔN – "NẠP DỮ LIỆU VÀO ĐẦU"</h3>
+                            </div>
+                            <div class="guide-slide-content">
+                                <p class="vibe-text">Vibe: Thong thả, không áp lực.</p>
+                                <p>Đây là lúc <strong>bạn</strong> làm quen với từ mới. Cứ bình tĩnh mà gõ, không cần vội vì game chưa tính thời gian ở đây đâu.</p>
+                                <ul>
+                                    <li><strong>Điểm số:</strong> Mỗi từ gõ đúng bạn đút túi 10 điểm.</li>
+                                    <li><strong>Cảnh báo nhẹ:</strong> Nếu gõ sai quá 4 lần (typo), từ đó sẽ bị coi là "học lỏm" (Weak). Bạn sẽ phải gõ lại nó ở đoạn cuối Wave và lúc đó thì chả được đồng điểm nào đâu nhé.</li>
+                                </ul>
+                                <p class="hint">💡 <strong>Mẹo:</strong> Nhìn kỹ mặt chữ Kanji và nghĩa tiếng Việt, vì chúng chính là "phao cứu sinh" cho các màn sau đấy!</p>
+                            </div>
+                        </div>
+
+                        <!-- Slide 2: Wave 3 -->
+                        <div class="guide-slide" data-index="1">
+                            <div class="guide-slide-header">
+                                <span class="badge combat">WAVE 3</span>
+                                <h3>PHẢN XẠ – "TAY NHANH HƠN NÃO"</h3>
+                            </div>
+                            <div class="guide-slide-content">
+                                <p class="vibe-text">Vibe: Kịch tính, tập trung cao độ.</p>
+                                <p>Cá bắt đầu bơi nhanh hơn rồi! Bạn cần gõ vừa nhanh vừa chuẩn để tích Combo.</p>
+                                <ul>
+                                    <li><strong>Combo thần thánh:</strong> Gõ đúng liên tiếp 5 từ hoàn hảo để bắt đầu được nhân điểm. Hệ số nhân (Multiplier) sẽ tăng dần lên đến <strong>tối đa x3.0</strong>.</li>
+                                    <li><strong>Cẩn thận:</strong> Chỉ cần gõ sai 1 phím duy nhất là Combo về 0 ngay lập tức.</li>
+                                    <li><strong>Thưởng lớn:</strong> Dọn sạch Wave dưới 30 giây, bạn nhận thêm 500 điểm thưởng thời gian.</li>
+                                </ul>
+                            </div>
+                        </div>
+
+                        <!-- Slide 3: Wave 4 -->
+                        <div class="guide-slide" data-index="2">
+                            <div class="guide-slide-header">
+                                <span class="badge link">WAVE 4</span>
+                                <h3>GIẢI MÃ – "TRUYỀN THUYẾT CHỌN LỰA"</h3>
+                            </div>
+                            <div class="guide-slide-content">
+                                <p class="vibe-text">Vibe: Thử thách trí nhớ, thao tác dứt khoát.</p>
+                                <p>Không còn gõ chữ nữa, game sẽ đưa ra 4 ô lựa chọn. Hãy dùng các phím số <strong>[1], [2], [3], [4]</strong> trên bàn phím để chốt đáp án cho nhanh.</p>
+                                <ul>
+                                    <li><strong>Điểm cao:</strong> Mỗi câu đúng bạn ăn trọn <strong>20 điểm</strong> (Gấp đôi Wave 1).</li>
+                                    <li><strong>Huy chương Vàng:</strong> Nếu "phá đảo" Wave này dưới 40 giây, bạn ẵm thêm <strong>800 điểm</strong> thưởng.</li>
+                                </ul>
+                            </div>
+                        </div>
+
+                        <!-- Slide 4: Wave 5 -->
+                        <div class="guide-slide" data-index="3">
+                            <div class="guide-slide-header">
+                                <span class="badge danger">WAVE 5</span>
+                                <h3>SINH TỒN – "TRỤ HẠNG ĐẾN CÙNG"</h3>
+                            </div>
+                            <div class="guide-slide-content">
+                                <p class="vibe-text">Vibe: Áp lực, sinh tồn, phá bỏ giới hạn.</p>
+                                <p>Màn Endless này không dành cho người yếu tim. Sau 1 phút, cá sẽ bơi "như bay" và đẻ ra liên tục.</p>
+                                <ul>
+                                    <li><strong>Máu (HP):</strong> Bạn có 5 vạch pin. Đừng để cá lọt qua vạch đỏ, mỗi con lọt qua là bay màu 1 vạch đấy.</li>
+                                    <li><strong>PHÁ ĐẢO:</strong> Nếu bạn đạt được <strong>3000 điểm</strong>, hệ thống sẽ tự động chốt đơn thành công và đưa bạn về bảng tổng kết "vinh quang"!</li>
+                                </ul>
+                            </div>
+                        </div>
+
+                        <!-- Slide 5: Rank System -->
+                        <div class="guide-slide" data-index="4">
+                            <div class="guide-slide-header">
+                                <span class="badge link">SYSTEM</span>
+                                <h3>NEURAL RANKING – "BẢNG PHONG THẦN"</h3>
+                            </div>
+                            <div class="guide-slide-content">
+                                <p class="vibe-text">Vibe: Vinh quang, đẳng cấp Agent.</p>
+                                <p>Điểm số cuối cùng sẽ quyết định thứ hạng (Class) của bạn trong hệ thống Neural Network:</p>
+                                <ul class="rank-list" style="list-style: none; padding-left: 0;">
+                                    <li><strong style="color: #ffd700; text-shadow: 0 0 10px #ffd700;">[ Rank S ]</strong>: 2000+ Điểm (Huyền Thoại)</li>
+                                    <li><strong style="color: #00e676; text-shadow: 0 0 10px #00e676;">[ Rank A ]</strong>: 1500+ Điểm (Cao Thủ)</li>
+                                    <li><strong style="color: #00f5ff; text-shadow: 0 0 10px #00f5ff;">[ Rank B ]</strong>: 1000+ Điểm (Thành Thạo)</li>
+                                    <li><strong style="color: #ff9800; text-shadow: 0 0 10px #ff9800;">[ Rank C ]</strong>: 500+ Điểm (Tân Binh)</li>
+                                </ul>
+                                <p class="hint" style="text-align: center;">⚡ Phấn đấu đạt <strong>Rank S</strong> để khẳng định đẳng cấp Agent của bạn nhé!</p>
+                            </div>
+                        </div>
                     </div>
 
-                    <div class="guide-section">
-                        <h3><span class="badge combat">WAVE 3 & 5</span> COMBAT MODES</h3>
-                        <p><strong>Tốc độ & Chính xác.</strong> Gõ nhanh để tích lũy Combo (Max x2.5). Sai lầm sẽ khiến Combo về không.</p>
-                    </div>
-
-                    <div class="guide-section">
-                        <h3><span class="badge link">WAVE 4</span> CONTEXT LINK</h3>
-                        <p><strong>Giải mã Ngữ pháp.</strong> Các mẫu câu được lặp lại từ Sóng 1 & 2. Sử dụng phím tắt <strong>1-4</strong> để chốt hạ nhanh.</p>
-                    </div>
-
-                    <div class="guide-section">
-                        <h3><span class="badge danger">HP</span> SURVIVAL CORE</h3>
-                        <p>Để quái vật lọt qua vạch đỏ sẽ làm tiêu tốn 1 vạch Pin. Cạn 5 vạch = Kết thúc phiên học.</p>
+                    <div class="carousel-nav">
+                        <button id="prevSlideBtn" class="nav-btn">PREV</button>
+                        <div class="slide-indicators">
+                            <span class="dot active" data-index="0"></span>
+                            <span class="dot" data-index="1"></span>
+                            <span class="dot" data-index="2"></span>
+                            <span class="dot" data-index="3"></span>
+                            <span class="dot" data-index="4"></span>
+                        </div>
+                        <button id="nextSlideBtn" class="nav-btn">NEXT</button>
                     </div>
                 </div>
 
