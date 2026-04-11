@@ -730,6 +730,10 @@ export class UISystem {
                 }
                 if (this.profileCard) this.profileCard.classList.remove('hidden');
 
+                // Show Lobby Tools
+                if (this.leaderboardTrigger) this.leaderboardTrigger.classList.remove('hidden');
+                if (this.guideTrigger) this.guideTrigger.classList.remove('hidden');
+
                 // Clear active states of radial menu
                 document.querySelectorAll('.fan-blade, .sub-blade').forEach(p => p.classList.remove('active'));
 
@@ -1502,6 +1506,10 @@ export class UISystem {
             if (this.waveTimerEl) this.waveTimerEl.classList.remove('hidden');
             if (this.profileCard) this.profileCard.classList.add('hidden');
             if (this.menuControls) this.menuControls.classList.add('hidden');
+            
+            // Hide Lobby Tools
+            if (this.leaderboardTrigger) this.leaderboardTrigger.classList.add('hidden');
+            if (this.guideTrigger) this.guideTrigger.classList.add('hidden');
         };
 
         const onMatchEnd = () => {
@@ -1518,6 +1526,10 @@ export class UISystem {
 
             this.updateProfileUI(); // Refresh stats after match
             
+            // Show Lobby Tools
+            if (this.leaderboardTrigger) this.leaderboardTrigger.classList.remove('hidden');
+            if (this.guideTrigger) this.guideTrigger.classList.remove('hidden');
+
             // Hiện lại profile card nếu đang ở Lobby
             if (this.profileCard && AuthSystem.getInstance().isLoggedIn()) {
                 this.profileCard.classList.remove('hidden');
@@ -2426,6 +2438,10 @@ export class UISystem {
         if (this.messageCenter) this.messageCenter.classList.add('hidden');
         if (this.profileCard) this.profileCard.classList.add('hidden');
 
+        // Hide Lobby Tools
+        if (this.leaderboardTrigger) this.leaderboardTrigger.classList.add('hidden');
+        if (this.guideTrigger) this.guideTrigger.classList.add('hidden');
+
         // Cập nhật nhãn Level và Con dấu (Seal)
         const sealNames: Record<string, string> = {
             'N1': '一級', 'N2': '二級', 'N3': '三級', 'N4': '四級', 'N5': '五級'
@@ -2716,7 +2732,7 @@ export class UISystem {
             // Query từ bảng profiles (giả định có các cột này, fallback nếu lỗi)
             const { data, error } = await supabase
                 .from('profiles')
-                .select('name, agentId, avatar, total_score, avg_wpm, avg_acc')
+                .select('name, agent_id, avatar, total_score, avg_wpm, avg_acc')
                 .order(sortColumn, { ascending: false })
                 .limit(10);
 
@@ -2730,7 +2746,7 @@ export class UISystem {
                     item.className = `rank-item top-${index + 1}`;
                     
                     const value = this.getFormattedMetricValue(agent);
-                    const isSelf = user && agent.agentId === user.agentId;
+                    const isSelf = user && agent.agent_id === user.agentId;
 
                     item.innerHTML = `
                         <div class="rank-num">${index + 1}</div>
@@ -2739,7 +2755,7 @@ export class UISystem {
                         </div>
                         <div class="rank-info">
                             <div class="rank-name">${agent.name || 'ANONYMOUS_AGENT'} ${isSelf ? '<span style="color:var(--safe); font-size:0.6rem;">(YOU)</span>' : ''}</div>
-                            <div class="rank-tag">#${agent.agentId || '000000'}</div>
+                            <div class="rank-tag">#${agent.agent_id || '000000'}</div>
                         </div>
                         <div class="rank-value">${value}</div>
                     `;

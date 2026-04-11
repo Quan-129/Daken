@@ -159,7 +159,7 @@ export class AuthSystem {
             await supabase.from('profiles').upsert({
                 id: this.currentUser?.id,
                 name: this.currentUser?.name,
-                agentId: this.currentUser?.agentId,
+                agent_id: this.currentUser?.agentId,
                 avatar: this.currentUser?.avatar,
                 total_score: this.currentUser?.total_score,
                 avg_wpm: this.currentUser?.avg_wpm,
