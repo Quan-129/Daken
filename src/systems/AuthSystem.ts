@@ -154,21 +154,22 @@ export class AuthSystem {
             if (updates.avg_acc !== undefined) this.currentUser.avg_acc = updates.avg_acc;
         }
 
-        // [Leaderboard] Đồng bộ dữ liệu sang bảng profiles công khai
+        // [Neural Hierarchy Sync] Cập nhật bảng profiles công khai
         try {
-            await supabase.from('profiles').upsert({
+            const syncData: any = {
                 id: this.currentUser?.id,
                 name: this.currentUser?.name,
                 agent_id: this.currentUser?.agentId,
                 avatar: this.currentUser?.avatar,
-                total_score: this.currentUser?.total_score,
-                avg_wpm: this.currentUser?.avg_wpm,
-                avg_acc: this.currentUser?.avg_acc,
                 updated_at: new Date().toISOString()
-            });
-            console.log("[Social] Neural Hierarchy updated remotely.");
-        } catch (linkErr) {
-            console.warn("[Social] Could not link hierarchy data. Table 'profiles' might be missing.", linkErr);
+            };
+            if (this.currentUser?.total_score !== undefined) syncData.total_score = this.currentUser.total_score;
+            if (this.currentUser?.avg_wpm !== undefined) syncData.avg_wpm = this.currentUser.avg_wpm;
+            if (this.currentUser?.avg_acc !== undefined) syncData.avg_acc = this.currentUser.avg_acc;
+
+            await supabase.from('profiles').upsert(syncData);
+        } catch (err) {
+            console.error("[Auth] Sync with Neural Hierarchy failed:", err);
         }
         
         EventBus.getInstance().publish('AUTH_SUCCESS', this.currentUser);

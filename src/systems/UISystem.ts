@@ -2708,6 +2708,24 @@ export class UISystem {
             const perc = totalCount === 0 ? 0 : Math.round((completedCount / totalCount) * 100);
             this.jlptTotalProgress.innerText = `${perc}% (${completedCount}/${totalCount})`;
         }
+
+        // --- FORCE SYNC TO PROFILE (Đảm bảo Bảng xếp hạng khớp với Hub) ---
+        const auth = AuthSystem.getInstance();
+        if (auth.isLoggedIn()) {
+            const user = auth.getCurrentUser();
+            // Chỉ cập nhật nếu có sự thay đổi hoặc điểm Hub cao hơn điểm Profile hiện tại
+            if (user && (user.total_score !== globalScoreSum)) {
+                console.log(`[Sync] Phát hiện dữ liệu không đồng nhất. Đang ép đồng bộ Hub (${globalScoreSum}) -> Profile.`);
+                auth.updateProfile({
+                    total_score: globalScoreSum,
+                    avg_acc: gAcc,
+                    avg_wpm: gWpm
+                }).then(() => {
+                    console.log('[Sync] Đồng bộ Profile thành công. Bảng xếp hạng sẽ cập nhật ở lần mở tới.');
+                    this.updateProfileUI(); 
+                }).catch(e => console.error("[Sync] Lỗi đồng bộ Profile:", e));
+            }
+        }
     }
 
     private openjlptCalibrationModal(unitName: string, sessionNum: number) {
