@@ -17,8 +17,33 @@ export class StateManager {
 
   private constructor() {
     this.eventBus = EventBus.getInstance();
+    this.initializeUserProgress();
+
+    // Lắng nghe sự kiện đăng nhập để đổi "ngăn kéo" dữ liệu ngay lập tức
+    this.eventBus.subscribe('PLAYER_PROFILE_LOADED', (profile: any) => {
+        if (profile && profile.id) {
+            this.initializeUserProgress(profile.id);
+        }
+    });
+  }
+
+  private async initializeUserProgress(userId?: string) {
+    if (!userId) {
+        const { data: { session } } = await supabase.auth.getSession();
+        userId = session?.user.id;
+    }
+
+    const suffix = userId ? `_${userId}` : '_guest';
+    this.n2ProgressKey = `ninja_n2_progress${suffix}`;
+    this.progressKey = `ninja_study_progress${suffix}`;
+
+    console.log(`[StateManager] Switch storage keys to: ${this.n2ProgressKey}`);
+    
     this.loadProgress();
     this.loadN2Progress();
+    
+    // Đồng bộ với Cloud
+    this.syncN2ProgressWithCloud();
   }
 
   public static getInstance(): StateManager {
