@@ -189,6 +189,14 @@
                                     title="Settings">⚙️</button>
                             </div>
                         </div>
+                    </div> <!-- Close horizontal row (line 158) -->
+                        
+                    <!-- TOOLS COLUMN: Leaderboard + Guide (Dãy nút dọc thực sự nằm dưới) -->
+                    <div style="display: flex; flex-direction: column; gap: 15px; margin-top: 15px; align-items: flex-end; width: 40px; padding-right: 5px; pointer-events: auto;">
+                        <div id="leaderboard-trigger" class="lobby-tool-icon" title="Neural Hierarchy">
+                            <span class="material-icons">leaderboard</span>
+                        </div>
+                        <div id="guideTrigger" class="lobby-tool-icon" title="Neural Link Protocol">?</div>
                     </div>
                     <!-- THỜI GIAN ĐÃ CHƠI -->
                     <div class="wave-timer hidden" id="waveTimer"
@@ -471,13 +479,6 @@
             </div>
         </div>
 
-        <!-- HELP ICON (Floating ?) -->
-        <div id="guideTrigger" class="guide-trigger" title="Neural Link Protocol">?</div>
-
-        <!-- LEADERBOARD TRIGGER ICON -->
-        <div id="leaderboard-trigger" class="lobby-trigger-icon" title="Neural Hierarchy">
-            <span class="material-icons">leaderboard</span>
-        </div>
 
         <!-- LEADERBOARD SLIDE-OUT TERMINAL -->
         <div id="leaderboard-terminal" class="leaderboard-panel hidden">

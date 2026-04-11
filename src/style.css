@@ -2600,24 +2600,34 @@ input[type="text"]::placeholder {
 }
 
 /* --- GENERAL GUIDE & HELP ICON --- */
-.guide-trigger {
-    position: absolute;
-    bottom: 20px;
-    right: 20px;
-    width: 32px;
-    height: 32px;
-    background: rgba(0, 245, 255, 0.05);
-    border: 1px solid rgba(0, 245, 255, 0.3);
+/* --- UNIFORM LOBBY TOOLS (Top Right) --- */
+.lobby-tool-icon {
+    width: 36px;
+    height: 36px;
+    background: rgba(10, 15, 25, 0.7);
+    border: 1px solid rgba(0, 245, 255, 0.4);
     border-radius: 50%;
-    color: var(--primary);
     display: flex;
     justify-content: center;
     align-items: center;
-    font-family: 'Orbitron', sans-serif;
-    font-size: 1rem;
+    color: var(--primary);
     cursor: pointer;
-    z-index: 1000;
-    transition: all 0.3s ease;
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: 0 0 10px rgba(0, 245, 255, 0.1);
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.9rem;
+    pointer-events: auto;
+}
+
+.lobby-tool-icon:hover {
+    background: var(--primary);
+    color: #000;
+    box-shadow: 0 0 20px var(--primary);
+    transform: scale(1.1);
+}
+
+.lobby-tool-icon .material-icons {
+    font-size: 1.1rem;
 }
 
 .modal-overlay {
@@ -2945,34 +2955,6 @@ input[type="text"]::placeholder {
     align-items: center;
 }
 
-/* Trigger Button */
-.lobby-trigger-icon {
-    position: absolute;
-    bottom: 90px !important;
-    right: 25px !important;
-    top: auto !important;
-    left: auto !important;
-    background: rgba(10, 15, 25, 0.9);
-    border: 2px solid var(--primary);
-    width: 48px;
-    height: 48px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: var(--primary);
-    cursor: pointer;
-    box-shadow: 0 0 15px rgba(0, 245, 255, 0.4);
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    z-index: 9999;
-}
-
-.lobby-trigger-icon:hover {
-    transform: scale(1.1);
-    box-shadow: 0 0 25px var(--primary);
-    background: var(--primary);
-    color: #000;
-}
 
 .loading-spinner {
     display: flex;
