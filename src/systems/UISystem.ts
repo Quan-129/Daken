@@ -2767,13 +2767,24 @@ export class UISystem {
 
             // Sync My Ranking Footer
             if (this.myRankingFooter && user) {
+                // Tìm xem mình có trong danh sách top này không để lấy rank
+                const myIndex = data ? data.findIndex(a => a.agent_id === user.agentId) : -1;
+                const myRank = myIndex !== -1 ? `#${myIndex + 1}` : '#??';
+                
+                // Lấy giá trị metric hiện tại của mình
+                const myValue = this.getFormattedMetricValue({
+                    total_score: user.total_score,
+                    avg_wpm: user.avg_wpm,
+                    avg_acc: user.avg_acc
+                });
+
                 this.myRankingFooter.innerHTML = `
                     <div class="rank-avatar">${user.name ? user.name[0].toUpperCase() : 'Y'}</div>
                     <div class="rank-info">
-                        <div class="rank-name" style="color:var(--primary);">${user.name}</div>
-                        <div class="rank-tag">HIERARCHY_LEVEL: MASTER</div>
+                        <div class="rank-name" style="color:var(--primary);">${user.name} ${myIndex !== -1 ? '<span style="color:var(--safe); font-size:0.6rem;">(TOP PLAYER)</span>' : ''}</div>
+                        <div class="rank-tag">HIERARCHY_RANK: ${myRank}</div>
                     </div>
-                    <div class="rank-value" style="font-size:0.8rem;">#OFFLINE_TRACKING</div>
+                    <div class="rank-value" style="font-size:1.1rem; color:var(--primary-glow);">${myValue}</div>
                 `;
             }
 
