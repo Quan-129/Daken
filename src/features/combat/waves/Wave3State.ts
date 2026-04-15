@@ -69,7 +69,9 @@ export class Wave3State extends BaseWaveState {
             this.context.resetCombo();
         }
 
-        let basePoints = Math.floor(GameConfig.difficulty.basePointsPerKill * multiplier);
+        const waveKey = `wave${target.study.wave}` as keyof typeof GameConfig.studyMode.wavePoints;
+        const waveBasePoints = GameConfig.studyMode.wavePoints[waveKey] || GameConfig.difficulty.basePointsPerKill;
+        let basePoints = Math.floor(waveBasePoints * multiplier);
         let earnedPoints = basePoints;
 
         if (isDebtOrWeak || hasNewFailure) {

@@ -6,9 +6,9 @@ export const GameConfig: any = {
         baseSpeed: 1.8,                 // Tốc độ cơ bản của luồng game (ảnh hưởng đến nhịp độ)
         speedIncrement: 0.15,           // Tốc độ tăng thêm sau mỗi cấp độ / mức Rank
         basePointsPerKill: 10,          // Điểm cơ bản nhận được khi gõ đúng 1 từ (Tiêu diệt mục tiêu)
-        multiplierStep: 0.2,            // Mức nhân điểm (Multiplier) tăng thêm cho mỗi chuỗi Combo
+        multiplierStep: 0.5,            // Mức nhân điểm (Multiplier) tăng thêm cho mỗi chuỗi Combo
         maxMultiplier: 3.0,             // Giới hạn hệ số nhân điểm tối đa (Gấp 3 lần)
-        perfectComboRequirement: 5,     // Số lượng từ cần gõ hoàn hảo (Perfect) liên tiếp để bắt đầu được nhân điểm
+        perfectComboRequirement: 3,     // Số lượng từ cần gõ hoàn hảo (Perfect) liên tiếp để bắt đầu được nhân điểm
         maxTyposBeforeWeak: 4           // Số lần gõ sai tối đa trước khi từ bị đánh dấu là "Yếu" (Nợ từ)
     },
 
@@ -27,7 +27,7 @@ export const GameConfig: any = {
     // Tọa độ và tốc độ của cá trong chế độ bơi ngang (Free-swimming)
     // ---------------------------------------------------------
     speeds: {
-        globalSpeedFactor: 5.5,         // Hệ số nhân tốc độ tổng thể (Vặn cái này để nhanh/chậm toàn bộ)
+        globalSpeedFactor: 6.2,         // Hệ số nhân tốc độ tổng thể (Vặn cái này để nhanh/chậm toàn bộ)
         baseEnemyMinSpeed: 0.02,        // Vận tốc tối thiểu (Đã giảm để dễ kiểm soát)
         baseEnemyMaxSpeed: 0.05,        // Vận tốc tối đa (Đã giảm để dễ kiểm soát)
         romajiLengthSpeedFactor: 0.1,   // Tỉ lệ giảm tốc trên mỗi ký tự (0.1 = 10% - Càng cao từ dài càng chậm)
@@ -63,6 +63,15 @@ export const GameConfig: any = {
     // MODULE: CHẾ ĐỘ HỌC TẬP (CYBER-ZEN STUDY MODE)
     // ---------------------------------------------------------
     studyMode: {
+        // --- CẤU HÌNH ĐIỂM SỐ RIÊNG CHO TỪNG WAVE ---
+        wavePoints: {
+            wave1: 10,
+            wave2: 10,
+            wave3: 20,
+            wave4: 50,
+            wave5: 15
+        },
+
         // --- ĐIỀU KHIỂN LUỒNG CHƠI (SESSION CONTROL) ---
         workflow: {
             enableWave1: true,
@@ -74,8 +83,7 @@ export const GameConfig: any = {
 
         // --- CẤU HÌNH GIAI ĐOẠN LÀM QUEN (WAVE 1 & 2) ---
         learningPhase: {
-            basePoints: 10,
-            penaltyPoints: 5
+            // Đã chuyển sang wavePoints
         },
 
         // --- CẤU HÌNH WAVE 3: ĐỘNG NÃO (THĂM DÒ TỰ DO) ---
@@ -94,7 +102,7 @@ export const GameConfig: any = {
 
         // --- CẤU HÌNH WAVE 4: HỘI THOẠI TOÀN TẬP (TRUYỀN THUYẾT LỰA CHỌN) ---
         wave4: {
-            basePoints: 20,                 // Số điểm lớn thu được do độ khó cao (Gõ 4 sự lựa chọn, yêu cầu nhớ ngữ pháp)
+            // basePoints đã chuyển sang wavePoints.wave4
             layout: {
                 offsetX: 180,               // Vị trí độ lệch trục X tính từ tâm chia đều 2 bên trái/phải cho 4 lựa chọn
                 offsetYStart: 100,          // Độ cao trục Y bắt đầu vẽ mảng đáp án
@@ -111,7 +119,7 @@ export const GameConfig: any = {
         wave5: {
             spawnIntervalMs: 3000,          // Tốc độ ban đầu nhả quái (Mỗi 3 giây đẻ 1 lứa cá)
             minStackSize: 1,                // Khởi đầu một đợt sinh sản ít nhất bao nhiêu thẻ (1 thẻ)
-            maxStackSize: 2,                // Tối đa sinh bao nhiêu thẻ vây song song trong 1 lần (Cao nhất đẻ 2 thẻ bơi dồn)
+            maxStackSize: 3,                // Tối đa sinh bao nhiêu thẻ vây song song trong 1 lần (Cao nhất đẻ 2 thẻ bơi dồn)
             verticalSpacing: 150,           // Cự ly giãn cách độ cao (Trục Y) giữa 2 tấm thẻ nếu lỡ đẻ chồng lên nhau
 
             accelerationSettings: {

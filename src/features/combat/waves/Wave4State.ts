@@ -58,7 +58,7 @@ export class Wave4State extends BaseWaveState {
         dummy.x = -1000;
         allEnemies.push(dummy);
 
-        const basePoints = GameConfig.studyMode.wave4.basePoints;
+        const basePoints = GameConfig.studyMode.wavePoints.wave4;
         let points = Math.floor(basePoints * multiplier);
         const hasNewFailure = this.context.getTypoCount() >= (GameConfig.difficulty.maxTyposBeforeWeak || 4);
         

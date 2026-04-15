@@ -84,7 +84,8 @@ export class Wave1State extends BaseWaveState {
                 targetKilled.study.isWeak = true;
             }
         } else {
-            points = GameConfig.studyMode.learningPhase.basePoints;
+            const waveKey = `wave${targetKilled.study.wave}` as keyof typeof GameConfig.studyMode.wavePoints;
+            points = GameConfig.studyMode.wavePoints[waveKey] || 10;
         }
 
         EventBus.getInstance().publish('ENEMY_KILLED', { enemy: targetKilled, points: points, combo: 0 });
