@@ -1,0 +1,7 @@
+lỗi 1:
+- bảng info reset về 0 mỗi lần tải lại tranh
+- data chỉ số cần cập nhật ngay sau mỗi session thì tối ưu hơn, nên hãy cập nhật ngay mỗi lần xong session hiện thì ra UI hết cho đồng bộ rồi đẩy lên database, để cho người dùng thông tin nhanh nhất, còn người ở nơi khác muốn biết score mới nhất của người khác thì đương nhiên phải đơi phản hồi của database rồi có thể lâu hơn chút nhưng hãy tối ưu đê cập nhật nhanh nhất có thể
+lỗi 2:
+- đang trong phiên, rồi mất kết nối mạng, thì hãy auto tạm dừng, sao cho khi có mạng lại tiếp tục chơi mà không có bất kì lỗi hay bug gì vì đây là chế độ 1 mình mà.
+lỗi 3:
+- lâu lâu khi thoát phiên vào lại học thì gõ không được, tải lại trang thì mới được.

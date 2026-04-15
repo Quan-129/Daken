@@ -1,5 +1,5 @@
-import { supabase } from '../utils/supabase';
-import { EventBus } from '../utils/EventBus';
+import { supabase } from './supabase';
+import { EventBus } from '../../core/EventBus';
 
 export interface UserProfile {
     id: string;

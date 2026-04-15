@@ -1,5 +1,5 @@
-import { EventBus } from '../utils/EventBus';
-import { GameConfig } from '../config';
+import { EventBus } from '../../../core/EventBus';
+import { GameConfig } from '../../../config';
 
 export class AudioSystem {
     private audioCtx: AudioContext;
@@ -171,14 +171,14 @@ export class AudioSystem {
         events.subscribe('ENEMY_KILLED', (data: any) => {
             this.playKillSFX();
             if (data && data.enemy && data.enemy.word) {
-                let skipExample = data.enemy.mode === 'study' && (data.enemy.studyWave === 3 || data.enemy.studyWave === 5);
+                let skipExample = data.enemy.mode === 'study' && (data.enemy.study.wave === 3 || data.enemy.study.wave === 5);
                 this.playTTS(data.enemy.word, skipExample);
             }
         });
 
         events.subscribe('ENEMY_DEFEATED', (enemy: any) => {
             if (enemy && enemy.word) {
-                let skipExample = enemy.mode === 'study' && (enemy.studyWave === 3 || enemy.studyWave === 5);
+                let skipExample = enemy.mode === 'study' && (enemy.study.wave === 3 || enemy.study.wave === 5);
                 this.playTTS(enemy.word, skipExample, () => {
                     EventBus.getInstance().publish('AUDIO_TTS_ENDED', enemy);
                 });

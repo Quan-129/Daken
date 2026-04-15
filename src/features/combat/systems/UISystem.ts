@@ -1,9 +1,11 @@
-import { EventBus } from '../utils/EventBus';
-import { StateManager } from '../data/StateManager';
-import { GameConfig } from '../config';
-import { byId } from '../utils/uiHelpers';
-import { AuthSystem } from './AuthSystem';
-import { supabase } from '../utils/supabase';
+import { EventBus } from '../../../core/EventBus';
+import { StateManager } from '../../../shared/utils/StateManager';
+import { GameConfig } from '../../../config';
+import { byId } from '../../../shared/utils/uiHelpers';
+import { AuthSystem } from '../../../shared/utils/AuthSystem';
+import { supabase } from '../../../shared/utils/supabase';
+import emailjs from '@emailjs/browser';
+
 export class UISystem {
     private scoreEl = byId('scoreVal');
     private hpEl = byId('hpVal');
@@ -168,6 +170,21 @@ export class UISystem {
     private confirmStopBtn = byId('confirmStopBtn');
     private cancelStopBtn = byId('cancelStopBtn');
 
+    // Feedback UI
+    private feedbackTrigger = byId('feedback-trigger');
+    private feedbackModal = byId('feedback-modal');
+    private closeFeedbackBtn = byId('closeFeedbackBtn');
+    private sendFeedbackBtn = byId('sendFeedbackBtn') as HTMLButtonElement;
+    private feedbackText = byId('feedbackText') as HTMLTextAreaElement;
+    private feedbackStatus = byId('feedback-status');
+
+    // Admin Feedback View
+    private adminFeedbackModal = byId('admin-feedback-modal');
+    private closeAdminFeedbackBtn = byId('closeAdminFeedbackBtn');
+    private adminFeedbackList = byId('admin-feedback-list');
+    private refreshFeedbackBtn = byId('refreshFeedbackBtn');
+    private feedbackCountEl = byId('feedback-count');
+
     // State Thư Viện
     private myLibrary: { id: string, name: string, songs: { url: string, title: string }[] }[] = [];
     private activeFolderId: string | null = null;
@@ -186,7 +203,7 @@ export class UISystem {
         // => enemy.y = terminalTop - 50 - drawOffsetY
 
         let drawOffsetY = 0;
-        if (enemy.mode === 'easy' || (enemy.mode === 'study' && (enemy.studyWave === 1 || enemy.studyWave === 2 || enemy.studyWave === 4))) {
+        if (enemy.mode === 'easy' || (enemy.mode === 'study' && (enemy.study.wave === 1 || enemy.study.wave === 2 || enemy.study.wave === 4))) {
             drawOffsetY = -200;
         }
 
@@ -211,6 +228,8 @@ export class UISystem {
         if (this.waveProgressContainer) this.waveProgressContainer.classList.add('hidden');
 
         this.setupGuideLogic();
+        this.setupFeedbackLogic();
+        this.setupAdminLogic();
     }
 
     private setupGuideLogic() {
@@ -276,6 +295,195 @@ export class UISystem {
             this.generalGuideModal?.classList.add('hidden');
             EventBus.getInstance().publish('AUDIO_BEEP', null);
         });
+    }
+
+    private setupFeedbackLogic() {
+        if (!this.feedbackTrigger || !this.feedbackModal || !this.closeFeedbackBtn || !this.sendFeedbackBtn || !this.feedbackText) return;
+
+        // Mở modal
+        this.feedbackTrigger.addEventListener('click', () => {
+            this.feedbackModal?.classList.remove('hidden');
+            this.feedbackText.value = '';
+            if (this.feedbackStatus) this.feedbackStatus.innerText = '';
+            EventBus.getInstance().publish('LOCK_KEYBOARD', true);
+            EventBus.getInstance().publish('AUDIO_BEEP', null);
+            
+            // Auto focus vào textarea
+            setTimeout(() => this.feedbackText.focus(), 100);
+        });
+
+        // Đóng modal
+        const closeModal = () => {
+            this.feedbackModal?.classList.add('hidden');
+            EventBus.getInstance().publish('LOCK_KEYBOARD', false);
+            EventBus.getInstance().publish('AUDIO_BEEP', null);
+        };
+
+        this.closeFeedbackBtn.addEventListener('click', closeModal);
+
+        // Gửi feedback
+        this.sendFeedbackBtn.addEventListener('click', async () => {
+            const content = this.feedbackText.value.trim();
+            if (!content) {
+                if (this.feedbackStatus) {
+                    this.feedbackStatus.innerText = '[ ERROR: CONTENT_EMPTY ]';
+                    this.feedbackStatus.style.color = '#ff3860';
+                }
+                return;
+            }
+
+            if (content.length < 5) {
+                if (this.feedbackStatus) {
+                    this.feedbackStatus.innerText = '[ ERROR: CONTENT_TOO_SHORT ]';
+                }
+                return;
+            }
+
+            // Trạng thái đang gửi
+            this.sendFeedbackBtn!.innerText = '[ TRANSMITTING... ]';
+            this.sendFeedbackBtn!.disabled = true;
+
+            try {
+                // Lấy thông tin user hiện tại nếu có
+                const { data: { user } } = await supabase.auth.getUser();
+                const userEmail = user?.email || 'guest@cyber-zen.io';
+                const displayName = localStorage.getItem('DAKEN_DISPLAY_NAME') || 'Unknown Ronin';
+
+                // Lưu vào database (Yêu cầu bảng 'feedbacks' đã tồn tại)
+                const { error } = await supabase
+                    .from('feedbacks')
+                    .insert([
+                        { 
+                            content: content, 
+                            user_id: user?.id || null,
+                            user_email: userEmail,
+                            display_name: displayName,
+                            created_at: new Date().toISOString()
+                        }
+                    ]);
+
+                if (error) throw error;
+
+                // --- Gửi về Email (Opt-in via EmailJS) ---
+                // Admin cần điền ServiceID/TemplateID/PublicKey vào đây sau khi đăng ký EmailJS
+                // Tôi đã cài đặt sẵn thư viện, chỉ cần cấu hình khóa
+                const SERVICE_ID = "YOUR_SERVICE_ID"; 
+                const TEMPLATE_ID = "YOUR_TEMPLATE_ID";
+                const PUBLIC_KEY = "YOUR_PUBLIC_KEY";
+
+                if (SERVICE_ID !== "YOUR_SERVICE_ID") {
+                    await emailjs.send(SERVICE_ID, TEMPLATE_ID, {
+                        from_name: displayName,
+                        from_email: userEmail,
+                        message: content,
+                        to_email: 'minhquan12092005@gmail.com'
+                    }, PUBLIC_KEY);
+                }
+
+                if (this.feedbackStatus) {
+                    this.feedbackStatus.innerText = '[ TRANSMISSION_SUCCESSFUL ]';
+                    this.feedbackStatus.style.color = '#00e676';
+                }
+
+                // Đóng sau 1.5s
+                setTimeout(closeModal, 1500);
+
+            } catch (err: any) {
+                console.error('Feedback transmission failed:', err);
+                if (this.feedbackStatus) {
+                    this.feedbackStatus.innerText = '[ ERROR: LINK_STABILITY_LOW ]';
+                    this.feedbackStatus.style.color = '#ff3860';
+                }
+            } finally {
+                this.sendFeedbackBtn!.innerText = '[ TRANSMIT_FEEDBACK ]';
+                this.sendFeedbackBtn!.disabled = false;
+            }
+        });
+    }
+
+    private setupAdminLogic() {
+        if (!this.adminFeedbackModal || !this.closeAdminFeedbackBtn || !this.refreshFeedbackBtn) return;
+
+        this.closeAdminFeedbackBtn.addEventListener('click', () => {
+            this.adminFeedbackModal?.classList.add('hidden');
+            EventBus.getInstance().publish('AUDIO_BEEP', null);
+        });
+
+        this.refreshFeedbackBtn.addEventListener('click', () => {
+            this.fetchAdminFeedbacks();
+            EventBus.getInstance().publish('AUDIO_BEEP', null);
+        });
+    }
+
+    private async fetchAdminFeedbacks() {
+        if (!this.adminFeedbackList) return;
+        
+        this.adminFeedbackList.innerHTML = '<div style="text-align: center; color: #00F5FF; padding: 20px;">LINKING_TO_DATABASE...</div>';
+
+        try {
+            const { data, error } = await supabase
+                .from('feedbacks')
+                .select('*')
+                .order('created_at', { ascending: false });
+
+            if (error) throw error;
+
+            this.adminFeedbackList.innerHTML = '';
+            if (this.feedbackCountEl) this.feedbackCountEl.innerText = `TOTAL_LOGS: ${data?.length || 0}`;
+
+            if (data && data.length > 0) {
+                data.forEach(fb => {
+                    const item = document.createElement('div');
+                    item.style.background = 'rgba(0, 245, 255, 0.05)';
+                    item.style.border = '1px solid rgba(0, 245, 255, 0.2)';
+                    item.style.padding = '15px';
+                    item.style.borderRadius = '8px';
+                    
+                    const date = new Date(fb.created_at).toLocaleString();
+                    
+                    item.innerHTML = `
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 0.8rem; border-bottom: 1px dashed rgba(0, 245, 255, 0.1); padding-bottom: 5px;">
+                            <span style="color: #00F5FF; font-weight: bold;">[ SOURCE: ${fb.display_name} ]</span>
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <span style="color: rgba(255,255,255,0.4);">${date}</span>
+                                <button class="delete-fb-btn" data-id="${fb.id}" style="background: none; border: none; color: #ff3860; cursor: pointer; padding: 0 5px; font-weight: bold; font-family: 'Orbitron';">[ X ]</button>
+                            </div>
+                        </div>
+                        <div style="color: #fff; font-size: 0.95rem; white-space: pre-wrap; line-height: 1.5;">${fb.content}</div>
+                        <div style="margin-top: 10px; font-size: 0.75rem; color: rgba(255,255,255,0.3);">EMAIL: ${fb.user_email}</div>
+                    `;
+
+                    // Gán sự kiện xóa
+                    item.querySelector('.delete-fb-btn')?.addEventListener('click', async (e) => {
+                        e.stopPropagation();
+                        if (confirm(`Bạn có chắc chắn muốn xóa phản hồi từ ${fb.display_name}? Thao tác này không thể hoàn tác.`)) {
+                            try {
+                                const { error } = await supabase
+                                    .from('feedbacks')
+                                    .delete()
+                                    .match({ id: fb.id });
+
+                                if (error) throw error;
+                                
+                                EventBus.getInstance().publish('AUDIO_BEEP', null);
+                                // Refresh list
+                                this.fetchAdminFeedbacks();
+                            } catch (err) {
+                                console.error('Delete failed:', err);
+                                alert('[ ERROR: DELETE_FAILED ]');
+                            }
+                        }
+                    });
+
+                    this.adminFeedbackList?.appendChild(item);
+                });
+            } else {
+                this.adminFeedbackList.innerHTML = '<div style="text-align: center; color: rgba(255,255,255,0.3); padding: 50px;">NO_FEEDBACK_DATA_IN_NEURAL_LOGS</div>';
+            }
+        } catch (err) {
+            console.error('Failed to fetch feedbacks:', err);
+            this.adminFeedbackList.innerHTML = '<div style="text-align: center; color: #ff3860; padding: 20px;">[ ERROR: UPLINK_FAILURE ]</div>';
+        }
     }
 
     private applyConfigToSliders() {
@@ -1004,12 +1212,12 @@ export class UISystem {
             this.hudTerminal.style.boxShadow = '';
             this.hudTerminal.style.backgroundColor = '';
 
-            if (enemy.mode === 'study' && (enemy.studyWave === 3 || enemy.studyWave === 5)) return;
+            if (enemy.mode === 'study' && (enemy.study.wave === 3 || enemy.study.wave === 5)) return;
 
             const word = enemy.word;
 
             // Xử lý riêng cho diện mạo câu hỏi Wave 4
-            if (enemy.mode === 'study' && enemy.studyWave === 4) {
+            if (enemy.mode === 'study' && enemy.study.wave === 4) {
                 let exampleJpRaw = word.example_jp || word.visual;
                 // Tô khoảng trống
                 exampleJpRaw = exampleJpRaw.replace(/\[(.*?)\]/g, '<span style="color: var(--neon-cyan); letter-spacing: 2px;">[ _ _ _ _ ]</span>');
@@ -1046,16 +1254,16 @@ export class UISystem {
             // Mặc định giấu thông tin
             let isHidden = false;
 
-            if (enemy.mode === 'study' && enemy.studyWave >= 2) {
-                if (enemy.studyWave === 2) {
+            if (enemy.mode === 'study' && enemy.study.wave >= 2) {
+                if (enemy.study.wave === 2) {
                     isHidden = !enemy.isDefeated; // Wave 2: Sài sai vẫn giấu, chỉ hiện khi đã Defeat/Skip
                 } else {
-                    isHidden = !enemy.isDefeated && !enemy.isWeak;
+                    isHidden = !enemy.isDefeated && !enemy.study.isWeak;
                 }
             }
 
             // Ở wave 2, nếu đang ẩn thông tin thì giấu luôn cả bảng card (bóp lại thành viên thuốc)
-            if (enemy.mode === 'study' && enemy.studyWave === 2 && isHidden) {
+            if (enemy.mode === 'study' && enemy.study.wave === 2 && isHidden) {
                 this.hudTerminal.classList.remove('show');
                 return;
             }
@@ -1064,19 +1272,19 @@ export class UISystem {
             // Tô sáng phần trong ngoặc bằng màu vàng
             exampleJpRaw = exampleJpRaw.replace(/\[(.*?)\]/g, '<span style="color: #ffd700; text-shadow: 0 0 5px rgba(255,215,0,0.5);">$1</span>');
             let exampleJp = isHidden
-                ? (enemy.revealType === 'vi' ? "???" : exampleJpRaw.replace(/\{([^|]+)\|([^}]+)\}/g, '$1')) // Nếu là chiều Vi->Romaji thì giấu sạch câu Nhật
+                ? (enemy.study.revealType === 'vi' ? "???" : exampleJpRaw.replace(/\{([^|]+)\|([^}]+)\}/g, '$1')) // Nếu là chiều Vi->Romaji thì giấu sạch câu Nhật
                 : exampleJpRaw.replace(/\{([^|]+)\|([^}]+)\}/g, '<ruby>$1<rt>$2</rt></ruby>');
 
             let romajiText = isHidden ? "???" : word.romaji;
-            let viText = isHidden ? (enemy.revealType === 'vi' ? word.vi : "???") : (word.vi || '');
+            let viText = isHidden ? (enemy.study.revealType === 'vi' ? word.vi : "???") : (word.vi || '');
             let exampleViText = isHidden ? "???" : (word.example_vi || '');
-            let hanvietText = isHidden && enemy.revealType === 'vi' ? "???" : (word.hanviet || '---');
+            let hanvietText = isHidden && enemy.study.revealType === 'vi' ? "???" : (word.hanviet || '---');
 
             let html = `
                 <div class="bubble-header" style="align-items: baseline;">
                     <div>
                         <span class="bubble-hanviet" style="margin-right: 12px;">[${hanvietText}]</span>
-                        <span style="font-size: 1.6rem; font-weight: 700; color: #fff; text-shadow: 0 0 10px rgba(255,255,255,0.5); font-family: 'Noto Sans JP', sans-serif;">${isHidden && enemy.revealType === 'vi' ? '???' : word.visual}</span>
+                        <span style="font-size: 1.6rem; font-weight: 700; color: #fff; text-shadow: 0 0 10px rgba(255,255,255,0.5); font-family: 'Noto Sans JP', sans-serif;">${isHidden && enemy.study.revealType === 'vi' ? '???' : word.visual}</span>
                     </div>
                     <span class="bubble-vi" style="text-align: right;">${viText}</span>
                 </div>
@@ -1101,11 +1309,11 @@ export class UISystem {
                 });
             }
 
-            if (this.bufferTrash && enemy.mode === 'study' && enemy.studyWave >= 2) {
+            if (this.bufferTrash && enemy.mode === 'study' && enemy.study.wave >= 2) {
                 this.bufferTrash.innerHTML = `<span style="color: rgba(255,255,255,0.2); font-size: 0.7em;">[ Nhấn ENTER nếu quên từ ]</span>`;
             }
 
-            if (enemy.mode === 'study' && enemy.studyWave === 1) {
+            if (enemy.mode === 'study' && enemy.study.wave === 1) {
                 this.hudTerminal.classList.add('center-screen');
             } else {
                 this.hudTerminal.classList.remove('center-screen');
@@ -1117,7 +1325,7 @@ export class UISystem {
             requestAnimationFrame(() => {
                 document.documentElement.style.setProperty('--shift-up', `0px`);
                 if (enemy) {
-                    enemy.dynamicStudyOffset = 0;
+                    enemy.study.dynamicStudyOffset = 0;
                     this.alignEnemyToTerminal(enemy);
                 }
             });
@@ -1188,7 +1396,7 @@ export class UISystem {
             if (this.enemiesSpawnedThisWave > 0 && enemy && enemy.mode === 'study') {
                 const idx = this.waveSegmentStates.indexOf('empty');
                 if (idx !== -1) {
-                    this.waveSegmentStates[idx] = enemy.isWeak ? 'failed' : 'filled';
+                    this.waveSegmentStates[idx] = enemy.study.isWeak ? 'failed' : 'filled';
                 }
                 this.renderWaveSegments();
             }
@@ -1197,7 +1405,7 @@ export class UISystem {
 
             // Ở Wave 4, sau khi trả lời, thẻ chuyển từ "Câu hỏi" (top 40%) sang "Giải thích"
             // Xóa inline style và class canh giữa để thẻ Giải thích rớt xuống sát ô nhập text
-            if (enemy.mode === 'study' && enemy.studyWave === 4) {
+            if (enemy.mode === 'study' && enemy.study.wave === 4) {
                 requestAnimationFrame(() => {
                     if (this.hudTerminal) {
                         this.hudTerminal.classList.remove('center-screen');
@@ -1209,7 +1417,7 @@ export class UISystem {
                 });
             }
 
-            if (enemy.mode === 'study' && (enemy.studyWave === 3 || enemy.studyWave === 5)) return;
+            if (enemy.mode === 'study' && (enemy.study.wave === 3 || enemy.study.wave === 5)) return;
             EventBus.getInstance().publish('PLAY_DING', null); // Âm báo thành công ah-ha
             const word = enemy.word;
             let exampleJp = word.example_jp || word.visual;
@@ -1218,9 +1426,9 @@ export class UISystem {
             exampleJp = exampleJp.replace(/\{([^|]+)\|([^}]+)\}/g, '<ruby>$1<rt>$2</rt></ruby>');
 
             // If enemy is skipped/weak, show red text instead of green
-            let resultColor = enemy.isWeak ? '#ff4757' : '#00e676';
+            let resultColor = enemy.study.isWeak ? '#ff4757' : '#00e676';
             if (this.hudTerminal) {
-                if (enemy.isWeak) {
+                if (enemy.study.isWeak) {
                     this.hudTerminal.style.border = '2px solid rgba(255, 71, 87, 0.8)';
                     this.hudTerminal.style.boxShadow = '0 0 30px rgba(255, 71, 87, 0.3), inset 0 0 20px rgba(255, 71, 87, 0.15)';
                     this.hudTerminal.style.backgroundColor = 'rgba(255, 71, 87, 0.1)';
@@ -1705,9 +1913,31 @@ export class UISystem {
     }
 
     private updateProfileUI() {
+        // Nếu là Admin, thêm nút mở Feedback Terminal vào Profile Card
         const auth = AuthSystem.getInstance();
-        const state = StateManager.getInstance();
         const user = auth.getCurrentUser();
+        const isAdmin = user?.email === 'minhquan12092005@gmail.com';
+
+        if (isAdmin && this.profileCard) {
+            let adminBtn = byId('admin-view-trigger');
+            if (!adminBtn) {
+                adminBtn = document.createElement('button');
+                adminBtn.id = 'admin-view-trigger';
+                adminBtn.className = 'menu-btn';
+                adminBtn.style.marginTop = '10px';
+                adminBtn.style.width = '100%';
+                adminBtn.style.fontSize = '0.7rem';
+                adminBtn.style.borderColor = '#00F5FF';
+                adminBtn.style.color = '#00F5FF';
+                adminBtn.innerText = '[ OPEN_ADMIN_TERMINAL ]';
+                adminBtn.addEventListener('click', () => {
+                    this.adminFeedbackModal?.classList.remove('hidden');
+                    this.fetchAdminFeedbacks();
+                });
+                this.profileCard.appendChild(adminBtn);
+            }
+        }
+        const state = StateManager.getInstance();
 
         if (this.playerNameEl) {
             this.playerNameEl.innerText = user?.name || "GUEST_AGENT";
@@ -1796,34 +2026,54 @@ export class UISystem {
             this.avtFileInput.addEventListener('change', async (e) => {
                 const file = (e.target as HTMLInputElement).files?.[0];
                 if (file) {
-                    // Supabase metadata có giới hạn (thường < 10KB), ưu tiên ảnh siêu nhỏ hoặc URL
-                    // Ở đây ta vẫn cho Base64 nhưng cảnh báo nếu quá lớn
-                    if (file.size > 50 * 1024) { // 50KB limit for metadata safety
-                        alert("Ảnh quá lớn! Vui lòng chọn ảnh dưới 50KB để đồng bộ Cloud thành công.");
+                    // Giới hạn 2MB
+                    if (file.size > 2 * 1024 * 1024) { 
+                        alert("Ảnh quá lớn! Vui lòng chọn ảnh dưới 2MB.");
                         return;
                     }
 
-                    const reader = new FileReader();
-                    reader.onload = async (event) => {
-                        const base64 = event.target?.result as string;
-                        if (this.playerAvtImg) this.playerAvtImg.src = base64;
+                    const auth = AuthSystem.getInstance();
+                    const user = auth.getCurrentUser();
+                    
+                    if (!auth.isLoggedIn() || !user) {
+                        alert("Cần đăng nhập để upload ảnh lên Cloud!");
+                        return;
+                    }
 
-                        // Lưu local dự phòng
-                        localStorage.setItem('DAKEN_PLAYER_AVATAR', base64);
+                    try {
+                        if (this.avatarTrigger) this.avatarTrigger.style.opacity = "0.5";
+                        
+                        const fileExt = file.name.split('.').pop();
+                        const fileName = `${user.id}-${Math.random()}.${fileExt}`;
 
-                        // Đồng bộ Cloud nếu đã login
-                        const auth = AuthSystem.getInstance();
-                        if (auth.isLoggedIn()) {
-                            try {
-                                await auth.updateProfile({ avatar: base64 });
-                            } catch (err) {
-                                console.error("Cloud sync failed.");
-                            }
-                        }
+                        // 1. Upload lên Supabase Storage (Bucket 'avatars')
+                        const { error: uploadError } = await supabase.storage
+                            .from('avatars')
+                            .upload(fileName, file, { upsert: true });
 
+                        if (uploadError) throw uploadError;
+
+                        // 2. Lấy Public URL
+                        const { data: { publicUrl } } = supabase.storage
+                            .from('avatars')
+                            .getPublicUrl(fileName);
+
+                        // 3. Hiển thị UI và Lưu Local
+                        if (this.playerAvtImg) this.playerAvtImg.src = publicUrl;
+                        localStorage.setItem('DAKEN_PLAYER_AVATAR', publicUrl);
+
+                        // 4. Đồng bộ Profile
+                        await auth.updateProfile({ avatar: publicUrl });
+                        
                         EventBus.getInstance().publish('AUDIO_BEEP', null);
-                    };
-                    reader.readAsDataURL(file);
+                        console.log("[Avatar] Uploaded & Synced:", publicUrl);
+
+                    } catch (err: any) {
+                        console.error("Avatar upload failed:", err);
+                        alert(`Lỗi upload: ${err.message}`);
+                    } finally {
+                        if (this.avatarTrigger) this.avatarTrigger.style.opacity = "1";
+                    }
                 }
             });
         }

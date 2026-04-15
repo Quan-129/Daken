@@ -1,7 +1,7 @@
-import { Word } from '../entities/Word';
+import { Word } from '../../core/entities/Word';
 import { mockVocabulary } from './MockData';
-import { EventBus } from '../utils/EventBus';
-import { supabase } from '../utils/supabase';
+import { EventBus } from '../../core/EventBus';
+import { supabase } from './supabase';
 
 export class StateManager {
   private static instance: StateManager;

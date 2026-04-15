@@ -1,18 +1,18 @@
 import './style.css'; // Import the CSS file
-import { StateManager } from './data/StateManager';
-import { Engine } from './core/Engine';
-import { EventBus } from './utils/EventBus';
-import { UISystem } from './systems/UISystem';
-import { AudioSystem } from './systems/AudioSystem';
-import { initAutoFitText } from './utils/AutoFitText';
-import { byId } from './utils/uiHelpers';
+import { StateManager } from './shared/utils/StateManager';
+import { Engine } from './features/combat/engine/Engine';
+import { EventBus } from './core/EventBus';
+import { UISystem } from './features/combat/systems/UISystem';
+import { AudioSystem } from './features/combat/systems/AudioSystem';
+import { initAutoFitText } from './shared/utils/AutoFitText';
+import { byId } from './shared/utils/uiHelpers';
 
 // Register/mount moved Web Components so Vite bundles them
-import './components/avatar-seal.js';
-import './components/friend-list.js';
-import './components/game-menu.js';
-import './components/lofi-background.js';
-import './components/rank-board.js';
+import './shared/ui/AvatarSeal.js';
+import './features/social/FriendList.js';
+import './shared/ui/GameMenu.js';
+import './shared/ui/LofiBackground.js';
+import './features/ranking/RankingBoard.js';
 
 console.log('--- NEON TYPING ARCADE: PHASE 4 ---');
 
@@ -112,7 +112,7 @@ eventBus.subscribe('STUDY_SESSION_END', () => {
 
     const ctx = (engine as any).currentN2Context;
     if (ctx) {
-        StateManager.getInstance().saveN2SessionProgress(ctx.unitIdx, ctx.sessionIdx, {rank, acc, wpm, score});
+        stateManager.saveN2SessionProgress(ctx.unitIdx, ctx.sessionIdx, {rank, acc, wpm, score});
         eventBus.publish('N2_SESSION_CLEARED', { rank, acc, wpm, score, unitIdx: ctx.unitIdx, sessionIdx: ctx.sessionIdx });
         (engine as any).currentN2Context = null; // Clear
     }

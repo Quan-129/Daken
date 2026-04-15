@@ -1,8 +1,8 @@
-import { Enemy } from '../entities/Enemy';
-import { TypingLogic } from './TypingLogic';
-import { Spawner } from '../systems/Spawner';
-import { EventBus } from '../utils/EventBus';
-import { GameConfig } from '../config';
+import { Enemy } from '../../../core/entities/Enemy';
+import { TypingLogic } from '../../../core/use-cases/TypingLogic';
+import { Spawner } from './Spawner';
+import { EventBus } from '../../../core/EventBus';
+import { GameConfig } from '../../../config';
 
 export class Engine {
     private canvas: HTMLCanvasElement;
@@ -60,7 +60,7 @@ export class Engine {
 
         EventBus.getInstance().subscribe('MARK_WEAK', (enemy: Enemy) => {
             if (enemy && enemy.word && enemy.word.romaji) {
-                import('../data/StateManager').then(module => {
+                import('../../../shared/utils/StateManager').then(module => {
                     module.StateManager.getInstance().markWordWeak(enemy.word.romaji);
                 });
             }
@@ -68,7 +68,7 @@ export class Engine {
 
         EventBus.getInstance().subscribe('MARK_MASTERED', (enemy: Enemy) => {
             if (enemy && enemy.word && enemy.word.romaji) {
-                import('../data/StateManager').then(module => {
+                import('../../../shared/utils/StateManager').then(module => {
                     module.StateManager.getInstance().markWordMastered(enemy.word.romaji);
                 });
             }
@@ -224,22 +224,22 @@ export class Engine {
 
         // Đảm bảo luôn có 1 mục tiêu trong Wave 3 và Wave 5
         if (this.mode === 'study' && (this.spawner.currentStudyWave === 3 || this.spawner.currentStudyWave === 5)) {
-            let activeTarget = this.enemies.find(e => e.isWave3Target && !e.isDead);
+            let activeTarget = this.enemies.find(e => e.study.isWave3Target && !e.isDead);
 
             if (activeTarget && activeTarget.x > this.canvas.width) {
-                activeTarget.isWave3Target = false;
+                activeTarget.study.isWave3Target = false;
                 activeTarget = undefined;
             }
 
             // Wave 3: Chọn ngẫu nhiên (Random) 1 trong số các mục tiêu đang có trên màn hình
             // Wave 5: Giữ nguyên cơ chế Lock qua bàn phím (TypingLogic xử lý)
             if (!activeTarget && this.spawner.currentStudyWave === 3) {
-                let visibleTargets = this.enemies.filter(e => !e.isDead && e.mode === 'study' && e.studyWave === 3 && e.x > 0);
+                let visibleTargets = this.enemies.filter(e => !e.isDead && e.mode === 'study' && e.study.wave === 3 && e.x > 0);
                 if (visibleTargets.length > 0) {
                     // Chọn ngẫu nhiên hoàn toàn trong đám đang hiện diện
                     let nextTarget = visibleTargets[Math.floor(Math.random() * visibleTargets.length)];
-                    nextTarget.isWave3Target = true;
-                    import('../utils/EventBus').then(module => {
+                    nextTarget.study.isWave3Target = true;
+                    import('../../../core/EventBus').then(module => {
                         module.EventBus.getInstance().publish('TYPING_UPDATED', { buffer: "", prefix: "" });
                     });
                 }
@@ -254,7 +254,7 @@ export class Engine {
         // Vẽ cá thường (Layer dưới)
         for (let i = this.enemies.length - 1; i >= 0; i--) {
             let enemy = this.enemies[i];
-            if (!enemy.isWave3Target && !enemy.isLocked) {
+            if (!enemy.study.isWave3Target && !enemy.isLocked) {
                 enemy.draw(this.ctx);
             }
         }
@@ -262,7 +262,7 @@ export class Engine {
         // Vẽ cá mục tiêu hoặc đang khóa gõ (Layer trên cùng)
         for (let i = this.enemies.length - 1; i >= 0; i--) {
             let enemy = this.enemies[i];
-            if (enemy.isWave3Target || enemy.isLocked) {
+            if (enemy.study.isWave3Target || enemy.isLocked) {
                 enemy.draw(this.ctx);
             }
         }
@@ -276,7 +276,7 @@ export class Engine {
                     this.createExplosion(enemy.x, enemy.y, enemy.color);
                 }
 
-                if (this.mode === 'study' && enemy.isWeak) {
+                if (this.mode === 'study' && enemy.study.isWeak) {
                     this.spawner.addRetryEnemy(enemy);
                 }
 

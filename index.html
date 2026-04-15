@@ -197,6 +197,9 @@
                             <span class="material-icons">leaderboard</span>
                         </div>
                         <div id="guideTrigger" class="lobby-tool-icon" title="Neural Link Protocol">?</div>
+                        <div id="feedback-trigger" class="lobby-tool-icon" title="Contact Admin">
+                            <span class="material-icons">feedback</span>
+                        </div>
                     </div>
                     <!-- THỜI GIAN ĐÃ CHƠI -->
                     <div class="wave-timer hidden" id="waveTimer"
@@ -632,7 +635,52 @@
     </div>
 
     <!-- YOUTUBE BGM PLAYER (Mẹo chống Chrome tự động tắt video khi khuất màn hình) -->
-    <div id="youtube-player"
+        <!-- FEEDBACK MODAL (Contact Admin) -->
+        <div id="feedback-modal" class="modal-overlay hidden" style="z-index: 2000;">
+            <div class="summary-content feedback-content" style="max-width: 500px; border-color: #ff00c1; box-shadow: 0 0 30px rgba(255, 0, 193, 0.2);">
+                <button id="closeFeedbackBtn" class="close-terminal-btn" style="position: absolute; top: 15px; right: 20px;">×</button>
+                <h2 class="summary-title" style="color: #ff00c1; text-shadow: 0 0 15px #ff00c1; font-size: 1.6rem; margin-bottom: 20px;">
+                    NEURAL FEEDBACK
+                </h2>
+                <p style="color: rgba(255,255,255,0.7); font-size: 0.9rem; text-align: center; margin-bottom: 20px; line-height: 1.4;">
+                    Gửi phản hồi, báo lỗi hoặc góp ý cho Admin qua đường truyền bảo mật.<br>
+                    <span style="color: #ff00c1; font-size: 0.8rem;">[ TARGET: minhquan12092005@gmail.com ]</span>
+                </p>
+                <div class="feedback-form">
+                    <div class="input-group" style="display: flex; flex-direction: column;">
+                        <label style="color: #ff00c1; font-weight: bold; margin-bottom: 5px;">NỘI DUNG PHẢN HỒI</label>
+                        <textarea id="feedbackText" placeholder="Gõ phản hồi của bạn tại đây..." 
+                                  style="width: 100%; height: 180px; background: rgba(0,0,0,0.5); border: 1px solid rgba(255, 0, 193, 0.3); color: #fff; padding: 15px; font-family: 'Inter', sans-serif; font-size: 1rem; resize: none; border-radius: 8px; outline: none; transition: border-color 0.3s;"></textarea>
+                    </div>
+                </div>
+                <div id="feedback-status" style="text-align: center; margin-top: 10px; font-size: 0.8rem; height: 1.2rem; color: #ff00c1;"></div>
+                <button class="menu-btn" id="sendFeedbackBtn" style="width:100%; margin-top: 20px; background: rgba(255, 0, 193, 0.1); border-color: #ff00c1; color: #ff00c1;">
+                    [ TRANSMIT_FEEDBACK ]
+                </button>
+            </div>
+        </div>
+
+        <!-- ADMIN FEEDBACK VIEW (Secret Terminal) -->
+        <div id="admin-feedback-modal" class="modal-overlay hidden" style="z-index: 2100;">
+            <div class="summary-content" style="max-width: 800px; width: 90%; border-color: #00F5FF; background: rgba(10, 20, 35, 0.95);">
+                <button id="closeAdminFeedbackBtn" class="close-terminal-btn" style="position: absolute; top: 15px; right: 20px;">×</button>
+                <h2 class="summary-title" style="color: #00F5FF; text-shadow: 0 0 15px #00F5FF; font-size: 1.6rem; margin-bottom: 20px;">
+                    ADMIN_LINK: FEEDBACK_LOGS
+                </h2>
+                
+                <div id="admin-feedback-list" style="max-height: 400px; overflow-y: auto; padding-right: 10px; display: flex; flex-direction: column; gap: 10px;">
+                    <!-- Items injected by JS -->
+                    <div style="text-align: center; color: rgba(255,255,255,0.5); padding: 20px;">Đang tải dữ liệu đường truyền...</div>
+                </div>
+
+                <div style="margin-top: 20px; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid rgba(0, 245, 255, 0.2); padding-top: 15px;">
+                    <span id="feedback-count" style="color: #00F5FF; font-size: 0.8rem;">TOTAL_LOGS: 0</span>
+                    <button class="menu-btn" id="refreshFeedbackBtn" style="margin: 0; padding: 5px 15px; font-size: 0.8rem;">[ REFRESH_LOGS ]</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="youtube-player"
         style="position: absolute; bottom: 0; left: 0; width: 20px; height: 20px; opacity: 0.05; pointer-events: none; z-index: -99;">
     </div>
     </div>

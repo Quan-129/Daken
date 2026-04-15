@@ -1,0 +1,191 @@
+# PROJECT: CYBER-ZEN (JLPT COMBAT SYSTEM)
+# DOCUMENT: TECHNICAL SCHEMA & ROADMAP
+
+## SCHEMA 01: AUTHENTICATION & IDENTITY (Hệ Thống Định Danh)
+- **Phương thức:** Google OAuth (Firebase/Supabase Integration)
+- **Luồng người dùng (User Flow):**
+    - `FIRST_TIME`: Login -> Check Profile -> Name Setup (Void Link) -> Sync Initial Data.
+    - `RETURNING`: Login -> Load State -> Redirect to Dashboard.
+- **Dữ liệu định danh:** UserID, DisplayName, Avatar, CurrentJLPTLevel, NeuralLinkID (GuestID alternative).
+
+## SCHEMA 02: NEURAL HUB - DASHBOARD (Giao Diện Chính)
+- **Neural Identity Card (Khung Info):**
+    - **Performance Metrics:** Accuracy (%), Total Points (SP), Average WPM.
+    - **Visual:** Dynamic Avatar (Cyber-Zen aesthetic).
+- **Navigation Matrix (Menu điều hướng):**
+    - **[STUDY]**: Cổng vào luyện tập cá nhân.
+    - **[ONLINE]**: Hệ thống bắt cặp thi đấu toàn cầu.
+    - **[CUSTOM]**: Phòng riêng, thách đấu bạn bè.
+    - **[LEADERBOARD]**: Phân cấp thứ tự (Neural Hierarchy).
+    - **[ARCHIVE/GUIDE]**: Hướng dẫn & Dữ liệu JLPT.
+
+## SCHEMA 03: TRAINING MODULE MECHANICS (Cơ Chế Study - Luyện Tập)
+Phân tách theo 5 Wave (Tiến trình độ khó tăng dần):
+- **Wave 1 (Full Insight):** Hiển thị đầy đủ Card (Kanji, Kana, Nghĩa) -> Gõ từ để ghi nhớ.
+- **Wave 2 (Neural Recall):** Chỉ hiện Kanji/Nghĩa tiếng Việt -> Gõ Hiragana.
+- **Wave 3 (High-Speed Stream):** Từ rơi theo cột/hàng với tốc độ tăng dần -> Phản xạ nhanh.
+- **Wave 4 (Grammar Synthesis):** Thẻ khuyết ngữ pháp -> Gõ số tương ứng với ngữ pháp đúng (Multi-choice Typing).
+- **Wave 5 (Zen Survival):** Chế độ sinh tồn -> Gõ liên tục không giới hạn để đạt điểm tối đa (Combo multiplier).
+
+## SCHEMA 04: COMPETITIVE ARCHITECTURE (Kiến trúc Đối kháng)
+- **Chế độ Matching (Global Match):**
+    - **Mode 1 (Capture The Flag - Cướp cờ):** N1-N5 | Wave 3 Logic (10 words) | Giới hạn 3 phút.
+    - **Mode 2 (Last Identity Standing - Survival):** N1-N5 | Wave 5 Logic | Giới hạn 5 phút.
+- **Chế độ Custom (Private Nexus):**
+    - Tạo Room ID -> Gửi cho bạn bè.
+    - Host thiết lập Mode: Cướp cờ hoặc Sinh tồn.
+
+## SCHEMA 05: MULTIMEDIA & ENVIRONMENT (Môi trường & Đa phương tiện)
+- **Audio System:**
+    - Folder nội bộ: Nhạc Offline định dạng .mp3/wav.
+    - YouTube Integration: Fetch nhạc qua Link/API.
+    - Mixing Dashboard: Điều chỉnh âm lượng Vocal, Background Music (BGM), Sound Effects (SFX), TTS Rate (Text-to-Speech).
+- **Visual:** Cyberpunk neon style, glitch effects, terminal-based interface.
+
+## SCHEMA 06: GLOBAL INTELLIGENCE (Xếp Hạng & Đồng Bộ)
+- **Leaderboard Layers:**
+    - `GLOBAL`: Toàn thế giới.
+    - `FRIENDS`: Trong danh sách kết nối.
+- **Sorting Logic:** Sắp xếp theo Score (Điểm), WPM (Tốc độ), Accuracy (Độ chính xác).
+- **Data Sync:** Auto-save lên Cloud sau mỗi trận đấu/buổi học.
+
+## SCHEMA 07: TECHNICAL STACK (Cấu Trúc Kỹ Thuật)
+- **Language:** TypeScript (Strict typing for game logic).
+- **Core Architecture:** Component-Based System (Entity Component System - ECS Lite).
+- **State Management:** Finite State Machine (FSM) cho chuyển cảnh (Lobby -> Study -> Result).
+- **Database:** Supabase (Auth, Realtime Leaderboard, User Profile).
+- **Audio Engine:** Web Audio API + TTS Module.
+- **Frontend:** Vanilla CSS (Cyberpunk Design System) + HTML5 Canvas/DOM Hybrid.
+
+## SCHEMA 08: DEVELOPMENT ROADMAP (Lộ Trình Phát Triển)
+- **Giai đoạn 1 (Core):** Hoàn thiện Core Combat (Wave 1-5) và Logic gõ phím.
+- **Giai đoạn 2 (Social):** Tích hợp Auth, Profile và Leaderboard.
+- **Giai đoạn 3 (Multiplayer):** Phát triển Socket.io/Supabase Realtime cho Online Mode.
+- **Giai đoạn 4 (Polish):** Thêm hiệu ứng âm thanh, nhạc YouTube và VFX Cyberpunk.
+- **Giai đoạn 5 (Expansion):** Mở rộng kho từ vựng N1-N5 và chế độ Grammar.
+
+## SCHEMA 09: DATABASE MODEL (Kiến Trúc Dữ Liệu - Supabase/PostgreSQL)
+Để tối ưu hóa truy vấn và đồng bộ Realtime, hệ thống phân tách thành các bảng sau:
+
+### 1. Table: `profiles` (Thông tin người dùng)
+- `id`: uuid (Primary Key - Link with Auth.users)
+- `display_name`: varchar(50)
+- `avatar_url`: text
+- `neural_id`: varchar(15) (Unique - ID định danh kiểu Cyberpunk)
+- `current_level`: int (1-5 tương ứng N1-N5)
+- `created_at`: timestamp
+
+### 2. Table: `user_stats` (Chỉ số hiệu năng - Tách biệt để update nhanh)
+- `profile_id`: uuid (Foreign Key -> profiles.id)
+- `total_sp`: bigint (Total Score Points)
+- `avg_wpm`: float4
+- `max_wpm`: int4
+- `avg_accuracy`: float4
+- `total_words_mastered`: int4
+- `last_active`: timestamp
+
+### 3. Table: `vocabulary` (Kho từ vựng JLPT)
+- `id`: serial (Primary Key)
+- `level`: int2 (1-5)
+- `kanji`: varchar(100)
+- `kana`: varchar(100)
+- `meaning_vi`: text
+- `romaji`: varchar(100) (Dùng để check typing logic)
+- `tags`: text[] (e.g: ["verb", "noun", "common"])
+
+### 4. Table: `match_history` (Lịch sử trận đấu - Big Data)
+- `id`: uuid (Primary Key)
+- `profile_id`: uuid (Foreign Key)
+- `mode`: varchar(20) (Study/Online/Custom)
+- `level`: int2
+- `wave_reached`: int2
+- `score`: int4
+- `wpm`: float4
+- `accuracy`: float4
+- `played_at`: timestamp
+
+### 5. Table: `user_settings` (Cấu hình cá nhân - Đồng bộ đa thiết bị)
+- `profile_id`: uuid (Foreign Key)
+- `audio_cfg`: jsonb {bgm: float, sfx: float, vocal: float, tts_rate: float}
+- `theme_cfg`: jsonb {neon_color: string, font_size: int}
+- `keybinds`: jsonb (Custom phím tắt nếu có)
+
+## SCHEMA 10: IN-MEMORY GAME STATE (Mô Hình Trạng Thái Trận Đấu)
+Để đảm bảo tốc độ phản hồi 0ms (Zero Latency), logic game sẽ quản lý data cục bộ trước khi sync:
+
+### 1. `EngineState` (Trạng thái lõi)
+- `input_buffer`: string (Chuỗi người dùng đang gõ)
+- `current_target_id`: int (ID của từ đang cần gõ)
+- `wave_start_time`: timestamp
+- `combo_multiplier`: float (x1.0 -> x5.0)
+
+### 2. `CombatEntity` (Dữ liệu thực thể địch - Vocabulary trên màn hình)
+- `uuid`: string
+- `vocab_data`: Object (Ref to Vocabulary Table)
+- `position`: {x, y, velocity}
+- `status`: "active" | "destroyed" | "escaping"
+- `health`: int (Số ký tự còn lại cần gõ)
+
+### 3. `AnalyticsStore` (Tính toán chỉ số realtime)
+- `raw_keystrokes`: int (Tổng số lần nhấn phím)
+- `error_count`: int
+- `perfect_words`: int (Số từ gõ không sai lỗi nào)
+- `timeline`: Array<{timestamp, type: "hit" | "miss"}> (Dùng để vẽ biểu đồ hiệu suất sau trận)
+
+## SCHEMA 11: WORKFLOW EXECUTION PLAN (Kế Hoạch Thực Thi Từng Bước)
+Mỗi Workflow sẽ được hoàn thiện theo quy trình: **Design -> Core Logic -> UI Integration -> Sync Data.**
+
+### 🟢 WORKFLOW ALPHA: IDENTITY NEURAL LINK (Định Danh)
+*Mục tiêu: Đảm bảo người dùng có tài khoản và đồng bộ được tiến trình.*
+1. **Bước 1:** Tích hợp SDK Supabase Auth (Google/Email).
+2. **Bước 2:** Xây dựng màn hình "Void Link" (Login) với hiệu ứng Glitch.
+3. **Bước 3:** Logic kiểm tra `profile`: Nếu mới -> Yêu cầu nhập `display_name`.
+4. **Bước 4:** Lưu `session` cục bộ để tự động login lần sau.
+
+### 🔵 WORKFLOW BETA: THE CORE COMBAT (Vòng Lặp Học Tập)
+*Mục tiêu: Hoàn thiện cảm giác gõ và cơ chế Wave.*
+1. **Bước 1:** Xây dựng `ResourceLoader` tải dữ liệu từ `vocabulary` table.
+2. **Bước 2:** Triển khai FSM (Finite State Machine) quản lý chuyển đổi giữa Wave 1 -> Wave 5.
+3. **Bước 3:** Lập trình `TypingEngine` xử lý input: 
+   - Highlight ký tự đúng/sai.
+   - Tính toán WPM và Accuracy realtime.
+4. **Bước 4:** Xây dựng màn hình `Result Summary` hiển thị SP (Score Points) và Exp nhận được.
+
+### 🟠 WORKFLOW GAMMA: GLOBAL COMPETITION (Đối Kháng Online)
+*Mục tiêu: Tạo tính cạnh tranh thời gian thực.*
+1. **Bước 1:** Thiết lập Supabase Realtime hoặc Socket.io để truyền gói tin (Score, Progress).
+2. **Bước 2:** Xây dựng `Matchmaking Queue`: Tìm đối thủ cùng level JLPT.
+3. **Bước 3:** Logic "Cướp cờ" (Mode 1): Đồng bộ số lượng từ còn lại của cả 2 bên.
+4. **Bước 4:** Cập nhật kết quả vào `match_history` và tính toán lại rank.
+
+### 🟣 WORKFLOW DELTA: ATMOSPHERIC SYNC (Âm Thanh & Môi Trường)
+*Mục tiêu: Tăng trải nghiệm nhập vai.*
+1. **Bước 1:** Hoàn thiện `AudioSystem` hỗ trợ Playlist và YouTube URL.
+2. **Bước 2:** Tích hợp `TTS Module` (Text-to-Speech) để phát âm từ vựng khi bắt đầu wave.
+3. **Bước 3:** Effect System: Thêm Screen Shake, Neon Border Pulse khi đạt Strike/Combo cao.
+
+### 🟡 WORKFLOW EPSILON: NEURAL HIERARCHY (Xếp Hạng & Phân Tích)
+*Mục tiêu: Giữ chân người dùng thông qua số liệu.*
+1. **Bước 1:** Viết SQL Function trên Supabase để lấy Top 100 theo các tiêu chí (WPM, Score).
+2. **Bước 2:** UI LeaderBoard: Tab phân chia Global/Friends.
+3. **Bước 3:** Personal Dashboard: Vẽ biểu đồ tăng trưởng kỹ năng (Radar chart) dựa trên `match_history`.
+
+## SCHEMA 12: OPTIMIZATION & PERFORMANCE (Tối Ưu Hóa Trải Nghiệm)
+Để đạt chuẩn "Scientific & Optimized", hệ thống cần áp dụng các kỹ thuật sau:
+
+### 1. Asset Memory Management (Quản lý Bộ nhớ)
+- **Object Pooling:** Tái sử dụng các thực thể (Enemy/Card) trong Wave thay vì tạo mới liên tục để tránh Garbage Collection (GC) gây giật lag.
+- **Lazy Loading:** Chỉ load bộ từ vựng của Level đang chọn (N1-N5), không load toàn bộ Database lên Client.
+
+### 2. Network Latency Mitigation (Giảm độ trễ mạng)
+- **Client-side Prediction:** Trong mode Online, client sẽ dự đoán kết quả gõ và hiển thị ngay lập tức, sau đó mới đối chiếu với Server.
+- **Debouncing Input:** Tối ưu hóa việc gửi dữ liệu phân tích (Analytics) về server theo cụm (batch) thay vì gửi từng nhịp gõ phím.
+
+### 3. Rendering Performance (Hiệu suất hiển thị)
+- **Offscreen Canvas:** Thực hiện các phép tính toán đồ họa phức tạp ở background thread.
+- **RequestAnimationFrame:** Đảm bảo toàn bộ hiệu ứng visual chạy ở mức 60 FPS ổn định.
+- **CSS Hardware Acceleration:** Sử dụng `transform: translate3d` và `will-change` cho các hiệu ứng neon di chuyển nhanh.
+
+### 4. Code Quality & Scalability (Chất lượng Code)
+- **Modular Architecture:** Chia nhỏ logic thành các Feature độc lập (theo cấu trúc `src/features/`).
+- **Unit Testing:** Viết test cho `TypingEngine` để đảm bảo logic tính xác suất và WPM luôn chuẩn xác 100%.

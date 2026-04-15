@@ -3074,3 +3074,63 @@ input[type="text"]::placeholder {
     from { opacity: 0.3; }
     to { opacity: 1; }
 }
+
+/* =========================================================================
+   NEURAL FEEDBACK MODAL STYLES
+   ========================================================================= */
+.modal-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(10px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 2000;
+    transition: opacity 0.3s ease;
+    pointer-events: auto;
+}
+
+.modal-overlay.hidden {
+    display: none !important;
+}
+
+.feedback-content {
+    animation: feedbackSlideIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes feedbackSlideIn {
+    0% { transform: scale(0.9) translateY(20px); opacity: 0; }
+    100% { transform: scale(1) translateY(0); opacity: 1; }
+}
+
+#feedbackText:focus {
+    border-color: #ff00c1 !important;
+    box-shadow: 0 0 15px rgba(255, 0, 193, 0.3);
+    background: rgba(255, 0, 193, 0.05) !important;
+}
+
+#sendFeedbackBtn:hover {
+    background: rgba(255, 0, 193, 0.2) !important;
+    box-shadow: 0 0 20px rgba(255, 0, 193, 0.4) !important;
+}
+
+.lobby-tool-icon:hover {
+    color: var(--primary);
+    transform: scale(1.1);
+    box-shadow: 0 0 15px var(--primary);
+}
+
+#feedback-trigger:hover {
+    color: #ff00c1;
+    border-color: #ff00c1;
+    box-shadow: 0 0 15px #ff00c1;
+}
+
+/* Custom indicator for feedback icon to match leaderboard/guide style */
+#feedback-trigger .material-icons {
+    font-size: 20px;
+}

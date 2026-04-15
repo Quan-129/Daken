@@ -1,8 +1,8 @@
-import { Enemy } from '../entities/Enemy';
-import { StateManager } from '../data/StateManager';
-import { EventBus } from '../utils/EventBus';
-import { Word } from '../entities/Word';
-import { GameConfig } from '../config';
+import { Enemy } from '../../../core/entities/Enemy';
+import { StateManager } from '../../../shared/utils/StateManager';
+import { EventBus } from '../../../core/EventBus';
+import { Word } from '../../../core/entities/Word';
+import { GameConfig } from '../../../config';
 
 export class Spawner {
     private spawnTimer: number = 0;
@@ -40,18 +40,20 @@ export class Spawner {
     public update(dt: number, mode: string, speedModifier: number) {
         if (mode === 'chill' || mode === 'easy' || (mode === 'study' && this.currentStudyWave !== 5 && this.currentStudyWave !== 3)) return;
 
+        const globalFactor = GameConfig.speeds.globalSpeedFactor || 1.0;
+        const densityFactor = GameConfig.timing.spawnDensityFactor || 1.0;
         this.spawnTimer += dt;
+
         if (mode === 'study' && this.currentStudyWave === 5) {
             const w5Config = GameConfig.studyMode.wave5;
             const accel = w5Config.accelerationSettings;
 
-            // Calculate intensity factor (0.0 at 0s -> 1.0 at rampUpTimeMs)
             const elapsed = performance.now() - this.wave5StartTime;
             const intensity = Math.min(1.0, elapsed / accel.rampUpTimeMs);
 
-            // Lerp spawn interval from start to min
             const currentBaseInterval = w5Config.spawnIntervalMs - (intensity * (w5Config.spawnIntervalMs - accel.minSpawnIntervalMs));
-            let spawnThreshold = currentBaseInterval / speedModifier;
+            // Áp dụng cả tốc độ và mật độ vào tần suất đẻ
+            let spawnThreshold = (currentBaseInterval / speedModifier) / (globalFactor * densityFactor);
 
             if (this.spawnTimer > spawnThreshold) {
                 if (this.currentStudyDeck.length > 0) {
@@ -59,18 +61,16 @@ export class Spawner {
                     const spacing = w5Config.verticalSpacing;
                     const startY = this.canvasHeight / 2 - ((stackSize - 1) * spacing) / 2;
 
-                    // Calculate current dynamic speed boost
                     const currentBoost = GameConfig.speeds.wave5SpeedBoost + (intensity * (accel.maxSpeedBoost - GameConfig.speeds.wave5SpeedBoost));
 
                     for (let i = 0; i < stackSize; i++) {
                         const selectedWord = this.currentStudyDeck[Math.floor(Math.random() * this.currentStudyDeck.length)];
                         const enemy = new Enemy(selectedWord, mode, speedModifier, this.canvasWidth, this.canvasHeight, this.currentStudyWave);
 
-                        // Wave 5: Kiểu thuốc chỉ có kanji hoặc chỉ có nghĩa tiếng việt để học 2 chiều
-                        enemy.revealType = Math.random() > 0.5 ? 'kanji' : 'vi';
+                        enemy.study.revealType = Math.random() > 0.5 ? 'kanji' : 'vi';
 
-                        // Overwrite boost for Wave 5 ramping
-                        enemy.vx = -(enemy.baseSpeed + currentBoost) * speedModifier;
+                        const finalGlobalFactor = GameConfig.speeds.globalSpeedFactor || 1.0;
+                        enemy.vx = -(enemy.baseSpeed + currentBoost) * speedModifier * finalGlobalFactor;
 
                         enemy.x = this.canvasWidth + 50 + (Math.random() * 120);
                         enemy.y = startY + i * spacing;
@@ -82,14 +82,14 @@ export class Spawner {
                 this.spawnTimer = 0;
             }
         } else if (mode === 'study' && this.currentStudyWave === 3) {
-            // WAVE 3: Chế độ Batch (Nhóm 5 con)
+            // ... (Wave 3 code remains same)
             const active = this.getActiveEnemiesCallback().filter(e => !e.isDead);
             if (active.length === 0 && this.hasMoreStudyEnemies()) {
-                // Spawn mẻ 5 con mới
                 this.spawnBatchWave3(speedModifier);
             }
         } else {
-            let spawnThreshold = Math.max(800, 2000 / Math.max(1, speedModifier));
+            // Trường hợp Chill / Normal mode
+            let spawnThreshold = (Math.max(800, 2000 / Math.max(1, speedModifier))) / (globalFactor * densityFactor);
             if (this.spawnTimer > spawnThreshold) {
                 this.spawnEnemy(mode, speedModifier);
                 this.spawnTimer = 0;
@@ -100,11 +100,18 @@ export class Spawner {
     public startStudySession() {
         // Mỗi session học 5 từ mới
         this.currentStudyDeck = StateManager.getInstance().getStudySessionDeck(5);
+        
         if (window.location.search.includes('test=wave5')) this.currentStudyWave = 5;
         else if (window.location.search.includes('test=wave4')) this.currentStudyWave = 4;
         else if (window.location.search.includes('test=wave3')) this.currentStudyWave = 3;
         else if (window.location.search.includes('test=wave2')) this.currentStudyWave = 2;
-        else this.currentStudyWave = 1;
+        else {
+            // Khởi tạo wave đầu tiên được kích hoạt
+            this.currentStudyWave = 1;
+            if (!this.isWaveEnabled(1)) {
+                this.nextStudyWave(); // Tự động nhảy đến wave tiếp theo nếu wave 1 bị tắt
+            }
+        }
     }
 
     public startN2Session(words: Word[]) {
@@ -113,7 +120,12 @@ export class Spawner {
         else if (window.location.search.includes('test=wave4')) this.currentStudyWave = 4;
         else if (window.location.search.includes('test=wave3')) this.currentStudyWave = 3;
         else if (window.location.search.includes('test=wave2')) this.currentStudyWave = 2;
-        else this.currentStudyWave = 1;
+        else {
+            this.currentStudyWave = 1;
+            if (!this.isWaveEnabled(1)) {
+                this.nextStudyWave();
+            }
+        }
     }
 
     public resetStudySession() {
@@ -262,8 +274,8 @@ export class Spawner {
             this.currentStudyEntityIndex++;
 
             const enemy = new Enemy(q.word, 'study', speedModifier, this.canvasWidth, this.canvasHeight, 3);
-            enemy.revealType = q.revealType;
-            if (q.isDebt) enemy.isDebt = true;
+            enemy.study.revealType = q.revealType;
+            if (q.isDebt) enemy.study.isDebt = true;
 
             // Vị trí cố định ở giữa
             enemy.x = this.canvasWidth / 2;
@@ -290,8 +302,8 @@ export class Spawner {
         if (this.currentStudyWave === 4) {
             const trueEnemy = new Enemy(q.word, 'study', 0, this.canvasWidth, this.canvasHeight, this.currentStudyWave);
             trueEnemy.isTruth = true;
-            trueEnemy.revealType = q.revealType || 'kanji';
-            if (q.isDebt) trueEnemy.isDebt = true;
+            trueEnemy.study.revealType = q.revealType || 'kanji';
+            if (q.isDebt) trueEnemy.study.isDebt = true;
 
             // Pick 3 random distractors from remaining currentStudyDeck
             let distractors = this.currentStudyDeck.filter(w => w.romaji !== q.word.romaji);
@@ -318,8 +330,8 @@ export class Spawner {
                 e.y = gridCoords[idx].y;
                 e.baseY = e.y;
                 // Wave 4 không di chuyển
-                e.dynamicStudyOffset = 0;
-                e.wave4Index = idx + 1; // Gắn số phím 1->4
+                e.study.dynamicStudyOffset = 0;
+                e.study.wave4Index = idx + 1; // Gắn số phím 1->4
                 this.engineAddEnemyCallback(e);
             });
 
@@ -329,8 +341,8 @@ export class Spawner {
         }
 
         const enemy = new Enemy(q.word, 'study', speedModifier, this.canvasWidth, this.canvasHeight, this.currentStudyWave);
-        enemy.revealType = q.revealType;
-        if (q.isDebt) enemy.isDebt = true;
+        enemy.study.revealType = q.revealType;
+        if (q.isDebt) enemy.study.isDebt = true;
 
         this.engineAddEnemyCallback(enemy);
         EventBus.getInstance().publish('FOCUS_ENEMY', enemy);
@@ -338,10 +350,29 @@ export class Spawner {
 
     public nextStudyWave() {
         this.currentStudyWave++;
+        
+        // Skip disabled waves
+        while (this.currentStudyWave <= 5 && !this.isWaveEnabled(this.currentStudyWave)) {
+            console.log(`[Spawner] Skipping disabled wave ${this.currentStudyWave}`);
+            this.currentStudyWave++;
+        }
+
         this.studyQueue = [];
         this.currentStudyEntityIndex = 0;
         if (this.currentStudyWave === 5) {
             this.wave5StartTime = performance.now();
+        }
+    }
+
+    private isWaveEnabled(waveIndex: number): boolean {
+        const workflow = GameConfig.studyMode.workflow;
+        switch (waveIndex) {
+            case 1: return workflow.enableWave1 !== false;
+            case 2: return workflow.enableWave2 !== false;
+            case 3: return workflow.enableWave3 !== false;
+            case 4: return workflow.enableWave4 !== false;
+            case 5: return workflow.enableWave5 !== false;
+            default: return true;
         }
     }
 
@@ -350,7 +381,7 @@ export class Spawner {
             let current = this.retryTracker.get(enemy.word.romaji) || 0;
             this.retryTracker.set(enemy.word.romaji, current + 1);
         }
-        this.retryQueue.push({ word: enemy.word, revealType: enemy.revealType || 'kanji', isDebt: true });
+        this.retryQueue.push({ word: enemy.word, revealType: enemy.study.revealType || 'kanji', isDebt: true });
     }
 
     public hasRetryEnemies(): boolean {
@@ -416,6 +447,16 @@ export class Spawner {
         }
 
         const enemy = new Enemy(selectedWord, mode, speedModifier, this.canvasWidth, this.canvasHeight);
+        
+        // Quản lý lane để tránh chòng chéo
+        const laneCount = 4;
+        const topMargin = 150;
+        const laneHeight = (this.canvasHeight - topMargin - 150) / laneCount;
+        const randomLane = Math.floor(Math.random() * laneCount);
+        
+        enemy.y = topMargin + (randomLane * laneHeight) + (laneHeight / 2);
+        enemy.baseY = enemy.y;
+
         this.engineAddEnemyCallback(enemy);
     }
 }

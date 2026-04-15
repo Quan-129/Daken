@@ -17,6 +17,7 @@ export const GameConfig: any = {
     // ---------------------------------------------------------
     timing: {
         spawnInterval: 2000,            // Thời gian chờ để sinh ra mục tiêu tiếp theo (Áp dụng cho Chill/Easy mode)
+        spawnDensityFactor: 0.12,        // Độ dày của quái (Dưới 1 = thưa ra, Trên 1 = dày đặc hơn)
         easyModeRespawnDelay: 2000,     // Thời gian delay chờ hồi sinh riêng trong Easy mode
         perfectRecallThreshold: 4000    // Ngưỡng thời gian (ms) để được tính là "Phản xạ hoàn hảo"
     },
@@ -26,10 +27,13 @@ export const GameConfig: any = {
     // Tọa độ và tốc độ của cá trong chế độ bơi ngang (Free-swimming)
     // ---------------------------------------------------------
     speeds: {
-        baseEnemyMinSpeed: 0.1,         // Vận tốc sinh ra ngẫu nhiên tối thiểu. Khuyến nghị > 0.5 để cá luôn tịnh tiến.
-        baseEnemyMaxSpeed: 0.2,         // Vận tốc sinh ra ngẫu nhiên tối đa. Chênh lệch Min-Max tạo sự phân tán tự nhiên.
-        wave3SpeedBoost: 0.05,          // Lực đẩy gia tốc (cộng thêm) ưu ái riêng cho màn Wave 3 (Khúc dạo đầu)
-        wave5SpeedBoost: 0.05           // Lực đẩy gia tốc (cộng thêm) cho phần thi Sinh Tồn Wave 5
+        globalSpeedFactor: 5.5,         // Hệ số nhân tốc độ tổng thể (Vặn cái này để nhanh/chậm toàn bộ)
+        baseEnemyMinSpeed: 0.02,        // Vận tốc tối thiểu (Đã giảm để dễ kiểm soát)
+        baseEnemyMaxSpeed: 0.05,        // Vận tốc tối đa (Đã giảm để dễ kiểm soát)
+        romajiLengthSpeedFactor: 0.1,   // Tỉ lệ giảm tốc trên mỗi ký tự (0.1 = 10% - Càng cao từ dài càng chậm)
+        minSpeedRatio: 0.15,            // Giới hạn tốc độ thấp nhất (0.15 = 15% tốc độ gốc)
+        wave3SpeedBoost: 0.02,
+        wave5SpeedBoost: 0.02
     },
 
     // ---------------------------------------------------------
@@ -59,6 +63,15 @@ export const GameConfig: any = {
     // MODULE: CHẾ ĐỘ HỌC TẬP (CYBER-ZEN STUDY MODE)
     // ---------------------------------------------------------
     studyMode: {
+        // --- ĐIỀU KHIỂN LUỒNG CHƠI (SESSION CONTROL) ---
+        workflow: {
+            enableWave1: true,
+            enableWave2: true,
+            enableWave3: true,
+            enableWave4: false,
+            enableWave5: true
+        },
+
         // --- CẤU HÌNH GIAI ĐOẠN LÀM QUEN (WAVE 1 & 2) ---
         learningPhase: {
             basePoints: 10,
@@ -73,12 +86,12 @@ export const GameConfig: any = {
             allowPointsOnWeak: false,       // Cho phép kiếm điểm từ thẻ bị yếu (Đã gõ sai 1 lần) hay không?
             pointsOnWeak: 5,                 // Số điểm "vớt vát" được nếu gõ trúng thẻ Yếu (Chỉ hoạt động nếu true)
             timeBonuses: {
-                gold:   { timeMs: 30000, points: 500 },
+                gold: { timeMs: 30000, points: 500 },
                 silver: { timeMs: 45000, points: 300 },
                 bronze: { timeMs: 60000, points: 150 }
             }
         },
-        
+
         // --- CẤU HÌNH WAVE 4: HỘI THOẠI TOÀN TẬP (TRUYỀN THUYẾT LỰA CHỌN) ---
         wave4: {
             basePoints: 20,                 // Số điểm lớn thu được do độ khó cao (Gõ 4 sự lựa chọn, yêu cầu nhớ ngữ pháp)
@@ -88,23 +101,23 @@ export const GameConfig: any = {
                 offsetYSpacing: 80          // Khoảng cách theo chiều dọc từ lựa chọn 1 đến lựa chọn 2
             },
             timeBonuses: {                  // Khoản tiền thưởng hậu hĩnh nếu anh hoàn thành Wave 4 trước thời hạn
-                gold:   { timeMs: 40000, points: 800 },   // Clear trong 40 giây: Huy chương Vàng Xứng Đáng (800Đ)
+                gold: { timeMs: 40000, points: 800 },   // Clear trong 40 giây: Huy chương Vàng Xứng Đáng (800Đ)
                 silver: { timeMs: 60000, points: 400 },   // Clear trong 60 giây: Dành cho dân cẩn thận (400Đ)
                 bronze: { timeMs: 90000, points: 200 }    // Mốc thời gian trung bình (90 Giây - 1.5 Phút) - 200Đ
             }
         },
-        
+
         // --- CẤU HÌNH WAVE 5: SINH TỒN VÔ TẬN (ENDLESS SPRINT) ---
         wave5: {
             spawnIntervalMs: 3000,          // Tốc độ ban đầu nhả quái (Mỗi 3 giây đẻ 1 lứa cá)
             minStackSize: 1,                // Khởi đầu một đợt sinh sản ít nhất bao nhiêu thẻ (1 thẻ)
             maxStackSize: 2,                // Tối đa sinh bao nhiêu thẻ vây song song trong 1 lần (Cao nhất đẻ 2 thẻ bơi dồn)
-            verticalSpacing: 110,           // Cự ly giãn cách độ cao (Trục Y) giữa 2 tấm thẻ nếu lỡ đẻ chồng lên nhau
-            
+            verticalSpacing: 150,           // Cự ly giãn cách độ cao (Trục Y) giữa 2 tấm thẻ nếu lỡ đẻ chồng lên nhau
+
             accelerationSettings: {
-                rampUpTimeMs: 60000,        // Mức độ leo dốc khốc liệt: Trong bao lâu sẽ đạt Max Speed/Max Đẻ? (60 Giây - 1 Phút)
-                minSpawnIntervalMs: 3500,   // Tần suất nhả quái điên rồ nhất khi đạt Max Ramp-up (Đẻ dồn mỗi 3.5 giây)
-                maxSpeedBoost: 0.2          // Lực gia tốc kinh hoàng cộng sinh thêm khi kiệt quệ thời gian (Đến đỉnh điểm cộng tốc thêm 20%)
+                rampUpTimeMs: 120000,        // Thời gian đạt đỉnh (60 Giây)
+                minSpawnIntervalMs: 3500,    // Tốc độ nhả quái nhanh nhất khi đạt đỉnh (800ms)
+                maxSpeedBoost: 0.12          // Lực gia tốc cộng thêm khi đạt đỉnh
             }
         }
     }

@@ -1,4 +1,4 @@
-import { Word } from '../entities/Word';
+import { Word } from '../../core/entities/Word';
 
 export const mockVocabulary: Word[] = [
     {
