@@ -1835,9 +1835,8 @@ export class UISystem {
                         document.body.classList.remove('login-pending');
                     }, 800);
                 }
-                this.updateProfileUI();
-                StateManager.getInstance().syncN2ProgressWithCloud();
-
+                this.updateProfileUI(); // Cập nhật ngay các thông tin nhãn tên/avatar
+                
                 const guideShown = localStorage.getItem('DAKEN_GUIDE_SHOWN');
                 if (!guideShown && this.generalGuideModal) {
                     setTimeout(() => {
@@ -1845,6 +1844,11 @@ export class UISystem {
                     }, 2000);
                 }
             }
+        });
+
+        events.subscribe('USER_STATE_READY', () => {
+            console.log("[UISystem] USER_STATE_READY received, refreshing stats...");
+            this.updateProfileUI();
         });
 
         events.subscribe('AUTH_LOGOUT', () => {
@@ -1909,6 +1913,14 @@ export class UISystem {
                 this.renderJLPTUnits();
             }
             this.updateProfileUI(); // Cập nhật cả bảng Profile (Total Score)
+        });
+
+        events.subscribe('HUB_DATA_LOADED', () => {
+            console.log("[UISystem] HUB_DATA_LOADED received, updating UI...");
+            this.updateProfileUI();
+            if (this.jlptHubPage && !this.jlptHubPage.classList.contains('hidden')) {
+                this.renderJLPTUnits();
+            }
         });
     }
 

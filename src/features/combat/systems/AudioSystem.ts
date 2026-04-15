@@ -34,7 +34,9 @@ export class AudioSystem {
         // Mở khóa AudioContext khi người dùng tương tác lần đầu
         const unlockAudio = () => {
             if (this.audioCtx.state === 'suspended') this.audioCtx.resume();
-            if (!this.isBgmPlaying && this.ytReady && this.ytPlayer) {
+            
+            // Chỉ tự động phát nếu cấu hình cho phép
+            if (!this.isBgmPlaying && this.ytReady && this.ytPlayer && GameConfig.audio.autoPlayBgm) {
                 this.isBgmPlaying = true;
                 this.usingYoutube = true;
                 if (this.playlist.length === 0) {
@@ -42,6 +44,15 @@ export class AudioSystem {
                     this.currentIndex = 0;
                 }
                 this.ytPlayer.loadVideoById({'videoId': this.playlist[this.currentIndex]});
+            } else if (this.ytReady && this.ytPlayer && !this.isBgmPlaying) {
+                // Nếu không autoPlay, ít nhất hãy chuẩn bị sẵn bài hát (cue)
+                if (this.playlist.length === 0) {
+                    this.playlist = ['HSOtku1j600'];
+                    this.currentIndex = 0;
+                }
+                if (typeof this.ytPlayer.cueVideoById === 'function') {
+                    this.ytPlayer.cueVideoById({'videoId': this.playlist[this.currentIndex]});
+                }
             }
         };
 
@@ -72,7 +83,7 @@ export class AudioSystem {
                 host: 'https://www.youtube.com',
                 videoId: 'HSOtku1j600', // Bản nhạc Chill lofi
                 playerVars: {
-                    'autoplay': 1,
+                    'autoplay': GameConfig.audio.autoPlayBgm ? 1 : 0,
                     'controls': 0,
                     'disablekb': 1,
                     'fs': 0,
@@ -87,7 +98,7 @@ export class AudioSystem {
                         // Play if game is already active
                         if (this.isBgmPlaying && this.usingYoutube) {
                             this.startBGM(this.currentMode, true);
-                        } else if (this.playlist && this.playlist.length > 0) {
+                        } else if (GameConfig.audio.autoPlayBgm && this.playlist && this.playlist.length > 0) {
                             this.ytPlayer.playVideo(); // Force play
                         } else {
                             this.requestMusicInfoUpdate();

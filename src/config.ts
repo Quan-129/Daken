@@ -41,12 +41,13 @@ export const GameConfig: any = {
     // ---------------------------------------------------------
     audio: {
         defaultTtsRate: 0.9,            // Tốc độ đọc tiếng Nhật chuẩn
-        bgmVolume: 0.6,                 // Tổng volume nhạc nền
+        bgmVolume: 0.3,                 // Tổng volume nhạc nền
         sfxVolume: 0.5,                 // Tổng volume hiệu ứng sfx
-        defaultBgmVolume: 60,           // Mức volume YouTube (0-100)
+        defaultBgmVolume: 40,           // Mức volume YouTube (0-100)
         defaultSfxVolume: 0.5,           // Mức volume Gain WebAudio (0-1.0)
         defaultVocalsVolume: 0.8,        // Mức volume TTS (0-1.0)
-        bgmDuckVolume: 15               // Mức volume nhạc nền khi đang đọc TTS (0-100)
+        bgmDuckVolume: 15,              // Mức volume nhạc nền khi đang đọc TTS (0-100)
+        autoPlayBgm: false              // Tự động phát nhạc khi vào game/lobby (Mặc định: tắt)
     },
 
     // ---------------------------------------------------------

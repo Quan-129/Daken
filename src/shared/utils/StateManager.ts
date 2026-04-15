@@ -20,9 +20,9 @@ export class StateManager {
     this.initializeUserProgress();
 
     // Lắng nghe sự kiện đăng nhập để đổi "ngăn kéo" dữ liệu ngay lập tức
-    this.eventBus.subscribe('PLAYER_PROFILE_LOADED', (profile: any) => {
-        if (profile && profile.id) {
-            this.initializeUserProgress(profile.id);
+    this.eventBus.subscribe('AUTH_SUCCESS', (user: any) => {
+        if (user && user.id) {
+            this.initializeUserProgress(user.id);
         }
     });
   }
@@ -43,7 +43,9 @@ export class StateManager {
     this.loadN2Progress();
     
     // Đồng bộ với Cloud
-    this.syncN2ProgressWithCloud();
+    await this.syncN2ProgressWithCloud();
+
+    this.eventBus.publish('USER_STATE_READY', { userId });
   }
 
   public static getInstance(): StateManager {
@@ -140,6 +142,9 @@ export class StateManager {
     } catch(err) {
         console.error('[StateManager] Lỗi load Hub Data:', err);
         this.n2HubData = [];
+    } finally {
+        // Báo hiệu dữ liệu Hub đã sẵn sàng (dù thành công hay thất bại)
+        this.eventBus.publish('HUB_DATA_LOADED', this.n2HubData);
     }
   }
 
