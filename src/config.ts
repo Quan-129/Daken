@@ -17,7 +17,7 @@ export const GameConfig: any = {
     // ---------------------------------------------------------
     timing: {
         spawnInterval: 2000,            // Thời gian chờ để sinh ra mục tiêu tiếp theo (Áp dụng cho Chill/Easy mode)
-        spawnDensityFactor: 0.12,        // Độ dày của quái (Dưới 1 = thưa ra, Trên 1 = dày đặc hơn)
+        spawnDensityFactor: 0.1,        // Độ dày của quái (Dưới 1 = thưa ra, Trên 1 = dày đặc hơn)
         easyModeRespawnDelay: 2000,     // Thời gian delay chờ hồi sinh riêng trong Easy mode
         perfectRecallThreshold: 4000    // Ngưỡng thời gian (ms) để được tính là "Phản xạ hoàn hảo"
     },
@@ -124,8 +124,8 @@ export const GameConfig: any = {
             verticalSpacing: 150,           // Cự ly giãn cách độ cao (Trục Y) giữa 2 tấm thẻ nếu lỡ đẻ chồng lên nhau
 
             accelerationSettings: {
-                rampUpTimeMs: 120000,        // Thời gian đạt đỉnh (60 Giây)
-                minSpawnIntervalMs: 3600,    // Tốc độ nhả quái nhanh nhất khi đạt đỉnh (800ms)
+                rampUpTimeMs: 150000,        // Thời gian đạt đỉnh (60 Giây)
+                minSpawnIntervalMs: 4000,    // Tốc độ nhả quái nhanh nhất khi đạt đỉnh (800ms)
                 maxSpeedBoost: 0.12          // Lực gia tốc cộng thêm khi đạt đỉnh
             }
         }

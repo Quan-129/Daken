@@ -145,4 +145,15 @@ eventBus.subscribe('GAME_STOPPED', () => {
     engine.clearEnemiesAndCanvas();
 });
 
+// 6. Tính năng "Jump To Test": Tự động bắt đầu Game nếu URL có tham số test=waveX
+const urlParams = new URLSearchParams(window.location.search);
+const testWave = urlParams.get('test');
+if (testWave && testWave.startsWith('wave')) {
+    console.log(`[main.ts] Auto-starting Study Mode for ${testWave} testing...`);
+    // Chờ UI/Auth init một chút
+    setTimeout(() => {
+        eventBus.publish('GAME_START', { mode: 'study', studyLevel: 'N5' });
+    }, 1500);
+}
+
 
