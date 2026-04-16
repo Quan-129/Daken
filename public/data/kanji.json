@@ -1,0 +1,25 @@
+[
+    {
+        "level": "N2",
+        "unit_list": [
+            {
+                "unitId": "Unit_1",
+                "studyName_ENG": "Kanji Basics",
+                "studyName_JA": "漢字の基本",
+                "studyName_VI": "Căn bản Hán Tự",
+                "kanji_list": [
+                    {
+                        "visual": "新",
+                        "romaji": "shin",
+                        "hanviet": "Tân",
+                        "vi": "Mới",
+                        "en": "New",
+                        "example_jp": "これは<ruby>新<rp>(</rp><rt>あたら</rt><rp>)</rp></ruby>しい<ruby>車<rp>(</rp><rt>くるま</rt><rp>)</rp></ruby>です。",
+                        "example_vi": "Đây là chiếc xe mới.",
+                        "example_en": "This is a new car."
+                    }
+                ]
+            }
+        ]
+    }
+]

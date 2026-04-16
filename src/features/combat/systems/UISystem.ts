@@ -58,6 +58,8 @@ export class UISystem {
     private startJLPTSessionBtn = byId('startJLPTSessionBtn');
     private calibSessionTitle = byId('calibration-session-title');
     private hubLevelName = byId('hubLevelName');
+    private hubTargetType = byId('hubTargetType');
+    private hubMainTitle = byId('hubMainTitle');
     private hubSealName = byId('hubSealName');
     private jlptTotalProgress = byId('jlpt-total-progress');
     private calibBgmSlider = byId('calibBgmSlider') as HTMLInputElement;
@@ -189,6 +191,7 @@ export class UISystem {
     private myLibrary: { id: string, name: string, songs: { url: string, title: string }[] }[] = [];
     private activeFolderId: string | null = null;
     private viewingFolderId: string | null = null;
+    private stateManager = StateManager.getInstance();
 
     public alignEnemyToTerminal(enemy: any) {
         if (!this.hudTerminal || !this.gameContainer || !enemy) return;
@@ -230,6 +233,17 @@ export class UISystem {
         this.setupGuideLogic();
         this.setupFeedbackLogic();
         this.setupAdminLogic();
+        this.updateFlagUI();
+    }
+
+    private updateFlagUI() {
+        const flagEl = byId('langFlag');
+        if (!flagEl) return;
+        
+        const FLAG_VN = `<svg viewBox="0 0 30 20" xmlns="http://www.w3.org/2000/svg"><rect width="30" height="20" fill="#da251d"/><polygon points="15,4 16.12,8.47 20.75,8.47 17,11.24 18.12,15.71 15,12.94 11.88,15.71 13,11.24 9.25,8.47 13.88,8.47" fill="#ffff00"/></svg>`;
+        const FLAG_US = `<svg viewBox="0 0 741 390" xmlns="http://www.w3.org/2000/svg"><rect width="741" height="390" fill="#3c3b6e"/><path fill="#fff" d="M0 30h741v30H0zm0 60h741v30H0zm0 60h741v30H0zm0 60h741v30H0zm0 60h741v30H0zm0 60h741v30H0z"/><rect width="296" height="210" fill="#3c3b6e"/><g fill="#fff"><g id="s6"><g id="s5"><g id="s4"><circle cx="24.7" cy="21" r="3"/><circle cx="74.1" cy="21" r="3"/><circle cx="123.5" cy="21" r="3"/><circle cx="172.9" cy="21" r="3"/><circle cx="222.3" cy="21" r="3"/><circle cx="271.7" cy="21" r="3"/></g></g></g></g></svg>`;
+        
+        flagEl.innerHTML = this.stateManager.studyLanguage === 'vi' ? FLAG_VN : FLAG_US;
     }
 
     private setupGuideLogic() {
@@ -569,7 +583,11 @@ export class UISystem {
                         const selectedMode = this.startBtn.getAttribute('data-mode');
                         const selectedLevel = this.startBtn.getAttribute('data-level');
                         if (selectedMode && selectedMode !== '') {
-                            this.startBtn.innerText = selectedMode === 'study' && selectedLevel ? selectedLevel.toUpperCase() : selectedMode.toUpperCase();
+                            let mainText = selectedMode.toUpperCase();
+                            if (selectedMode === 'study') mainText = '言葉';
+                            if (selectedMode === 'kanji') mainText = '漢字';
+                            
+                            this.startBtn.innerText = (selectedMode === 'study' || selectedMode === 'kanji') && selectedLevel ? selectedLevel.toUpperCase() : mainText;
                             this.startBtn.style.fontSize = '2.6rem';
                             if (this.menuControls) this.menuControls.classList.add('collapsed');
                         } else {
@@ -590,7 +608,11 @@ export class UISystem {
                     const selectedMode = this.startBtn.getAttribute('data-mode');
                     const selectedLevel = this.startBtn.getAttribute('data-level');
                     if (selectedMode && selectedMode !== '') {
-                        this.startBtn.innerText = selectedMode === 'study' && selectedLevel ? selectedLevel.toUpperCase() : selectedMode.toUpperCase();
+                        let mainText = selectedMode.toUpperCase();
+                        if (selectedMode === 'study') mainText = '言葉';
+                        if (selectedMode === 'kanji') mainText = '漢字';
+
+                        this.startBtn.innerText = (selectedMode === 'study' || selectedMode === 'kanji') && selectedLevel ? selectedLevel.toUpperCase() : mainText;
                         this.startBtn.style.fontSize = '2.6rem';
                     } else {
                         this.startBtn.innerText = "打検";
@@ -620,10 +642,15 @@ export class UISystem {
                 if (textHoverTimeout) clearTimeout(textHoverTimeout);
                 textHoverTimeout = setTimeout(() => {
                     if (mode && this.startBtn) {
-                        this.startBtn.innerText = mode.toUpperCase();
+                        let label = mode.toUpperCase();
+                        if (mode === 'study') label = '言葉';
+                        if (mode === 'kanji') label = '漢字';
+                        this.startBtn.innerText = label;
                         this.startBtn.style.fontSize = '2.6rem';
+                        // Đánh dấu để Tier 2 chỉ hiện sub của mode này
+                        byId('svgTier2')?.setAttribute('data-active-mode', mode);
                     }
-                }, 60);
+                }, 30);
 
                 EventBus.getInstance().publish('PLAY_HOVER');
             });
@@ -641,7 +668,10 @@ export class UISystem {
 
                     // Mutate The Core Text & Collapse
                     if (this.startBtn) {
-                        this.startBtn.innerText = mode.toUpperCase();
+                        let label = mode.toUpperCase();
+                        if (mode === 'study') label = '言葉';
+                        if (mode === 'kanji') label = '漢字';
+                        this.startBtn.innerText = label;
                         this.startBtn.style.fontSize = '2.6rem';
                         this.startBtn.setAttribute('data-mode', mode); // Save for later retrieval
                         this.startBtn.setAttribute('data-level', '');
@@ -666,7 +696,7 @@ export class UISystem {
                     if (level && this.startBtn) {
                         this.startBtn.innerText = level.toUpperCase();
                     }
-                }, 60);
+                }, 10);
 
                 EventBus.getInstance().publish('PLAY_HOVER');
             });
@@ -696,7 +726,8 @@ export class UISystem {
                     (document.activeElement as HTMLElement)?.blur();
 
                     if (level.startsWith('n')) {
-                        setTimeout(() => this.openJLPTHub(level), 300); // Đợi menu gập lại mượt mà
+                        const parentMode = (e.currentTarget as HTMLElement).getAttribute('data-parent-mode') || 'study';
+                        setTimeout(() => this.openJLPTHub(level, parentMode), 300); // Đợi menu gập lại mượt mà
                     } else {
                         if (this.startBtn) {
                             this.startBtn.click();
@@ -1030,6 +1061,35 @@ export class UISystem {
                 }
             });
         }
+
+        // Lang Toggle setup
+        byId('lang-toggle')?.addEventListener('click', () => {
+            const sm = this.stateManager;
+            sm.studyLanguage = sm.studyLanguage === 'vi' ? 'en' : 'vi';
+            
+            this.updateFlagUI();
+            
+            EventBus.getInstance().publish('LANGUAGE_CHANGED', sm.studyLanguage);
+            EventBus.getInstance().publish('PLAY_SUBMIT');
+
+            // Refresh Hub if visible
+            if (this.jlptHubPage && !this.jlptHubPage.classList.contains('hidden')) {
+                const curText = this.hubTargetType?.innerText || '';
+                const modeType = (curText === '語彙' || curText === 'Vocabulary' || curText === 'Từ Vựng' || curText === 'Từ vựng') ? 'study' : 'kanji';
+                
+                // Update Hub Subtitle immediately
+                if (this.hubTargetType) {
+                    if (sm.studyLanguage === 'vi') {
+                        this.hubTargetType.innerText = modeType === 'study' ? 'Từ Vựng' : 'Hán Tự';
+                        if (this.hubMainTitle) this.hubMainTitle.innerText = '蔵経閣';
+                    } else {
+                        this.hubTargetType.innerText = modeType === 'study' ? 'Vocabulary' : 'Kanji';
+                        if (this.hubMainTitle) this.hubMainTitle.innerText = 'NEURAL ARCHIVES';
+                    }
+                }
+                this.renderJLPTUnits();
+            }
+        });
     }
 
     private subscribeToEventBus() {
@@ -1276,8 +1336,9 @@ export class UISystem {
                 : exampleJpRaw.replace(/\{([^|]+)\|([^}]+)\}/g, '<ruby>$1<rt>$2</rt></ruby>');
 
             let romajiText = isHidden ? "???" : word.romaji;
-            let viText = isHidden ? (enemy.study.revealType === 'vi' ? word.vi : "???") : (word.vi || '');
-            let exampleViText = isHidden ? "???" : (word.example_vi || '');
+            const lang = this.stateManager.studyLanguage;
+            let meaningText = isHidden ? (enemy.study.revealType === 'vi' ? (lang === 'en' ? word.en : word.vi) : "???") : (lang === 'en' ? word.en : word.vi) || '';
+            let exampleMeaningText = isHidden ? "???" : (lang === 'en' ? (word.example_en || '') : (word.example_vi || ''));
             let hanvietText = isHidden && enemy.study.revealType === 'vi' ? "???" : (word.hanviet || '---');
 
             let html = `
@@ -1286,15 +1347,15 @@ export class UISystem {
                         <span class="bubble-hanviet" style="margin-right: 12px;">[${hanvietText}]</span>
                         <span style="font-size: 1.6rem; font-weight: 700; color: #fff; text-shadow: 0 0 10px rgba(255,255,255,0.5); font-family: 'Noto Sans JP', sans-serif;">${isHidden && enemy.study.revealType === 'vi' ? '???' : word.visual}</span>
                     </div>
-                    <span class="bubble-vi" style="text-align: right;">${viText}</span>
+                    <span class="bubble-vi" style="text-align: right;">${meaningText}</span>
                 </div>
                 <div class="bubble-romaji">${romajiText}</div>
                 <div class="bubble-example-jp" style="position: relative; padding-right: 30px;">
                     ${exampleJp}
                     ${!isHidden ? `<button id="ttsReplayBtn" style="position: absolute; right: 0; top: 50%; transform: translateY(-50%); background: none; border: none; font-size: 1.2rem; cursor: pointer; color: var(--neon-cyan); opacity: 0.8; transition: transform 0.1s; padding: 5px;" onmouseover="this.style.opacity='1'; this.style.transform='translateY(-50%) scale(1.2)'" onmouseout="this.style.opacity='0.8'; this.style.transform='translateY(-50%) scale(1)'" title="Nghe lại">🔊</button>` : ''}
                 </div>
-                <div class="bubble-example-vi">${exampleViText}</div>
-                ${(word.grammar_vi || word.grammar) ? `<div class="bubble-grammar"><span class="grammar-icon">💡</span> ${word.grammar_vi || word.grammar}</div>` : ''}
+                <div class="bubble-example-vi">${exampleMeaningText}</div>
+                ${(lang === 'en' ? (word.grammar_en || word.grammar) : (word.grammar_vi || word.grammar)) ? `<div class="bubble-grammar"><span class="grammar-icon">💡</span> ${lang === 'en' ? (word.grammar_en || word.grammar) : (word.grammar_vi || word.grammar)}</div>` : ''}
             `;
             this.hudTerminal.innerHTML = html;
 
@@ -1821,7 +1882,7 @@ export class UISystem {
 
         events.subscribe('AUTH_SUCCESS', (user: any) => {
             // Kiểm tra: Nếu chưa có tên thực sự HOẶC chưa có mã Agent ID (#000000)
-            const isNewAgent = user.name === 'GUEST_AGENT' || !user.agentId || user.agentId === '000000';
+            const isNewAgent = user.name === 'Khách' || !user.agentId || user.agentId === '000000';
 
             if (isNewAgent) {
                 if (this.socialLoginArea) this.socialLoginArea.classList.add('hidden');
@@ -1891,10 +1952,10 @@ export class UISystem {
             // Tạo mã Agent ID ngẫu nhiên sáu số
             const randomID = Math.floor(100000 + Math.random() * 900000).toString();
 
-            if (this.loginStatus) this.loginStatus.innerText = 'STATUS: SYNCING_IDENTITY...';
+            if (this.loginStatus) this.loginStatus.innerText = 'Trạng thái: Đang đồng bộ...';
             try {
                 await auth.updateProfile({ name: name, agentId: randomID });
-                if (this.loginStatus) this.loginStatus.innerText = 'STATUS: IDENTITY_SECURED';
+                if (this.loginStatus) this.loginStatus.innerText = 'Trạng thái: Thành công';
 
                 // Sau khi thành công, UISystem sẽ tự nhận event AUTH_SUCCESS và ẩn setup-view
             } catch (err: any) {
@@ -1904,7 +1965,7 @@ export class UISystem {
 
         // Loop cũ của nút Google (vẫn giữ logic loginWithGoogle)
         this.googleLoginBtn?.addEventListener('click', async () => {
-            if (this.loginStatus) this.loginStatus.innerText = 'STATUS: REDIRECTING...';
+            if (this.loginStatus) this.loginStatus.innerText = 'Trạng thái: Đang chuyển hướng...';
             await auth.loginWithGoogle();
         });
 
@@ -1941,7 +2002,7 @@ export class UISystem {
                 adminBtn.style.fontSize = '0.7rem';
                 adminBtn.style.borderColor = '#00F5FF';
                 adminBtn.style.color = '#00F5FF';
-                adminBtn.innerText = '[ OPEN_ADMIN_TERMINAL ]';
+                adminBtn.innerText = 'ADMIN';
                 adminBtn.addEventListener('click', () => {
                     this.adminFeedbackModal?.classList.remove('hidden');
                     this.fetchAdminFeedbacks();
@@ -1952,7 +2013,7 @@ export class UISystem {
         const state = StateManager.getInstance();
 
         if (this.playerNameEl) {
-            this.playerNameEl.innerText = user?.name || "GUEST_AGENT";
+            this.playerNameEl.innerText = user?.name || "Khách";
         }
         if (this.playerTagEl) {
             this.playerTagEl.innerText = `#${user?.agentId || '000000'}`;
@@ -2021,7 +2082,7 @@ export class UISystem {
         } else {
             if (this.avgAccEl) this.avgAccEl.innerText = "0%";
             if (this.avgWpmEl) this.avgWpmEl.innerText = "0";
-            if (this.playerRankEl) this.playerRankEl.innerText = "UNRANKED";
+            if (this.playerRankEl) this.playerRankEl.innerText = "Chưa xếp hạng";
         }
     }
 
@@ -2662,13 +2723,12 @@ export class UISystem {
         tier1Cushion.setAttribute("fill", "none");
         tier1.appendChild(tier1Cushion);
 
-        // --- TIER 1 --- (5 Chế độ = 72 độ mỗi Mode)
+        // --- TIER 1 --- (4 Chế độ = 90 độ mỗi Mode)
         const modes = [
-            { id: "easy", text: "EASY (SOON)", start: -36, end: 36, mode: 'easy', disabled: true },     // TOP 
-            { id: "study", text: "STUDY", start: 36, end: 108, mode: 'study', disabled: false },       // RIGHT
-            { id: "hard", text: "HARD (SOON)", start: 108, end: 180, mode: 'hard', disabled: true },   // BOTTOM
-            { id: "chill", text: "CHILL (SOON)", start: 180, end: 252, mode: 'chill', disabled: true }, // BOTTOM-LEFT
-            { id: "medium", text: "MEDIUM (SOON)", start: 252, end: 324, mode: 'medium', disabled: true }// TOP-LEFT
+            { id: "custom", text: "CUSTOM (SOON)", start: -45, end: 45, mode: 'custom', disabled: true },  // TOP 
+            { id: "studyBlade", text: "言葉", start: 45, end: 135, mode: 'study', disabled: false, hasSub: true }, // RIGHT (WORDS)
+            { id: "kanjiBlade", text: "漢字", start: 135, end: 225, mode: 'kanji', disabled: false, hasSub: true }, // BOTTOM
+            { id: "grammar", text: "文法 (SOON)", start: 225, end: 315, mode: 'grammar', disabled: true }  // LEFT (GRAMMAR)
         ];
 
         let defs = document.querySelector('#radialSvg defs');
@@ -2682,9 +2742,9 @@ export class UISystem {
                 g.style.opacity = "0.3";
                 g.style.pointerEvents = "none";
             }
-            if (m.mode === "study") {
+            if ((m as any).hasSub) {
                 g.classList.add("has-sub");
-                g.setAttribute("id", "studyBlade");
+                g.setAttribute("id", m.id);
 
                 // Cầu nối tàng hình giúp duy trì hover từ Tier 1 qua Tier 2, chống bug "né chuột"
                 let studyBridge = document.createElementNS("http://www.w3.org/2000/svg", "path");
@@ -2725,14 +2785,6 @@ export class UISystem {
         });
 
         // --- TIER 2 --- (N1 - N5) 
-        // Tạo cầu nối tàng hình lót dưới toàn bộ cung N1-N5 để chặn chuột rơi xuống khe hở trúng phải STUDY
-        let tier2Bridge = document.createElementNS("http://www.w3.org/2000/svg", "path");
-        tier2Bridge.setAttribute("d", this.describeArc(cx, cy, 210, 250, 34, 110, true)); // Rộng hơn 1 xíu để bao kín
-        tier2Bridge.setAttribute("fill", "rgba(0,0,0,0)");
-        tier2Bridge.setAttribute("stroke", "none");
-        tier2.appendChild(tier2Bridge);
-
-        const segment = 72 / 5;
         const nLevels = [
             { level: 'n1', text: 'N1' },
             { level: 'n2', text: 'N2' },
@@ -2741,44 +2793,65 @@ export class UISystem {
             { level: 'n5', text: 'N5' }
         ];
 
-        nLevels.forEach((nl, i) => {
-            let start = 36 + i * segment;
-            let end = start + segment;
+        // Render sub-blades and sticky-bridges for each mode that has them
+        modes.filter(m => (m as any).hasSub).forEach(parentMode => {
+            const parentSegment = 90;
+            const subSegment = parentSegment / 5;
+            const isBottom = parentMode.mode === 'kanji';
 
-            let g = document.createElementNS("http://www.w3.org/2000/svg", "g");
-            g.setAttribute("class", "sub-blade");
-            g.setAttribute("data-level", nl.level);
+            // Tạo cầu nối tàng hình riêng cho từng cụm (Words riêng, Kanji riêng)
+            let modeBridge = document.createElementNS("http://www.w3.org/2000/svg", "path");
+            modeBridge.setAttribute("class", "tier2-bridge");
+            modeBridge.setAttribute("data-parent-mode", parentMode.mode);
+            modeBridge.setAttribute("d", this.describeArc(cx, cy, 205, 255, parentMode.start - 5, parentMode.end + 5, true));
+            modeBridge.setAttribute("fill", "rgba(0,0,0,0)");
+            modeBridge.setAttribute("stroke", "none");
+            tier2.appendChild(modeBridge);
 
-            let path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-            path.setAttribute("d", this.describeArc(cx, cy, 215, 245, start, end));
-            path.setAttribute("class", "svg-sub-path");
+            nLevels.forEach((nl, i) => {
+                let start = parentMode.start + i * subSegment;
+                let end = start + subSegment;
 
-            let tpId = `text-path-${nl.level}`;
-            let tPath = document.createElementNS("http://www.w3.org/2000/svg", "path");
-            tPath.setAttribute("id", tpId);
-            tPath.setAttribute("d", this.describeTextArc(cx, cy, 230, start + 2, end - 2, 1));
-            tPath.setAttribute("fill", "transparent");
-            tPath.setAttribute("stroke", "transparent");
-            defs?.appendChild(tPath);
+                let g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+                g.setAttribute("class", "sub-blade");
+                g.setAttribute("data-level", nl.level);
+                g.setAttribute("data-parent-mode", parentMode.mode);
 
-            let txt = document.createElementNS("http://www.w3.org/2000/svg", "text");
-            txt.setAttribute("class", "svg-sub-text");
-            txt.setAttribute("dy", "5");
+                let path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+                path.setAttribute("d", this.describeArc(cx, cy, 215, 245, start, end));
+                path.setAttribute("class", "svg-sub-path");
 
-            let tp = document.createElementNS("http://www.w3.org/2000/svg", "textPath");
-            tp.setAttribute("href", `#${tpId}`);
-            tp.setAttribute("startOffset", "50%");
-            tp.setAttribute("text-anchor", "middle");
-            tp.textContent = nl.text;
+                // Đảo ngược hướng quét (sweep) cho các mode ở nửa dưới vòng tròn (như Kanji) để chữ ko bị lộn ngược
+                const sweep = isBottom ? 0 : 1;
+                const textRadius = isBottom ? 238 : 230; // Nâng radius lên 1 chút khi đảo chiều để chữ ko bị dính vào mép trong
 
-            txt.appendChild(tp);
-            g.appendChild(path);
-            g.appendChild(txt);
-            tier2.appendChild(g);
+                let tpId = `text-path-${parentMode.id}-${nl.level}`;
+                let tPath = document.createElementNS("http://www.w3.org/2000/svg", "path");
+                tPath.setAttribute("id", tpId);
+                tPath.setAttribute("d", this.describeTextArc(cx, cy, textRadius, start + 2, end - 2, sweep));
+                tPath.setAttribute("fill", "transparent");
+                tPath.setAttribute("stroke", "transparent");
+                defs?.appendChild(tPath);
+
+                let txt = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                txt.setAttribute("class", "svg-sub-text");
+                txt.setAttribute("dy", isBottom ? "-2" : "5"); // Tinh chỉnh độ cao chữ dựa trên hướng sweep
+
+                let tp = document.createElementNS("http://www.w3.org/2000/svg", "textPath");
+                tp.setAttribute("href", `#${tpId}`);
+                tp.setAttribute("startOffset", "50%");
+                tp.setAttribute("text-anchor", "middle");
+                tp.textContent = nl.text;
+
+                txt.appendChild(tp);
+                g.appendChild(path);
+                g.appendChild(txt);
+                tier2.appendChild(g);
+            });
         });
     }
 
-    public openJLPTHub(level: string = 'n2') {
+    public openJLPTHub(level: string = 'n2', modeType: string = 'study') {
         const mLevel = level.toUpperCase();
         if (this.menuControls) this.menuControls.classList.add('hidden');
         if (this.messageCenter) this.messageCenter.classList.add('hidden');
@@ -2788,19 +2861,29 @@ export class UISystem {
         if (this.leaderboardTrigger) this.leaderboardTrigger.classList.add('hidden');
         if (this.guideTrigger) this.guideTrigger.classList.add('hidden');
 
-        // Cập nhật nhãn Level và Con dấu (Seal)
+        // Cập nhật nhãn Level, Loại dữ liệu (Words/Kanji) và Con dấu
         const sealNames: Record<string, string> = {
             'N1': '一級', 'N2': '二級', 'N3': '三級', 'N4': '四級', 'N5': '五級'
         };
 
         if (this.hubLevelName) this.hubLevelName.innerText = mLevel;
+        if (this.hubTargetType) {
+            const lang = this.stateManager.studyLanguage;
+            if (lang === 'vi') {
+                this.hubTargetType.innerText = modeType === 'study' ? 'Từ Vựng' : 'Hán Tự';
+                if (this.hubMainTitle) this.hubMainTitle.innerText = '蔵経閣';
+            } else {
+                this.hubTargetType.innerText = modeType === 'study' ? 'Vocabulary' : 'Kanji';
+                if (this.hubMainTitle) this.hubMainTitle.innerText = 'NEURAL ARCHIVES';
+            }
+        }
         if (this.hubSealName) this.hubSealName.innerText = sealNames[mLevel] || '---';
 
         // Load dữ liệu cho level này
-        StateManager.getInstance().loadLevelHubData(mLevel).then(() => {
+        StateManager.getInstance().loadLevelHubData(mLevel, modeType).then(() => {
             if (this.jlptHubPage) {
                 this.jlptHubPage.classList.remove('hidden');
-                this.renderJLPTUnits(); // Vẫn dùng renderJLPTUnits vì nó lấy dữ liệu từ state.n2HubData đã được cập nhật
+                this.renderJLPTUnits();
             }
         });
 
@@ -2906,7 +2989,7 @@ export class UISystem {
                 
                 <div class="jlpt-unit-title-box">
                     <div class="jlpt-ja-title" title="${unit.studyName_JA}">${unit.studyName_JA}</div>
-                    <div class="jlpt-en-title" title="[ ${unit.unitName.replace('_', ' ')}: ${unit.studyName_ENG.toUpperCase()} ]">[ ${unit.unitName.replace('_', ' ')}: ${unit.studyName_ENG.toUpperCase()} ]</div>
+                    <div class="jlpt-en-title" title="[ ${unit.unitName.replace('_', ' ')}: ${state.studyLanguage === 'en' ? unit.studyName_ENG.toUpperCase() : unit.studyName_VI.toUpperCase()} ]">[ ${unit.unitName.replace('_', ' ')}: ${state.studyLanguage === 'en' ? unit.studyName_ENG.toUpperCase() : unit.studyName_VI.toUpperCase()} ]</div>
                 </div>
 
                 <div class="jlpt-unit-hud">
@@ -3155,7 +3238,7 @@ export class UISystem {
                 const myIndex = data ? data.findIndex(a => a.agent_id === user.agentId) : -1;
                 const myRank = myIndex !== -1 ? `#${myIndex + 1}` : '#??';
 
-                const finalMyName = myInTop ? myInTop.name : (user.name || 'GUEST_AGENT');
+                const finalMyName = myInTop ? myInTop.name : (user.name || 'Khách');
                 const finalMyAvatar = myInTop ? myInTop.avatar : user.avatar;
                 
                 // Sử dụng giá trị cao nhất giữa Server và Local để đảm bảo hiển thị đúng nhất

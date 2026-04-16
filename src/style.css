@@ -1548,7 +1548,7 @@ input[type="text"]::placeholder {
     justify-content: center;
     align-items: center;
     font-size: 3.6rem;
-    font-weight: 900;
+    font-weight: 400;
     letter-spacing: 2px;
     color: #fff;
     text-shadow: 0 0 10px rgba(0, 245, 255, 0.8);
@@ -1613,7 +1613,7 @@ input[type="text"]::placeholder {
 .svg-sub-text {
     fill: #ddd;
     font-size: 16px;
-    font-weight: 800;
+    font-weight: 400;
     letter-spacing: 2px;
     text-transform: uppercase;
     pointer-events: none;
@@ -1684,15 +1684,17 @@ input[type="text"]::placeholder {
     text-shadow: 0 0 10px var(--primary);
 }
 
-/* Kế thừa Hover: Giữ glow cho STUDY khi đang trỏ vào Tier 2 */
-.daken-osucore-wrapper:has(#svgTier2:hover) #studyBlade .svg-blade-path {
+/* Kế thừa Hover: Chỉ sáng thẻ Cha tương ứng với Sub-menu đang hiện */
+.daken-osucore-wrapper:has(#svgTier2[data-active-mode="study"]:hover) #studyBlade .svg-blade-path,
+.daken-osucore-wrapper:has(#svgTier2[data-active-mode="kanji"]:hover) #kanjiBlade .svg-blade-path {
     fill: rgba(255, 0, 255, 0.4);
     stroke: #ff00ff;
     stroke-width: 2.5px;
     filter: url(#neon-glow);
 }
 
-.daken-osucore-wrapper:has(#svgTier2:hover) #studyBlade .svg-blade-text {
+.daken-osucore-wrapper:has(#svgTier2[data-active-mode="study"]:hover) #studyBlade .svg-blade-text,
+.daken-osucore-wrapper:has(#svgTier2[data-active-mode="kanji"]:hover) #kanjiBlade .svg-blade-text {
     fill: #fff;
     text-shadow: 0 0 10px #ff00ff;
 }
@@ -1733,11 +1735,28 @@ input[type="text"]::placeholder {
     pointer-events: auto;
 }
 
-/* HIỂN THỊ TIER 2 KHI HOVER STUDY */
-#svgTier1:has(#studyBlade:hover)~#svgTier2,
+/* HIỂN THỊ TIER 2 KHI HOVER CÁC THẺ CÓ SUB-MENU (WORDS, KANJI...) */
+#svgTier1:has(.fan-blade.has-sub:hover)~#svgTier2,
 #svgTier2:hover {
     opacity: 1 !important;
     transform: scale(1) rotate(0deg) !important;
+    pointer-events: auto;
+}
+
+/* LỌC HIỂN THỊ SUB-MENU VÀ CẦU NỐI THEO THẺ CHA */
+#svgTier2 .sub-blade,
+#svgTier2 .tier2-bridge {
+    display: none;
+    pointer-events: none;
+}
+#svgTier2[data-active-mode="study"] .sub-blade[data-parent-mode="study"],
+#svgTier2[data-active-mode="study"] .tier2-bridge[data-parent-mode="study"] {
+    display: block;
+    pointer-events: auto;
+}
+#svgTier2[data-active-mode="kanji"] .sub-blade[data-parent-mode="kanji"],
+#svgTier2[data-active-mode="kanji"] .tier2-bridge[data-parent-mode="kanji"] {
+    display: block;
     pointer-events: auto;
 }
 
@@ -3128,6 +3147,34 @@ input[type="text"]::placeholder {
     color: #ff00c1;
     border-color: #ff00c1;
     box-shadow: 0 0 15px #ff00c1;
+}
+
+#lang-toggle:hover {
+    color: #00f2ff;
+    border-color: #00f2ff;
+    box-shadow: 0 0 15px #00f2ff;
+}
+
+.lang-toggle-icon .flag-icon {
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    overflow: hidden;
+    transition: transform 0.2s ease;
+    box-shadow: 0 0 10px rgba(0, 245, 255, 0.3);
+}
+
+.lang-toggle-icon .flag-icon svg {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.lang-toggle-icon:hover .flag-icon {
+    transform: scale(1.1);
 }
 
 /* Custom indicator for feedback icon to match leaderboard/guide style */

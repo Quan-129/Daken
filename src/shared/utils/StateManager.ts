@@ -14,6 +14,7 @@ export class StateManager {
   private n2ProgressKey = 'ninja_n2_progress';
   private n2Progress: Record<string, {rank: string, acc: number, wpm: number, score?: number}> = {};
   private n2HubData: any[] = [];
+  public studyLanguage: string = 'vi';
 
   private constructor() {
     this.eventBus = EventBus.getInstance();
@@ -103,11 +104,12 @@ export class StateManager {
     }
   }
 
-  public async loadLevelHubData(level: string): Promise<void> {
+  public async loadLevelHubData(level: string, type: string = 'study'): Promise<void> {
     try {
         const mLevel = level.toUpperCase();
-        const fetchUrl = `/data/vocabulary_generated.json?v=${Date.now()}`;
-        console.log(`[StateManager] Đang tải dữ liệu từ: ${fetchUrl} cho Level: ${mLevel}`);
+        const fileName = type === 'kanji' ? 'kanji.json' : 'kotoba.json';
+        const fetchUrl = `/data/${fileName}?v=${Date.now()}`;
+        console.log(`[StateManager] Đang tải dữ liệu từ: ${fetchUrl} cho Level: ${mLevel} (Type: ${type})`);
         
         const response = await fetch(fetchUrl);
         if (!response.ok) {
@@ -123,15 +125,16 @@ export class StateManager {
             this.n2HubData = [];
             console.log(`[StateManager] Đã tìm thấy dữ liệu cho ${mLevel}. Đang chuẩn bị ${levelData.unit_list.length} Units...`);
             levelData.unit_list.forEach((unit: any, uIndex: number) => {
-                const words = unit.vocabulary_list || [];
+                const words = unit.vocabulary_list || unit.kanji_list || [];
                 const sessions = [];
                 for (let i = 0; i < words.length; i += 10) {
                     sessions.push(words.slice(i, i + 10));
                 }
                 this.n2HubData.push({
                     unitName: unit.unitId || `Unit ${uIndex + 1}`,
-                    studyName_JA: unit.studyName_JA || '語彙',
-                    studyName_ENG: unit.studyName_ENG || 'Vocabulary',
+                    studyName_JA: unit.studyName_JA || (type === 'kanji' ? '漢字' : '語彙'),
+                    studyName_ENG: unit.studyName_ENG || (type === 'kanji' ? 'Kanji' : 'Vocabulary'),
+                    studyName_VI: unit.studyName_VI || (type === 'kanji' ? 'Hán Tự' : 'Từ Vựng'),
                     sessions: sessions
                 });
             });

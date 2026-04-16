@@ -29,15 +29,15 @@
 
             <!-- MAIN SYNC AREA -->
             <div id="social-login-area">
-                <div class="login-prompt">AGENT AUTHENTICATION REQUIRED</div>
+                <div class="login-prompt">ĐĂNG NHẬP THÀNH VIÊN</div>
                 <button id="googleLoginBtn" class="google-btn" style="width: 320px; height: 60px; font-size: 1.1rem;">
                     <img src="https://www.gstatic.com/images/branding/product/1x/gsa_512dp.png" alt="G">
-                    ESTABLISH LINK VIA GMAIL
+                    ĐĂNG NHẬP VỚI GOOGLE
                 </button>
-                <p style="color: rgba(255,255,255,0.3); font-size: 0.8rem; margin-top: 20px;">Secure biometric sync via Google Neural Link</p>
+                <p style="color: rgba(255,255,255,0.3); font-size: 0.8rem; margin-top: 20px;">Đăng nhập để đồng bộ tiến trình học</p>
             </div>
 
-            <div class="login-status" id="loginStatus">STATUS: WAITING_FOR_SYNC</div>
+            <div class="login-status" id="loginStatus">Trạng thái: Sẵn sàng</div>
         </div>
     </div>
 
@@ -59,46 +59,46 @@
                         <div class="avatar-container" id="avatarTrigger">
                             <img id="playerAvt" src="https://api.dicebear.com/7.x/bottts/svg?seed=DakenAgent"
                                 alt="Avatar">
-                            <div class="avatar-overlay">SCAN</div>
+                            <div class="avatar-overlay">Đổi</div>
                             <input type="file" id="avtFileInput" accept="image/*" style="display: none;">
                         </div>
                         <div class="profile-info">
                             <div class="player-name-wrapper" style="display: flex; align-items: baseline; gap: 8px;">
-                                <span id="playerName" class="player-name">GUEST_AGENT</span>
+                                <span id="playerName" class="player-name">Khách</span>
                                 <span id="playerTag" class="player-tag" style="font-family: 'Orbitron', monospace; font-size: 0.7rem; color: rgba(255,255,255,0.3); letter-spacing: 1px;">#000000</span>
                             </div>
                             <div class="player-rank-row">
-                                <span class="rank-label">CLASS:</span>
-                                <span id="playerRank" class="rank-value">UNRANKED</span>
+                                <span class="rank-label">Hạng:</span>
+                                <span id="playerRank" class="rank-value">Chưa xếp hạng</span>
                             </div>
                         </div>
                     </div>
                     <div class="profile-stats-grid">
                         <div class="stat-item">
-                            <span class="stat-label">TOTAL_SCORE</span>
+                            <span class="stat-label">Tổng điểm</span>
                             <span id="totalScoreVal" class="stat-val">0</span>
                         </div>
                         <div class="stat-item">
-                            <span class="stat-label">AVG_ACC</span>
+                            <span class="stat-label">Độ chính xác</span>
                             <span id="avgAccVal" class="stat-val">0%</span>
                         </div>
                     <div class="stat-item">
-                        <span class="stat-label">AVG_WPM</span>
+                        <span class="stat-label">Tốc độ (WPM)</span>
                         <span id="avgWpmVal" class="stat-val">0</span>
                     </div>
                 </div>
-                <button id="logoutBtn" class="logout-btn">DISCONNECT_LINK</button>
+                <button id="logoutBtn" class="logout-btn">DISCONNECT</button>
             </div>
 
             <!-- Current Match Score (Always visible in-game, independent of profile) -->
             <div id="current-score-box" class="current-score-wrapper-independent hidden">
-                <span class="label">MATCH_SCORE:</span>
+                <span class="label">Điểm số:</span>
                 <span id="scoreVal">0</span>
                 <div id="score-feed-container" class="score-feed-container"></div>
             </div>
 
             <div class="hp-battery-container" id="hpBatteryContainer" style="display: none;">
-                <div class="battery-label">SURVIVAL CORE</div>
+                <div class="battery-label">Năng lượng</div>
                 <div class="battery-chassis">
                     <div class="battery-grid">
                         <div class="battery-cell on"></div>
@@ -114,7 +114,7 @@
             </div>
 
             <div class="bottom-left-wrapper">
-                <button id="stopBtn" class="danger-btn hidden">STOP SYSTEM</button>
+                <button id="stopBtn" class="danger-btn hidden">DỪNG CHƠI</button>
                 <div class="hp" style="display: none;">HP: <span id="hpVal">5</span></div>
             </div>
 
@@ -199,6 +199,9 @@
                         <div id="guideTrigger" class="lobby-tool-icon" title="Neural Link Protocol">?</div>
                         <div id="feedback-trigger" class="lobby-tool-icon" title="Contact Admin">
                             <span class="material-icons">feedback</span>
+                        </div>
+                        <div id="lang-toggle" class="lobby-tool-icon lang-toggle-icon" title="Neural Dialect">
+                            <div class="flag-icon" id="langFlag"></div>
                         </div>
                     </div>
                     <!-- THỜI GIAN ĐÃ CHƠI -->
@@ -304,7 +307,7 @@
             <div class="jlpt-hub-header"
                 style="flex-direction: column; align-items: center; justify-content: center; width: 100%; gap: 15px;">
                 <h2 class="zen-title">
-                    <span id="hubLevelName">N2</span> 語彙 TÀNG KINH CÁC
+                    <span id="hubLevelName">N2</span> <span id="hubTargetType">語彙</span> <span id="hubMainTitle">蔵経閣</span>
                     <span class="red-seal" id="hubSealName">二級</span>
                 </h2>
 
@@ -640,7 +643,7 @@
             <div class="summary-content feedback-content" style="max-width: 500px; border-color: #ff00c1; box-shadow: 0 0 30px rgba(255, 0, 193, 0.2);">
                 <button id="closeFeedbackBtn" class="close-terminal-btn" style="position: absolute; top: 15px; right: 20px;">×</button>
                 <h2 class="summary-title" style="color: #ff00c1; text-shadow: 0 0 15px #ff00c1; font-size: 1.6rem; margin-bottom: 20px;">
-                    NEURAL FEEDBACK
+                    GÓP Ý & BÁO LỖI
                 </h2>
                 <p style="color: rgba(255,255,255,0.7); font-size: 0.9rem; text-align: center; margin-bottom: 20px; line-height: 1.4;">
                     Gửi phản hồi, báo lỗi hoặc góp ý cho Admin qua đường truyền bảo mật.<br>
@@ -655,7 +658,7 @@
                 </div>
                 <div id="feedback-status" style="text-align: center; margin-top: 10px; font-size: 0.8rem; height: 1.2rem; color: #ff00c1;"></div>
                 <button class="menu-btn" id="sendFeedbackBtn" style="width:100%; margin-top: 20px; background: rgba(255, 0, 193, 0.1); border-color: #ff00c1; color: #ff00c1;">
-                    [ TRANSMIT_FEEDBACK ]
+                    [ GửI GÓP Ý ]
                 </button>
             </div>
         </div>
@@ -665,7 +668,7 @@
             <div class="summary-content" style="max-width: 800px; width: 90%; border-color: #00F5FF; background: rgba(10, 20, 35, 0.95);">
                 <button id="closeAdminFeedbackBtn" class="close-terminal-btn" style="position: absolute; top: 15px; right: 20px;">×</button>
                 <h2 class="summary-title" style="color: #00F5FF; text-shadow: 0 0 15px #00F5FF; font-size: 1.6rem; margin-bottom: 20px;">
-                    ADMIN_LINK: FEEDBACK_LOGS
+                    QUẢN TRỊ: NHẬT KÝ GÓP Ý
                 </h2>
                 
                 <div id="admin-feedback-list" style="max-height: 400px; overflow-y: auto; padding-right: 10px; display: flex; flex-direction: column; gap: 10px;">
@@ -675,7 +678,7 @@
 
                 <div style="margin-top: 20px; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid rgba(0, 245, 255, 0.2); padding-top: 15px;">
                     <span id="feedback-count" style="color: #00F5FF; font-size: 0.8rem;">TOTAL_LOGS: 0</span>
-                    <button class="menu-btn" id="refreshFeedbackBtn" style="margin: 0; padding: 5px 15px; font-size: 0.8rem;">[ REFRESH_LOGS ]</button>
+                    <button class="menu-btn" id="refreshFeedbackBtn" style="margin: 0; padding: 5px 15px; font-size: 0.8rem;">[ LÀM MỚI ]</button>
                 </div>
             </div>
         </div>
