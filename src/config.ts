@@ -120,12 +120,12 @@ export const GameConfig: any = {
         wave5: {
             spawnIntervalMs: 3000,          // Tốc độ ban đầu nhả quái (Mỗi 3 giây đẻ 1 lứa cá)
             minStackSize: 1,                // Khởi đầu một đợt sinh sản ít nhất bao nhiêu thẻ (1 thẻ)
-            maxStackSize: 3,                // Tối đa sinh bao nhiêu thẻ vây song song trong 1 lần (Cao nhất đẻ 2 thẻ bơi dồn)
+            maxStackSize: 2,                // Tối đa sinh bao nhiêu thẻ vây song song trong 1 lần (Cao nhất đẻ 2 thẻ bơi dồn)
             verticalSpacing: 150,           // Cự ly giãn cách độ cao (Trục Y) giữa 2 tấm thẻ nếu lỡ đẻ chồng lên nhau
 
             accelerationSettings: {
                 rampUpTimeMs: 120000,        // Thời gian đạt đỉnh (60 Giây)
-                minSpawnIntervalMs: 3500,    // Tốc độ nhả quái nhanh nhất khi đạt đỉnh (800ms)
+                minSpawnIntervalMs: 3600,    // Tốc độ nhả quái nhanh nhất khi đạt đỉnh (800ms)
                 maxSpeedBoost: 0.12          // Lực gia tốc cộng thêm khi đạt đỉnh
             }
         }
