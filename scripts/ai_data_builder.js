@@ -8,8 +8,8 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Input là file text thiết kế theo mảng cột (nhẹ & tiết kiệm token)
-const inputPath = path.resolve(__dirname, '../src_jlpt.txt');
-const outputPath = path.resolve(__dirname, '../public/data/vocabulary_generated.json');
+const inputPath = path.resolve(__dirname, '../kotoba.txt');
+const outputPath = path.resolve(__dirname, '../public/data/kotoba.json');
 
 const unitMetadata = {
     "Unit_1": {
@@ -102,8 +102,8 @@ async function main() {
     console.log("🌊 [AI Data Architect] Đang khởi động Text-to-JSON Super Pipeline & Kuromoji...");
 
     if (!fs.existsSync(inputPath)) {
-        console.log(`❌ Lỗi: Không tìm thấy file [new_src_n2.txt] tại thư mục root.`);
-        console.log(`💡 HƯỚNG DẪN: Hãy đặt file chứa dữ liệu thô cách nhau bằng cột '|' ở file new_src_n2.txt.`);
+        console.log(`❌ Lỗi: Không tìm thấy file [kotoba.txt] tại thư mục root.`);
+        console.log(`💡 HƯỚNG DẪN: Hãy đặt file chứa dữ liệu thô cách nhau bằng cột '|' ở file kotoba.txt.`);
         return;
     }
 
@@ -228,7 +228,7 @@ async function main() {
     console.log(`\n======================================================`);
     console.log(`✨ HOÀN TẤT TEXT-TO-JSON PIPELINE!`);
     console.log(`✨ Đã nạp thành công ${injectedCount} Nodes vào Data Cốt Lõi.`);
-    console.log(`✨ Định dạng mảng chuẩn: [vocabulary_generated.json]`);
+    console.log(`✨ Định dạng mảng chuẩn: [kotoba.json]`);
     console.log(`======================================================\n`);
 }
 

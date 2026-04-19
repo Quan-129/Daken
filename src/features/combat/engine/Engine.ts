@@ -91,6 +91,10 @@ export class Engine {
                 this.createTextParticle(data.enemy.x, data.enemy.y - 10, `-${data.points}`, "#ff5252");
             }
         });
+
+        EventBus.getInstance().subscribe('GAME_SPEED_CHANGE', (val: number) => {
+            this.setSpeedModifier(val);
+        });
     }
 
     private resize() {

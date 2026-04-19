@@ -1,0 +1,115 @@
+[
+  {
+    "level": "N2",
+    "unit_list": [
+      {
+        "unitId": "Unit_1",
+        "studyName_ENG": "Appearance & State",
+        "studyName_JA": "様子・状態",
+        "studyName_VI": "Dáng vẻ & Trạng thái",
+        "grammar_list": [
+          {
+            "visual": "~げ",
+            "romaji": "ge",
+            "hanviet": "",
+            "vi": "Vẻ... / Có vẻ...",
+            "en": "Seem / Appear",
+            "example_jp": "彼は {悲|かな}しげな {顔|かお}を していた。",
+            "example_vi": "Anh ấy đã mang khuôn mặt có vẻ buồn bã.",
+            "example_en": "He had a sad-looking face."
+          },
+          {
+            "visual": "~っぽい",
+            "romaji": "ppoi",
+            "hanviet": "",
+            "vi": "Có vẻ / Hay... (tính chất)",
+            "en": "Like / -ish",
+            "example_jp": "あの 子は まるで {大人|おとな}っぽいです。",
+            "example_vi": "Đứa bé đó trông cứ như người lớn vậy.",
+            "example_en": "That child is like an adult."
+          },
+          {
+            "visual": "~がち",
+            "romaji": "gachi",
+            "hanviet": "",
+            "vi": "Thường / Hay... (tiêu cực)",
+            "en": "Tend to",
+            "example_jp": "最近、{病気|びょうき}に なりがちです。",
+            "example_vi": "Dạo này tôi hay bị bệnh.",
+            "example_en": "I've been tending to get sick lately."
+          },
+          {
+            "visual": "~気味",
+            "romaji": "gimi",
+            "hanviet": "",
+            "vi": "Hơi có vẻ... (cảm giác)",
+            "en": "Slight tendency",
+            "example_jp": "風邪ぎみなので、早めに 寝ます。",
+            "example_vi": "Vì hơi cảm nên tôi sẽ đi ngủ sớm.",
+            "example_en": "I have a slight cold, so I'll go to bed early."
+          },
+          {
+            "visual": "~ものなら",
+            "romaji": "mononara",
+            "hanviet": "",
+            "vi": "Nếu có thể... (vốn khó)",
+            "en": "If (almost impossible)",
+            "example_jp": "{帰|かえ}れるものなら、今すぐ {国|くに}に 帰りたい。",
+            "example_vi": "Nếu có thể trở về, tôi muốn về nước ngay bây giờ.",
+            "example_en": "If I could return, I would want to go home right now."
+          },
+          {
+            "visual": "~ものだから",
+            "romaji": "monodakara",
+            "hanviet": "",
+            "vi": "Tại vì... (phân trần)",
+            "en": "Because (excuse)",
+            "example_jp": "道が 混んでいたものだから、遅れました。",
+            "example_vi": "Tại vì đường đông quá nên tôi đã đến muộn.",
+            "example_en": "I was late because the road was crowded."
+          },
+          {
+            "visual": "~ものか",
+            "romaji": "monoka",
+            "hanviet": "",
+            "vi": "Quyết không / Chẳng lẽ...",
+            "en": "Definitely not",
+            "example_jp": "あんな 店、二度と 行くものか。",
+            "example_vi": "Cái cửa hàng đó, quyết không đi lần thứ hai đâu.",
+            "example_en": "I'll never go to a shop like that again."
+          },
+          {
+            "visual": "~ものだ",
+            "romaji": "monoda",
+            "hanviet": "",
+            "vi": "Là chuyện đương nhiên",
+            "en": "Used to / Naturally",
+            "example_jp": "子供は 元気に 遊ぶものだ。",
+            "example_vi": "Trẻ con thì đương nhiên là phải chơi đùa khỏe mạnh rồi.",
+            "example_en": "Children are supposed to play energetically."
+          },
+          {
+            "visual": "~たて",
+            "romaji": "tate",
+            "hanviet": "",
+            "vi": "Vừa mới xong",
+            "en": "Just finished / Fresh",
+            "example_jp": "{焼|や}きたての パンは おいしい。",
+            "example_vi": "Bánh mì vừa mới nướng xong thì ngon.",
+            "example_en": "Freshly baked bread is delicious."
+          },
+          {
+            "visual": "~っぱなし",
+            "romaji": "ppanashi",
+            "hanviet": "",
+            "vi": "Cứ để nguyên như vậy",
+            "en": "Leave as is",
+            "example_jp": "テレビを つけっぱなしで 寝てしまった。",
+            "example_vi": "Tôi đã ngủ quên khi cứ để tivi bật nguyên như vậy.",
+            "example_en": "I fell asleep with the TV left on."
+          }
+        ]
+      }
+    ]
+  }
+]

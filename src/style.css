@@ -160,6 +160,7 @@ body {
     font-weight: bold;
     text-shadow: 0 0 8px #ff9800;
     animation: pulseCombo 0.5s infinite alternate;
+    transform-origin: left center;
 }
 
 @keyframes pulseCombo {
@@ -602,7 +603,7 @@ input[type="text"]::placeholder {
     right: 20px;
     top: 50%;
     transform: translateY(-50%);
-    background: rgba(10, 10, 30, 0.9);
+    background: rgba(10, 10, 30, 0.95);
     padding: 20px 10px 30px 10px;
     border-radius: 10px;
     border: 2px solid var(--primary);
@@ -751,7 +752,7 @@ input[type="text"]::placeholder {
 /* --- HUD TERMINAL --- */
 .hud-terminal {
     position: absolute;
-    bottom: 130px;
+    bottom: 180px;
     /* Cố định sát mép trên của ô gõ chữ (bottom: 120px) */
     left: 50%;
     width: 600px;
@@ -1102,6 +1103,7 @@ input[type="text"]::placeholder {
     box-shadow: 0 0 15px rgba(0, 245, 255, 0.4), inset 0 0 15px rgba(0, 245, 255, 0.2);
     display: flex;
     align-items: center;
+    white-space: nowrap;
     transition: left 0.3s cubic-bezier(0.25, 0.8, 0.25, 1), transform 0.2s;
     min-height: 70px;
 }
@@ -1489,26 +1491,7 @@ input[type="text"]::placeholder {
     z-index: 50;
 }
 
-.daken-core {
-    position: absolute;
-    width: 160px;
-    height: 160px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, rgba(0, 245, 255, 0.9), rgba(255, 0, 255, 0.9));
-    border: 3px solid rgba(255, 255, 255, 0.8);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    font-size: 3rem;
-    font-weight: 900;
-    color: #fff;
-    text-shadow: 0 0 15px rgba(255, 255, 255, 0.8), 2px 2px 5px rgba(0, 0, 0, 0.5);
-    box-shadow: 0 0 30px rgba(0, 245, 255, 0.6), inset 0 0 20px rgba(255, 0, 255, 0.5);
-    cursor: pointer;
-    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    z-index: 10;
-    animation: osuPulse 2s infinite;
-}
+/* Redundant definition removed */
 
 .daken-core:hover {
     box-shadow: 0 0 50px rgba(0, 245, 255, 0.8), inset 0 0 30px rgba(255, 0, 255, 0.7);
@@ -1539,6 +1522,9 @@ input[type="text"]::placeholder {
 /* Các lớp CSS Radial Osu Core Mới (Fan Blade System) */
 .daken-core {
     position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
     width: 235px;
     height: 235px;
     border-radius: 50%;
@@ -1547,9 +1533,11 @@ input[type="text"]::placeholder {
     display: flex;
     justify-content: center;
     align-items: center;
-    font-size: 3.6rem;
-    font-weight: 400;
-    letter-spacing: 2px;
+    text-align: center;
+    font-size: 2.8rem;
+    font-weight: 900;
+    letter-spacing: 1px;
+    line-height: 1.1;
     color: #fff;
     text-shadow: 0 0 10px rgba(0, 245, 255, 0.8);
     box-shadow: 0 0 20px rgba(0, 245, 255, 0.4), inset 0 0 15px rgba(0, 245, 255, 0.2);
@@ -1686,7 +1674,8 @@ input[type="text"]::placeholder {
 
 /* Kế thừa Hover: Chỉ sáng thẻ Cha tương ứng với Sub-menu đang hiện */
 .daken-osucore-wrapper:has(#svgTier2[data-active-mode="study"]:hover) #studyBlade .svg-blade-path,
-.daken-osucore-wrapper:has(#svgTier2[data-active-mode="kanji"]:hover) #kanjiBlade .svg-blade-path {
+.daken-osucore-wrapper:has(#svgTier2[data-active-mode="kanji"]:hover) #kanjiBlade .svg-blade-path,
+.daken-osucore-wrapper:has(#svgTier2[data-active-mode="grammar"]:hover) #grammarBlade .svg-blade-path {
     fill: rgba(255, 0, 255, 0.4);
     stroke: #ff00ff;
     stroke-width: 2.5px;
@@ -1694,7 +1683,8 @@ input[type="text"]::placeholder {
 }
 
 .daken-osucore-wrapper:has(#svgTier2[data-active-mode="study"]:hover) #studyBlade .svg-blade-text,
-.daken-osucore-wrapper:has(#svgTier2[data-active-mode="kanji"]:hover) #kanjiBlade .svg-blade-text {
+.daken-osucore-wrapper:has(#svgTier2[data-active-mode="kanji"]:hover) #kanjiBlade .svg-blade-text,
+.daken-osucore-wrapper:has(#svgTier2[data-active-mode="grammar"]:hover) #grammarBlade .svg-blade-text {
     fill: #fff;
     text-shadow: 0 0 10px #ff00ff;
 }
@@ -1759,6 +1749,11 @@ input[type="text"]::placeholder {
     display: block;
     pointer-events: auto;
 }
+#svgTier2[data-active-mode="grammar"] .sub-blade[data-parent-mode="grammar"],
+#svgTier2[data-active-mode="grammar"] .tier2-bridge[data-parent-mode="grammar"] {
+    display: block;
+    pointer-events: auto;
+}
 
 /* STATE SỤP ĐỔ (COLLAPSED) KHI CHỌN XONG */
 .daken-osucore-wrapper.collapsed #svgTier1,
@@ -1769,7 +1764,7 @@ input[type="text"]::placeholder {
     transition-delay: 0s !important;
 }
 
-.daken-osucore-wrapper.collapsed .daken-core {
+.daken-osucore-wrapper.collapsed .daken-core { top: 50%; left: 50%; transform: translate(-50%, -50%);
     border-color: #ff00ff;
     box-shadow: 0 0 50px rgba(255, 0, 255, 0.9), inset 0 0 25px rgba(255, 0, 255, 0.6);
     text-shadow: 0 0 15px #ff00ff, 0 0 25px #ff00ff;
@@ -2610,7 +2605,13 @@ input[type="text"]::placeholder {
     font-weight: 900;
     color: var(--safe);
     text-shadow: 0 0 15px var(--safe);
-    margin: 5px 0;
+    margin: 5px 0 2px 0;
+}
+
+.current-score-wrapper-independent .combo-label {
+    font-size: 0.9rem;
+    margin-bottom: 8px;
+    display: inline-block;
 }
 
 @keyframes slideInLeftMatch {
@@ -3180,4 +3181,82 @@ input[type="text"]::placeholder {
 /* Custom indicator for feedback icon to match leaderboard/guide style */
 #feedback-trigger .material-icons {
     font-size: 20px;
+}
+
+/* WAVE 5 SPEED PANEL */
+.wave5-speed-panel {
+    position: relative;
+    background: rgba(18, 18, 42, 0.75);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(0, 245, 255, 0.3);
+    border-right: 4px solid var(--primary);
+    padding: 12px 18px;
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: 220px;
+    z-index: 1000;
+    pointer-events: auto;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6), 0 0 20px rgba(0, 245, 255, 0.1);
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    animation: speedPanelIn 0.5s ease-out;
+    margin-top: -10px;
+}
+
+@keyframes speedPanelIn {
+    from { transform: translateX(50px); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+}
+
+.wave5-speed-panel.hidden {
+    display: none !important;
+}
+
+.speed-label {
+    font-family: "Orbitron", monospace;
+    font-size: 0.75rem;
+    color: var(--primary);
+    text-shadow: 0 0 10px var(--primary);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+}
+
+#speedValDisplay {
+    font-weight: 900;
+    color: #fff;
+    margin-left: 8px;
+    font-size: 0.9rem;
+}
+
+/* Custom range input for speed panel */
+#wave5SpeedSlider {
+    -webkit-appearance: none;
+    width: 100%;
+    height: 6px;
+    background: rgba(0, 245, 255, 0.1);
+    border: 1px solid rgba(0, 245, 255, 0.2);
+    border-radius: 3px;
+    outline: none;
+    cursor: pointer;
+}
+
+#wave5SpeedSlider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 22px;
+    height: 22px;
+    background: var(--primary);
+    border: 2px solid #fff;
+    border-radius: 50%;
+    cursor: pointer;
+    box-shadow: 0 0 15px var(--primary);
+    transition: all 0.2s ease;
+    margin-top: -1px;
+}
+
+#wave5SpeedSlider::-webkit-slider-thumb:hover {
+    transform: scale(1.15);
+    background: #fff;
+    box-shadow: 0 0 20px var(--primary), 0 0 40px var(--primary);
 }

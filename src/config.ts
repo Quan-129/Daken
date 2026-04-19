@@ -1,5 +1,14 @@
 export const GameConfig: any = {
     // ---------------------------------------------------------
+    // BẬT/TẮT CÁC TÍNH NĂNG (FEATURE FLAGS)
+    // ---------------------------------------------------------
+    features: {
+        enableStudy: true,              // Bật/Tắt chế độ Học Từ Vựng (Kotoba)
+        enableKanji: true,              // Bật/Tắt chế độ Học Hán Tự (Kanji)
+        enableGrammar: false             // Bật/Tắt chế độ Học Ngữ Pháp (Grammar)
+    },
+
+    // ---------------------------------------------------------
     // THÔNG SỐ ĐỘ KHÓ & TÍNH ĐIỂM CHUNG
     // ---------------------------------------------------------
     difficulty: {
@@ -89,9 +98,9 @@ export const GameConfig: any = {
 
         // --- CẤU HÌNH WAVE 3: ĐỘNG NÃO (THĂM DÒ TỰ DO) ---
         wave3: {
-            basePerfectHits: 1,             // Mức máu cơ bản nếu mục tiêu là màu Vàng/Hoàn hảo
+            basePerfectHits: 2,             // Mức máu cơ bản nếu mục tiêu là màu Vàng/Hoàn hảo
             baseImperfectHits: 2,           // Mức máu nếu mục tiêu màu Xanh (Có nợ từ vựng)
-            retryPenaltyMultiplier: 1,      // Hệ số phạt áp dụng khi gõ lại thẻ đã sai
+            retryPenaltyMultiplier: 2,      // Hệ số phạt áp dụng khi gõ lại thẻ đã sai
             allowPointsOnWeak: false,       // Cho phép kiếm điểm từ thẻ bị yếu (Đã gõ sai 1 lần) hay không?
             pointsOnWeak: 5,                 // Số điểm "vớt vát" được nếu gõ trúng thẻ Yếu (Chỉ hoạt động nếu true)
             timeBonuses: {

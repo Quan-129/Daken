@@ -38,13 +38,14 @@ export class Spawner {
     }
 
     public update(dt: number, mode: string, speedModifier: number) {
-        if (mode === 'chill' || mode === 'easy' || (mode === 'study' && this.currentStudyWave !== 5 && this.currentStudyWave !== 3)) return;
+        const isStudyRunning = (mode === 'study' || mode === 'kanji' || mode === 'grammar');
+        if (isStudyRunning && this.currentStudyWave !== 5 && this.currentStudyWave !== 3) return;
 
         const globalFactor = GameConfig.speeds.globalSpeedFactor || 1.0;
         const densityFactor = GameConfig.timing.spawnDensityFactor || 1.0;
         this.spawnTimer += dt;
 
-        if (mode === 'study' && this.currentStudyWave === 5) {
+        if (isStudyRunning && this.currentStudyWave === 5) {
             const w5Config = GameConfig.studyMode.wave5;
             const accel = w5Config.accelerationSettings;
 
@@ -70,7 +71,8 @@ export class Spawner {
                         enemy.study.revealType = Math.random() > 0.5 ? 'kanji' : 'vi';
 
                         const finalGlobalFactor = GameConfig.speeds.globalSpeedFactor || 1.0;
-                        enemy.vx = -(enemy.baseSpeed + currentBoost) * speedModifier * finalGlobalFactor;
+                        const vxAtSpeed1 = -(enemy.baseSpeed + currentBoost) * finalGlobalFactor;
+                        enemy.syncVelocityWithSpeedMod(vxAtSpeed1, speedModifier);
 
                         enemy.x = this.canvasWidth + 50 + (Math.random() * 120);
                         enemy.y = startY + i * spacing;
@@ -81,8 +83,7 @@ export class Spawner {
                 }
                 this.spawnTimer = 0;
             }
-        } else if (mode === 'study' && this.currentStudyWave === 3) {
-            // ... (Wave 3 code remains same)
+        } else if (isStudyRunning && this.currentStudyWave === 3) {
             const active = this.getActiveEnemiesCallback().filter(e => !e.isDead);
             if (active.length === 0 && this.hasMoreStudyEnemies()) {
                 this.spawnBatchWave3(speedModifier);
@@ -142,7 +143,7 @@ export class Spawner {
             this.spawnStaticWave(mode, speedModifier);
             return;
         }
-        if (mode === 'study') {
+        if (mode === 'study' || mode === 'kanji' || mode === 'grammar') {
             this.spawnStudyWave(speedModifier);
             return;
         }
@@ -170,7 +171,8 @@ export class Spawner {
             } else if (this.currentStudyWave === 3) {
                 // Wave 3: Khảo hạch tổng lực (10 từ trôi ngang màn hình) + Điểm yếu
                 for (let w of this.currentStudyDeck) {
-                    this.studyQueue.push({ word: w, revealType: 'kanji' });
+                    let rType: 'kanji' | 'vi' = Math.random() > 0.5 ? 'kanji' : 'vi';
+                    this.studyQueue.push({ word: w, revealType: rType });
                 }
                 const config = GameConfig.studyMode.wave3;
                 for (let w of this.currentStudyDeck) {

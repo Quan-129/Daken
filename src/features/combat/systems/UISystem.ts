@@ -4,6 +4,7 @@ import { GameConfig } from '../../../config';
 import { byId } from '../../../shared/utils/uiHelpers';
 import { AuthSystem } from '../../../shared/utils/AuthSystem';
 import { supabase } from '../../../shared/utils/supabase';
+import { LanguageConfig } from '../../../configLanguage'; // Verified path: src/configLanguage.ts
 import emailjs from '@emailjs/browser';
 
 export class UISystem {
@@ -75,6 +76,8 @@ export class UISystem {
     private waveLabel = byId('waveLabel');
     private currentWaveNumber = 1;
     private currentMode = 'medium';
+    private currentHubMode: string = 'study'; // 'study', 'kanji', 'grammar'
+    private currentHubLevel: string = 'n2';
     private currentStudyLevel = 'n5';
     private enemiesSpawnedThisWave = 0;
     private isRetryPhase = false;
@@ -167,6 +170,12 @@ export class UISystem {
     private stopBtn = byId('stopBtn');
     private hudTerminal = byId('hud-terminal');
 
+    // Wave 5 Speed Control
+    private wave5SpeedControl = byId('wave5-speed-control');
+    private wave5SpeedSlider = byId('wave5SpeedSlider') as HTMLInputElement;
+    private speedValDisplay = byId('speedValDisplay');
+    private batteryLabel = byId('hpBatteryContainer')?.querySelector('.battery-label');
+
     // Màn hình xác nhận STOP
     private stopConfirmModal = byId('stopConfirmModal');
     private confirmStopBtn = byId('confirmStopBtn');
@@ -224,6 +233,7 @@ export class UISystem {
         this.setupAvatarUpload();
         this.updateProfileUI(); // Cập nhật Profile ngay khi khởi tạo
         this.setupLeaderboardLogic();
+        this.setupWave5SpeedLogic();
 
         // Đảm bảo HP và Wave UI ẩn khi ở Lobby
         const batteryContainer = byId('hpBatteryContainer');
@@ -234,6 +244,7 @@ export class UISystem {
         this.setupFeedbackLogic();
         this.setupAdminLogic();
         this.updateFlagUI();
+        this.applyLanguage();
     }
 
     private updateFlagUI() {
@@ -241,9 +252,273 @@ export class UISystem {
         if (!flagEl) return;
         
         const FLAG_VN = `<svg viewBox="0 0 30 20" xmlns="http://www.w3.org/2000/svg"><rect width="30" height="20" fill="#da251d"/><polygon points="15,4 16.12,8.47 20.75,8.47 17,11.24 18.12,15.71 15,12.94 11.88,15.71 13,11.24 9.25,8.47 13.88,8.47" fill="#ffff00"/></svg>`;
-        const FLAG_US = `<svg viewBox="0 0 741 390" xmlns="http://www.w3.org/2000/svg"><rect width="741" height="390" fill="#3c3b6e"/><path fill="#fff" d="M0 30h741v30H0zm0 60h741v30H0zm0 60h741v30H0zm0 60h741v30H0zm0 60h741v30H0zm0 60h741v30H0z"/><rect width="296" height="210" fill="#3c3b6e"/><g fill="#fff"><g id="s6"><g id="s5"><g id="s4"><circle cx="24.7" cy="21" r="3"/><circle cx="74.1" cy="21" r="3"/><circle cx="123.5" cy="21" r="3"/><circle cx="172.9" cy="21" r="3"/><circle cx="222.3" cy="21" r="3"/><circle cx="271.7" cy="21" r="3"/></g></g></g></g></svg>`;
+        const FLAG_US = `<svg viewBox="0 0 1235 650" xmlns="http://www.w3.org/2000/svg"><rect width="1235" height="650" fill="#3c3b6e"/><path d="M0 50h1235M0 150h1235M0 250h1235M0 350h1235M0 450h1235M0 550h1235" stroke="#fff" stroke-width="50"/><rect width="494" height="350" fill="#3c3b6e"/><g fill="#fff"><circle cx="50" cy="50" r="10"/><circle cx="150" cy="50" r="10"/><circle cx="250" cy="50" r="10"/><circle cx="350" cy="50" r="10"/><circle cx="450" cy="50" r="10"/></g></svg>`;
         
-        flagEl.innerHTML = this.stateManager.studyLanguage === 'vi' ? FLAG_VN : FLAG_US;
+        const lang = this.stateManager.studyLanguage || 'en';
+        flagEl.innerHTML = (lang === 'vi') ? FLAG_VN : FLAG_US;
+        
+        // Cập nhật trạng thái cấu hình ngôn ngữ
+        LanguageConfig.current = (lang === 'vi' ? 'vi' : 'en');
+    }
+
+    private applyLanguage() {
+        const lang = LanguageConfig.current;
+        const t = LanguageConfig.translations[lang];
+
+        // 1. LOGIN SCREEN
+        const setupPrompt = byId('setup-view')?.querySelector('.login-prompt');
+        if (setupPrompt) setupPrompt.textContent = t.auth.initializing;
+        const setupLabel = byId('setup-view')?.querySelector('label');
+        if (setupLabel) setupLabel.textContent = t.auth.chooseName;
+        if (this.setupNameInput) this.setupNameInput.placeholder = t.auth.nicknamePlaceholder;
+        const setupHint = byId('setup-view')?.querySelector('p');
+        if (setupHint) setupHint.textContent = t.auth.assignIdHint;
+        if (this.finishSetupBtn) this.finishSetupBtn.textContent = t.auth.syncIdentity;
+
+        const authPrompt = byId('social-login-area')?.querySelector('.login-prompt');
+        if (authPrompt) authPrompt.textContent = t.auth.agentAuth;
+        if (this.googleLoginBtn) {
+            const btn = this.googleLoginBtn;
+            // Xóa tất cả các node văn bản hiện có (nếu có)
+            btn.childNodes.forEach(node => {
+                if (node.nodeType === 3) node.textContent = '';
+            });
+            // Tìm hoặc tạo node văn bản để gán giá trị mới
+            const textNode = Array.from(btn.childNodes).find(n => n.nodeType === 3);
+            if (textNode) {
+                textNode.textContent = ' ' + t.auth.loginGoogle;
+            } else {
+                btn.appendChild(document.createTextNode(' ' + t.auth.loginGoogle));
+            }
+        }
+        const authHint = byId('social-login-area')?.querySelector('p');
+        if (authHint) authHint.textContent = t.auth.loginHint;
+        if (this.loginStatus) {
+            this.loginStatus.textContent = t.auth.statusReady;
+        }
+
+        // 2. PROFILE
+        const overlay = byId('avatarTrigger')?.querySelector('.avatar-overlay');
+        if (overlay) overlay.textContent = t.profile.edit;
+        const rankLabel = byId('profileRankLabel');
+        if (rankLabel) rankLabel.textContent = t.profile.rank + ":";
+        const scoreLabel = byId('profileScoreLabel');
+        if (scoreLabel) scoreLabel.textContent = t.profile.totalScore;
+        const accLabel = byId('profileAccLabel');
+        if (accLabel) accLabel.textContent = t.profile.accuracy;
+        const wpmLabel = byId('profileWpmLabel');
+        if (wpmLabel) wpmLabel.textContent = t.profile.wpm;
+        
+        if (this.playerNameEl && (this.playerNameEl.innerText === 'Guest' || this.playerNameEl.innerText === 'Khách')) {
+            this.playerNameEl.innerText = t.profile.guest;
+        }
+        if (this.playerRankEl && (this.playerRankEl.innerText === 'Unranked' || this.playerRankEl.innerText === 'Chưa xếp hạng')) {
+            this.playerRankEl.innerText = t.profile.unranked;
+        }
+        const logoutBtn = byId('logoutBtn');
+        if (logoutBtn) logoutBtn.textContent = t.profile.disconnect;
+
+        // 3. HUD
+        const scoreBoxLabel = this.currentScoreBox?.querySelector('.label');
+        if (scoreBoxLabel) scoreBoxLabel.textContent = t.hud.score;
+        if (this.stopBtn) this.stopBtn.textContent = t.hud.stop;
+        const speedLabel = this.wave5SpeedControl?.querySelector('.speed-label');
+        if (speedLabel) speedLabel.innerHTML = `${t.hud.speedControl}: <span id="speedValDisplay">x${parseFloat(this.wave5SpeedSlider?.value || '1.0').toFixed(1)}</span>`;
+        // Re-assign display element because we just overwrote its parent's innerHTML
+        this.speedValDisplay = byId('speedValDisplay');
+        if (this.batteryLabel) this.batteryLabel.textContent = t.hud.energy;
+
+        // 4. MODALS
+        if (this.jlptCalibrationModal) {
+            const calibTitle = this.jlptCalibrationModal.querySelector('.summary-title');
+            if (calibTitle) calibTitle.textContent = t.modals.calibration;
+        }
+        if (this.startJLPTSessionBtn) this.startJLPTSessionBtn.textContent = t.modals.initialize;
+
+        if (this.summaryModal) {
+            const sumTitle = this.summaryModal.querySelector('.summary-title');
+            if (sumTitle) sumTitle.textContent = t.modals.tutorialComplete;
+            if (this.summaryCloseBtn) this.summaryCloseBtn.textContent = t.modals.continue;
+        }
+
+        if (this.synapseMatrixModal) {
+            const synTitle = this.synapseMatrixModal.querySelector('.summary-title');
+            if (synTitle) synTitle.textContent = t.modals.synapseMatrix;
+            const synHint = this.synapseMatrixModal.querySelector('p');
+            if (synHint) synHint.textContent = t.modals.absorptionStatus;
+            const synClose = byId('synapseCloseBtn');
+            if (synClose) synClose.textContent = t.modals.terminateSession;
+        }
+
+        if (this.stopConfirmModal) {
+            const stopTitle = this.stopConfirmModal.querySelector('.summary-title');
+            if (stopTitle) stopTitle.textContent = t.modals.systemWarning;
+            const stopText = this.stopConfirmModal.querySelector('p');
+            if (stopText) {
+                stopText.innerHTML = `${t.modals.stopConfirm}<br><span style="color: #ff4757; font-weight: bold;">${t.modals.unsavedWarning}</span>`;
+            }
+            if (this.confirmStopBtn) this.confirmStopBtn.textContent = t.modals.confirmStop;
+        }
+
+        // 5. FEEDBACK
+        if (this.feedbackModal) {
+            const fbTitle = this.feedbackModal.querySelector('.summary-title');
+            if (fbTitle) fbTitle.textContent = t.feedback.title;
+            const fbDesc = this.feedbackModal.querySelector('p');
+            if (fbDesc) fbDesc.innerHTML = `${t.feedback.desc}<br><span style="color: #ff00c1; font-size: 0.8rem;">[ TARGET: minhquan12092005@gmail.com ]</span>`;
+            const fbLabel = this.feedbackModal.querySelector('label');
+            if (fbLabel) fbLabel.textContent = t.feedback.label;
+            if (this.feedbackText) this.feedbackText.placeholder = t.feedback.placeholder;
+            if (this.sendFeedbackBtn) this.sendFeedbackBtn.textContent = t.feedback.send;
+        }
+
+        // 5. MUSIC
+        if (this.folderView) {
+            const libTitle = this.folderView.querySelector('h2');
+            if (libTitle) libTitle.textContent = t.music.library;
+            if (this.newFolderName) this.newFolderName.placeholder = t.music.newFolderPlace;
+            if (this.addFolderBtn) this.addFolderBtn.textContent = t.music.create;
+            const xClose = this.folderView.querySelector('.folder-x-close'); // Check if exists
+            if (xClose) xClose.textContent = '×'; // Keep icon
+        }
+        if (this.songView) {
+            if (this.newSongUrl) this.newSongUrl.placeholder = t.music.newSongPlace;
+            if (this.addSongBtn) this.addSongBtn.textContent = t.music.add;
+            if (this.backToFoldersBtn) this.backToFoldersBtn.textContent = "⬅ " + t.music.back;
+        }
+
+        // 6. GUIDE
+        if (this.generalGuideModal) {
+            const guideTitle = this.generalGuideModal.querySelector('h2');
+            if (guideTitle) guideTitle.textContent = t.guide.header;
+            const dontShowSpan = this.generalGuideModal.querySelector('.dont-show-again span');
+            if (dontShowSpan) dontShowSpan.textContent = t.guide.dontShow;
+            if (this.closeGuideBtn) this.closeGuideBtn.textContent = t.guide.understood;
+
+            const slides = this.generalGuideModal.querySelectorAll('.guide-slide');
+            slides.forEach((slide, index) => {
+                const sData = t.guide.slides[index];
+                if (!sData) return;
+                const badge = slide.querySelector('.badge');
+                if (badge) badge.textContent = sData.badge;
+                const h3 = slide.querySelector('h3');
+                if (h3) h3.textContent = sData.title;
+                const contentBody = slide.querySelector('.guide-slide-content');
+                if (contentBody) {
+                    let bodyHtml = `<p class="vibe-text">${sData.vibe}</p>`;
+                    if (sData.content) bodyHtml += `<p>${sData.content}</p>`;
+                    if (index < 4) {
+                        bodyHtml += `<ul>`;
+                        if (sData.bullet1) bodyHtml += `<li>${sData.bullet1}</li>`;
+                        if (sData.bullet2) bodyHtml += `<li>${sData.bullet2}</li>`;
+                        if (sData.bullet3) bodyHtml += `<li>${sData.bullet3}</li>`;
+                        bodyHtml += `</ul>`;
+                        if (sData.hint) bodyHtml += `<p class="hint">${sData.hint}</p>`;
+                    } else {
+                        bodyHtml += `<ul class="rank-list" style="list-style: none; padding-left: 0;">`;
+                        bodyHtml += `<li><strong style="color: #ffd700; text-shadow: 0 0 10px #ffd700;">${sData.rankS}</strong></li>`;
+                        bodyHtml += `<li><strong style="color: #00e676; text-shadow: 0 0 10px #00e676;">${sData.rankA}</strong></li>`;
+                        bodyHtml += `<li><strong style="color: #00f5ff; text-shadow: 0 0 10px #00f5ff;">${sData.rankB}</strong></li>`;
+                        bodyHtml += `<li><strong style="color: #ff9800; text-shadow: 0 0 10px #ff9800;">${sData.rankC}</strong></li>`;
+                        bodyHtml += `</ul>`;
+                        if (sData.hint) bodyHtml += `<p class="hint" style="text-align: center;">${sData.hint}</p>`;
+                    }
+                    contentBody.innerHTML = bodyHtml;
+                }
+            });
+        }
+
+        // 7. LEADERBOARD
+        if (this.leaderboardTerminal) {
+            const lbTitle = this.leaderboardTerminal.querySelector('.glitch-text');
+            if (lbTitle) {
+                lbTitle.textContent = t.leaderboard.title;
+                lbTitle.setAttribute('data-text', t.leaderboard.title);
+            }
+            if (this.leaderboardList && this.leaderboardList.querySelector('.loading-spinner')) {
+                this.leaderboardList.querySelector('.loading-spinner')!.textContent = t.leaderboard.syncing;
+            }
+            
+            const scopeBtns = this.leaderboardTerminal.querySelectorAll('.scope-btn');
+            if (scopeBtns.length >= 2) {
+                scopeBtns[0].textContent = t.leaderboard.global;
+                scopeBtns[1].textContent = t.leaderboard.friends;
+            }
+            
+            const metricBtns = this.leaderboardTerminal.querySelectorAll('.metric-btn');
+            if (metricBtns.length >= 3) {
+                metricBtns[0].textContent = t.leaderboard.score;
+                metricBtns[1].textContent = t.leaderboard.wpm;
+                metricBtns[2].textContent = t.leaderboard.acc;
+            }
+        }
+
+        // 8. JLPT HUB (If visible)
+        if (this.hubBackBtn) {
+            this.hubBackBtn.innerHTML = `<span class="back-icon">◄</span> ${t.hub.returnLobby}`;
+        }
+
+        if (this.jlptHubPage && !this.jlptHubPage.classList.contains('hidden')) {
+            const modeType = this.currentHubMode;
+            if (this.hubTargetType) {
+                if (modeType === 'study') this.hubTargetType.innerText = t.hub.vocabulary;
+                else if (modeType === 'kanji') this.hubTargetType.innerText = t.hub.kanji;
+                else if (modeType === 'grammar') this.hubTargetType.innerText = t.hub.grammar;
+            }
+            if (this.hubMainTitle) this.hubMainTitle.innerText = t.hub.archives;
+            this.renderJLPTUnits();
+        }
+
+        const hubStatsList = document.querySelectorAll('.zen-stat .zen-label');
+        if (hubStatsList.length >= 5) {
+            hubStatsList[0].textContent = t.hub.stats.overallRank;
+            hubStatsList[1].textContent = t.hub.stats.avgAccuracy;
+            hubStatsList[2].textContent = t.hub.stats.totalScore;
+            hubStatsList[3].textContent = t.hub.stats.avgWpm;
+            hubStatsList[4].textContent = t.hub.stats.progress;
+        }
+
+        // 9. START BUTTON & FEEDBACK
+        if (this.startBtn && !this.isGameActive) {
+            this.startBtn.textContent = t.messages.start;
+        }
+
+        // 10. AUDIO MIXER & MINI PLAYER
+        if (this.audioMixerDropdown) {
+            const playlistBtn = this.audioMixerDropdown.querySelector('#playlistBtn');
+            if (playlistBtn) playlistBtn.textContent = `⚙️ ${t.audio.playlist}`;
+            const mixerTitle = this.audioMixerDropdown.querySelector('h3');
+            if (mixerTitle) mixerTitle.textContent = t.audio.mixer;
+            
+            const labels = this.audioMixerDropdown.querySelectorAll('.mixer-row label');
+            if (labels.length >= 4) {
+                labels[0].textContent = t.audio.vocals;
+                labels[1].textContent = t.audio.bgm;
+                labels[2].textContent = t.audio.sfx;
+                labels[3].textContent = t.audio.ttsRate;
+            }
+            
+            const rateSelect = byId('ttsRateSelect') as HTMLSelectElement;
+            if (rateSelect) {
+                rateSelect.options[0].text = `0.7x (${t.audio.slow})`;
+                rateSelect.options[1].text = `0.9x (${t.audio.medium})`;
+                rateSelect.options[2].text = `1.2x (${t.audio.fast})`;
+            }
+        }
+
+        if (this.jlptCalibrationModal) {
+            const labels = this.jlptCalibrationModal.querySelectorAll('.mixer-row label');
+            if (labels.length >= 3) {
+                labels[0].textContent = t.audio.bgm;
+                labels[1].textContent = t.audio.sfx;
+                labels[2].textContent = t.audio.vocals;
+            }
+        }
+
+        const miniTitle = byId('mini-title');
+        if (miniTitle && (miniTitle.innerText === 'Chưa có bài hát...' || miniTitle.innerText === 'No song selected...')) {
+            miniTitle.innerText = t.music.noSong;
+        }
     }
 
     private setupGuideLogic() {
@@ -354,8 +629,9 @@ export class UISystem {
             }
 
             // Trạng thái đang gửi
-            this.sendFeedbackBtn!.innerText = '[ TRANSMITTING... ]';
-            this.sendFeedbackBtn!.disabled = true;
+                    const t = LanguageConfig.translations[LanguageConfig.current];
+                    this.sendFeedbackBtn!.innerText = t.feedback.sending;
+                    this.sendFeedbackBtn!.disabled = true;
 
             try {
                 // Lấy thông tin user hiện tại nếu có
@@ -394,8 +670,9 @@ export class UISystem {
                     }, PUBLIC_KEY);
                 }
 
+                const t = LanguageConfig.translations[LanguageConfig.current];
                 if (this.feedbackStatus) {
-                    this.feedbackStatus.innerText = '[ TRANSMISSION_SUCCESSFUL ]';
+                    this.feedbackStatus.innerText = t.feedback.success;
                     this.feedbackStatus.style.color = '#00e676';
                 }
 
@@ -404,12 +681,14 @@ export class UISystem {
 
             } catch (err: any) {
                 console.error('Feedback transmission failed:', err);
+                const t = LanguageConfig.translations[LanguageConfig.current];
                 if (this.feedbackStatus) {
-                    this.feedbackStatus.innerText = '[ ERROR: LINK_STABILITY_LOW ]';
+                    this.feedbackStatus.innerText = t.feedback.error;
                     this.feedbackStatus.style.color = '#ff3860';
                 }
             } finally {
-                this.sendFeedbackBtn!.innerText = '[ TRANSMIT_FEEDBACK ]';
+                const t = LanguageConfig.translations[LanguageConfig.current];
+                this.sendFeedbackBtn!.innerText = t.feedback.send;
                 this.sendFeedbackBtn!.disabled = false;
             }
         });
@@ -585,9 +864,10 @@ export class UISystem {
                         if (selectedMode && selectedMode !== '') {
                             let mainText = selectedMode.toUpperCase();
                             if (selectedMode === 'study') mainText = '言葉';
-                            if (selectedMode === 'kanji') mainText = '漢字';
+                            else if (selectedMode === 'kanji') mainText = '漢字';
+                            else if (selectedMode === 'grammar') mainText = '文法';
                             
-                            this.startBtn.innerText = (selectedMode === 'study' || selectedMode === 'kanji') && selectedLevel ? selectedLevel.toUpperCase() : mainText;
+                            this.startBtn.innerText = (selectedMode === 'study' || selectedMode === 'kanji' || selectedMode === 'grammar') && selectedLevel ? selectedLevel.toUpperCase() : mainText;
                             this.startBtn.style.fontSize = '2.6rem';
                             if (this.menuControls) this.menuControls.classList.add('collapsed');
                         } else {
@@ -610,9 +890,10 @@ export class UISystem {
                     if (selectedMode && selectedMode !== '') {
                         let mainText = selectedMode.toUpperCase();
                         if (selectedMode === 'study') mainText = '言葉';
-                        if (selectedMode === 'kanji') mainText = '漢字';
+                        else if (selectedMode === 'kanji') mainText = '漢字';
+                        else if (selectedMode === 'grammar') mainText = '文法';
 
-                        this.startBtn.innerText = (selectedMode === 'study' || selectedMode === 'kanji') && selectedLevel ? selectedLevel.toUpperCase() : mainText;
+                        this.startBtn.innerText = (selectedMode === 'study' || selectedMode === 'kanji' || selectedMode === 'grammar') && selectedLevel ? selectedLevel.toUpperCase() : mainText;
                         this.startBtn.style.fontSize = '2.6rem';
                     } else {
                         this.startBtn.innerText = "打検";
@@ -644,7 +925,8 @@ export class UISystem {
                     if (mode && this.startBtn) {
                         let label = mode.toUpperCase();
                         if (mode === 'study') label = '言葉';
-                        if (mode === 'kanji') label = '漢字';
+                        else if (mode === 'kanji') label = '漢字';
+                        else if (mode === 'grammar') label = '文法';
                         this.startBtn.innerText = label;
                         this.startBtn.style.fontSize = '2.6rem';
                         // Đánh dấu để Tier 2 chỉ hiện sub của mode này
@@ -661,7 +943,7 @@ export class UISystem {
                 if (target.closest('.sub-blade')) return;
 
                 let mode = (e.currentTarget as HTMLElement).getAttribute('data-mode');
-                if (mode && mode !== 'study') {
+                if (mode && mode !== 'study' && mode !== 'kanji' && mode !== 'grammar') {
                     this.currentMode = mode;
                     document.querySelectorAll('.fan-blade').forEach(p => p.classList.remove('active'));
                     (e.currentTarget as HTMLElement).classList.add('active');
@@ -670,7 +952,8 @@ export class UISystem {
                     if (this.startBtn) {
                         let label = mode.toUpperCase();
                         if (mode === 'study') label = '言葉';
-                        if (mode === 'kanji') label = '漢字';
+                        else if (mode === 'kanji') label = '漢字';
+                        else if (mode === 'grammar') label = '文法';
                         this.startBtn.innerText = label;
                         this.startBtn.style.fontSize = '2.6rem';
                         this.startBtn.setAttribute('data-mode', mode); // Save for later retrieval
@@ -754,6 +1037,13 @@ export class UISystem {
                 // Reset states
                 this.updateHp(5);
                 this.updateScore(0);
+                
+                // Reset Wave 5 speed control
+                if (this.wave5SpeedSlider) {
+                    this.wave5SpeedSlider.value = "1.0";
+                    if (this.speedValDisplay) this.speedValDisplay.innerText = "x1.0";
+                    EventBus.getInstance().publish('GAME_SPEED_CHANGE', 1.0);
+                }
 
                 // Nạp playlist xuống AudioSystem - ALWAYS ENABLED FOR ALL MODES
                 let useYoutube = true;
@@ -813,8 +1103,12 @@ export class UISystem {
                     this.stopConfirmModal.classList.add('hidden');
                     this.stopConfirmModal.classList.remove('show');
                 }
+                
+                // Gửi sự kiện để Engine và các hệ thống khác dọn dẹp
                 EventBus.getInstance().publish('GAME_OVER', null);
                 EventBus.getInstance().publish('GAME_STOPPED', null);
+                
+                // Ẩn HUD Terminal ngay lập tức
                 if (this.hudTerminal) this.hudTerminal.classList.remove('show');
             });
         }
@@ -915,7 +1209,8 @@ export class UISystem {
                 let u = this.newSongUrl.value.trim();
                 let folder = this.myLibrary.find(f => f.id === this.viewingFolderId);
                 if (u && folder) {
-                    this.addSongBtn!.innerText = "Đang lấy...";
+                    const t = LanguageConfig.translations[LanguageConfig.current];
+                    this.addSongBtn!.innerText = t.music.fetching;
                     (this.addSongBtn as HTMLButtonElement).disabled = true;
                     let songTitle = u;
                     try {
@@ -927,7 +1222,7 @@ export class UISystem {
                     folder.songs.push({ url: u, title: songTitle });
                     this.saveLibrary();
 
-                    this.addSongBtn!.innerText = "Thêm";
+                    this.addSongBtn!.innerText = t.music.add;
                     (this.addSongBtn as HTMLButtonElement).disabled = false;
                     this.newSongUrl.value = "";
                     this.renderSongList();
@@ -1038,8 +1333,8 @@ export class UISystem {
                 if (this.jlptCalibrationModal) this.jlptCalibrationModal.classList.add('hidden');
                 if (this.jlptHubPage) this.jlptHubPage.classList.add('hidden');
 
-                this.currentMode = 'study';
-                this.currentStudyLevel = 'n2';
+                this.currentMode = this.currentHubMode;
+                this.currentStudyLevel = this.currentHubLevel;
 
                 const data = StateManager.getInstance().getN2HubData();
                 if (this.currentN2Context && data) {
@@ -1052,8 +1347,8 @@ export class UISystem {
                     if (this.stopBtn) this.stopBtn.classList.remove('hidden');
 
                     EventBus.getInstance().publish('GAME_START_N2', {
-                        mode: 'study',
-                        studyLevel: 'n2',
+                        mode: this.currentHubMode,
+                        studyLevel: this.currentHubLevel,
                         words: sessionWords,
                         unitIdx: this.currentN2Context.unitIdx,
                         sessionIdx: this.currentN2Context.sessionIdx
@@ -1068,27 +1363,10 @@ export class UISystem {
             sm.studyLanguage = sm.studyLanguage === 'vi' ? 'en' : 'vi';
             
             this.updateFlagUI();
+            this.applyLanguage();
             
             EventBus.getInstance().publish('LANGUAGE_CHANGED', sm.studyLanguage);
             EventBus.getInstance().publish('PLAY_SUBMIT');
-
-            // Refresh Hub if visible
-            if (this.jlptHubPage && !this.jlptHubPage.classList.contains('hidden')) {
-                const curText = this.hubTargetType?.innerText || '';
-                const modeType = (curText === '語彙' || curText === 'Vocabulary' || curText === 'Từ Vựng' || curText === 'Từ vựng') ? 'study' : 'kanji';
-                
-                // Update Hub Subtitle immediately
-                if (this.hubTargetType) {
-                    if (sm.studyLanguage === 'vi') {
-                        this.hubTargetType.innerText = modeType === 'study' ? 'Từ Vựng' : 'Hán Tự';
-                        if (this.hubMainTitle) this.hubMainTitle.innerText = '蔵経閣';
-                    } else {
-                        this.hubTargetType.innerText = modeType === 'study' ? 'Vocabulary' : 'Kanji';
-                        if (this.hubMainTitle) this.hubMainTitle.innerText = 'NEURAL ARCHIVES';
-                    }
-                }
-                this.renderJLPTUnits();
-            }
         });
     }
 
@@ -1096,7 +1374,8 @@ export class UISystem {
         const events = EventBus.getInstance();
 
         events.subscribe('GAME_OVER', () => {
-            if (this.currentMode === 'study' && this.currentStudyLevel === 'n2') {
+            const isStudy = (this.currentMode === 'study' || this.currentMode === 'kanji' || this.currentMode === 'grammar');
+            if (isStudy) {
                 if (this.menuControls) {
                     this.menuControls.classList.add('hidden');
                 }
@@ -1108,10 +1387,11 @@ export class UISystem {
             }
             if (this.stopBtn) this.stopBtn.classList.add('hidden');
             if (this.currentScoreBox) this.currentScoreBox.classList.add('hidden');
+            if (this.wave5SpeedControl) this.wave5SpeedControl.classList.add('hidden');
 
             // Xoá trạng thái lưu của mode, trả Lõi về form gốc để các nan quạt bung ra
             if (this.startBtn) {
-                this.startBtn.innerText = "打検";
+                this.startBtn.innerText = LanguageConfig.translations[LanguageConfig.current].messages.start;
             }
         });
 
@@ -1182,7 +1462,7 @@ export class UISystem {
         events.subscribe('COMBO_UPDATED', (count: number) => {
             if (count > this.maxComboAchieved) this.maxComboAchieved = count;
             if (this.comboLabel) {
-                if (count >= 3) {
+                if (count >= 2) {
                     this.comboLabel.innerText = `COMBO x${count}`;
                     this.comboLabel.classList.remove('hidden');
                 } else {
@@ -1283,9 +1563,12 @@ export class UISystem {
                 exampleJpRaw = exampleJpRaw.replace(/\[(.*?)\]/g, '<span style="color: var(--neon-cyan); letter-spacing: 2px;">[ _ _ _ _ ]</span>');
                 let exampleJp = exampleJpRaw.replace(/\{([^|]+)\|([^}]+)\}/g, '<ruby>$1<rt>$2</rt></ruby>');
 
+                const t = LanguageConfig.translations[LanguageConfig.current];
+                const promptText = t.messages.fillBlanks;
+                
                 let html = `
                     <div class="bubble-header" style="align-items: center; justify-content: center; margin-bottom: 20px;">
-                        <span style="font-size: 1.2rem; font-weight: 700; color: #fff; opacity: 0.7;">Q: Hãy điền vào chỗ trống</span>
+                        <span style="font-size: 1.2rem; font-weight: 700; color: #fff; opacity: 0.7;">${promptText}</span>
                     </div>
                     <div class="bubble-example-jp" style="font-size: 1.5rem; line-height: 1.8; text-align: center; margin-bottom: 15px;">
                         ${exampleJp}
@@ -1327,7 +1610,15 @@ export class UISystem {
                 this.hudTerminal.classList.remove('show');
                 return;
             }
-            // (Bỏ khai báo vì const word = enemy.word đã có ở trên đầu)
+
+            const t = LanguageConfig.translations[LanguageConfig.current];
+            const lang = this.stateManager.studyLanguage;
+            const isEn = lang === 'en';
+            let meaningText = isEn ? (word.en || word.vi || '') : (word.vi || '');
+            if (isHidden) {
+                meaningText = (enemy.study.revealType === 'vi') ? meaningText : "???";
+            }
+
             let exampleJpRaw = word.example_jp || word.visual;
             // Tô sáng phần trong ngoặc bằng màu vàng
             exampleJpRaw = exampleJpRaw.replace(/\[(.*?)\]/g, '<span style="color: #ffd700; text-shadow: 0 0 5px rgba(255,215,0,0.5);">$1</span>');
@@ -1336,15 +1627,13 @@ export class UISystem {
                 : exampleJpRaw.replace(/\{([^|]+)\|([^}]+)\}/g, '<ruby>$1<rt>$2</rt></ruby>');
 
             let romajiText = isHidden ? "???" : word.romaji;
-            const lang = this.stateManager.studyLanguage;
-            let meaningText = isHidden ? (enemy.study.revealType === 'vi' ? (lang === 'en' ? word.en : word.vi) : "???") : (lang === 'en' ? word.en : word.vi) || '';
-            let exampleMeaningText = isHidden ? "???" : (lang === 'en' ? (word.example_en || '') : (word.example_vi || ''));
-            let hanvietText = isHidden && enemy.study.revealType === 'vi' ? "???" : (word.hanviet || '---');
+            let exampleMeaningText = isHidden ? "???" : (isEn ? (word.example_en || '') : (word.example_vi || ''));
+            const hanvietHtml = !isEn && word.hanviet ? `<span class="bubble-hanviet" style="margin-right: 12px;">[${isHidden && enemy.study.revealType === 'vi' ? '???' : word.hanviet}]</span>` : '';
 
             let html = `
                 <div class="bubble-header" style="align-items: baseline;">
                     <div>
-                        <span class="bubble-hanviet" style="margin-right: 12px;">[${hanvietText}]</span>
+                        ${hanvietHtml}
                         <span style="font-size: 1.6rem; font-weight: 700; color: #fff; text-shadow: 0 0 10px rgba(255,255,255,0.5); font-family: 'Noto Sans JP', sans-serif;">${isHidden && enemy.study.revealType === 'vi' ? '???' : word.visual}</span>
                     </div>
                     <span class="bubble-vi" style="text-align: right;">${meaningText}</span>
@@ -1352,7 +1641,7 @@ export class UISystem {
                 <div class="bubble-romaji">${romajiText}</div>
                 <div class="bubble-example-jp" style="position: relative; padding-right: 30px;">
                     ${exampleJp}
-                    ${!isHidden ? `<button id="ttsReplayBtn" style="position: absolute; right: 0; top: 50%; transform: translateY(-50%); background: none; border: none; font-size: 1.2rem; cursor: pointer; color: var(--neon-cyan); opacity: 0.8; transition: transform 0.1s; padding: 5px;" onmouseover="this.style.opacity='1'; this.style.transform='translateY(-50%) scale(1.2)'" onmouseout="this.style.opacity='0.8'; this.style.transform='translateY(-50%) scale(1)'" title="Nghe lại">🔊</button>` : ''}
+                    ${!isHidden ? `<button id="ttsReplayBtn" style="position: absolute; right: 0; top: 50%; transform: translateY(-50%); background: none; border: none; font-size: 1.2rem; cursor: pointer; color: var(--neon-cyan); opacity: 0.8; transition: transform 0.1s; padding: 5px;" onmouseover="this.style.opacity='1'; this.style.transform='translateY(-50%) scale(1.2)'" onmouseout="this.style.opacity='0.8'; this.style.transform='translateY(-50%) scale(1)'" title="${t.hud.replayTooltip}">🔊</button>` : ''}
                 </div>
                 <div class="bubble-example-vi">${exampleMeaningText}</div>
                 ${(lang === 'en' ? (word.grammar_en || word.grammar) : (word.grammar_vi || word.grammar)) ? `<div class="bubble-grammar"><span class="grammar-icon">💡</span> ${lang === 'en' ? (word.grammar_en || word.grammar) : (word.grammar_vi || word.grammar)}</div>` : ''}
@@ -1370,8 +1659,9 @@ export class UISystem {
                 });
             }
 
-            if (this.bufferTrash && enemy.mode === 'study' && enemy.study.wave >= 2) {
-                this.bufferTrash.innerHTML = `<span style="color: rgba(255,255,255,0.2); font-size: 0.7em;">[ Nhấn ENTER nếu quên từ ]</span>`;
+            if (this.bufferTrash && (enemy.mode === 'study' || enemy.mode === 'kanji' || enemy.mode === 'grammar') && enemy.study.wave >= 2) {
+                const t = LanguageConfig.translations[LanguageConfig.current];
+                this.bufferTrash.innerHTML = `<span style="color: rgba(255,255,255,0.2); font-size: 0.65em;">${t.hud.pressEnterReveal}</span>`;
             }
 
             if (enemy.mode === 'study' && enemy.study.wave === 1) {
@@ -1442,6 +1732,9 @@ export class UISystem {
         });
 
         events.subscribe('STUDY_SESSION_END', () => {
+            if (this.isSessionEnding && this.synapseMatrixModal && !this.synapseMatrixModal.classList.contains('hidden')) return;
+            this.isSessionEnding = true;
+            
             // Lưu kết quả của Wave hiện tại (bất kể wave nào) trước khi hiện bảng tổng kết
             this.waveResults[this.currentWaveNumber] = {
                 baseScore: this.currentWaveBaseScore,
@@ -1500,21 +1793,28 @@ export class UISystem {
                 }
             }
 
+            const lang = LanguageConfig.current;
+            const isEn = lang === 'en';
+            const translation = isEn ? (word.en || word.vi) : word.vi;
+            const exampleTranslation = isEn ? (word.example_en || word.example_vi) : word.example_vi;
+            const grammarTranslation = isEn ? (word.grammar_en || word.grammar_vi || word.grammar) : (word.grammar_vi || word.grammar);
+            const hanvietHtml = !isEn && word.hanviet ? `<span class="bubble-hanviet" style="color:${resultColor}; margin-right: 12px;">[${word.hanviet}]</span>` : '';
+
             let html = `
                 <div class="bubble-header" style="align-items: baseline;">
                     <div>
-                        <span class="bubble-hanviet" style="color:${resultColor}; margin-right: 12px;">[${word.hanviet || '---'}]</span>
+                        ${hanvietHtml}
                         <span style="font-size: 1.6rem; font-weight: 700; color: ${resultColor}; text-shadow: 0 0 10px ${resultColor}80; font-family: 'Noto Sans JP', sans-serif;">${word.visual}</span>
                     </div>
-                    <span class="bubble-vi" style="color:${resultColor}; text-align: right;">${word.vi || ''}</span>
+                    <span class="bubble-vi" style="color:${resultColor}; text-align: right;">${translation || ''}</span>
                 </div>
                 <div class="bubble-romaji" style="color:${resultColor};">${word.romaji}</div>
                 <div class="bubble-example-jp" style="position: relative; padding-right: 30px;">
                     ${exampleJp}
-                    <button id="ttsReplayBtnDefeated" style="position: absolute; right: 0; top: 50%; transform: translateY(-50%); background: none; border: none; font-size: 1.2rem; cursor: pointer; color: var(--neon-cyan); opacity: 0.8; transition: transform 0.1s; padding: 5px;" onmouseover="this.style.opacity='1'; this.style.transform='translateY(-50%) scale(1.2)'" onmouseout="this.style.opacity='0.8'; this.style.transform='translateY(-50%) scale(1)'" title="Nghe lại toàn bộ">🔊</button>
+                    <button id="ttsReplayBtnDefeated" style="position: absolute; right: 0; top: 50%; transform: translateY(-50%); background: none; border: none; font-size: 1.2rem; cursor: pointer; color: var(--neon-cyan); opacity: 0.8; transition: transform 0.1s; padding: 5px;" onmouseover="this.style.opacity='1'; this.style.transform='translateY(-50%) scale(1.2)'" onmouseout="this.style.opacity='0.8'; this.style.transform='translateY(-50%) scale(1)'" title="Replay">🔊</button>
                 </div>
-                <div class="bubble-example-vi" style="color:${resultColor};">${word.example_vi || ''}</div>
-                ${(word.grammar_vi || word.grammar) ? `<div class="bubble-grammar"><span class="grammar-icon">💡</span> ${word.grammar_vi || word.grammar}</div>` : ''}
+                <div class="bubble-example-vi" style="color:${resultColor};">${exampleTranslation || ''}</div>
+                ${grammarTranslation ? `<div class="bubble-grammar"><span class="grammar-icon">💡</span> ${grammarTranslation}</div>` : ''}
             `;
             this.hudTerminal.innerHTML = html;
             if (enemy && enemy.mode === 'study') {
@@ -1547,7 +1847,8 @@ export class UISystem {
             }
 
             if (!trashPart && !typedPart && this.currentWaveNumber >= 2) {
-                this.bufferTrash.innerHTML = `<span style="color: rgba(255,255,255,0.2); font-size: 0.7em;">[ Nhấn ENTER nếu quên từ ]</span>`;
+                const t = LanguageConfig.translations[LanguageConfig.current];
+                this.bufferTrash.innerHTML = `<span style="color: rgba(255,255,255,0.2); font-size: 0.65em;">${t.hud.pressEnter}</span>`;
             } else {
                 this.bufferTrash.innerText = trashPart;
             }
@@ -1564,15 +1865,10 @@ export class UISystem {
             this.savedBaseScore += points;
             this.currentWaveBaseScore += points;
 
-            // Wave 5: Tự động chốt đơn khi đạt 3000 điểm
-            if (this.currentMode === 'study' && this.currentWaveNumber === 5 && this.currentScore >= 3000) {
-                setTimeout(() => {
-                    EventBus.getInstance().publish('STUDY_SESSION_END', null);
-                }, 500);
-            }
 
             // Add to combat log
-            const label = data.combo > 1 ? `COMBO x${data.combo}` : 'WORD CLEAR';
+            const t = LanguageConfig.translations[LanguageConfig.current];
+            const label = data.combo > 1 ? `COMBO x${data.combo}` : t.messages.wordClear;
             this.addScoreFeedItem(points, label);
 
             // Xóa buffer UI
@@ -1616,7 +1912,8 @@ export class UISystem {
                 }
                 setTimeout(() => {
                     if (this.bufferTrash) {
-                        this.bufferTrash.innerHTML = `<span class="blink" style="color: var(--neon-cyan); font-size: 0.8em; letter-spacing: 1px;">[ BẤM SPACE ĐỂ QUA TỪ ]</span>`;
+                        const t = LanguageConfig.translations[LanguageConfig.current];
+                        this.bufferTrash.innerHTML = `<span class="blink" style="color: var(--neon-cyan); font-size: 0.65em; letter-spacing: 1px;">${t.hud.pressSpaceNext}</span>`;
                     }
                     if (this.bufferTyped) {
                         this.bufferTyped.innerText = "";
@@ -1687,14 +1984,16 @@ export class UISystem {
             if (this.messageCenter && this.msgTitle && this.msgSub) {
                 this.messageCenter.classList.remove('hidden');
 
+                const t = LanguageConfig.translations[LanguageConfig.current];
                 if (bonusPoints > 0) {
-                    this.msgTitle.innerText = bonusLabel;
+                    const localizedLabel = bonusLabel === "GOLD CLEAR" ? t.messages.goldClear : (bonusLabel === "SILVER CLEAR" ? t.messages.silverClear : t.messages.bronzeClear);
+                    this.msgTitle.innerText = localizedLabel;
                     this.msgTitle.style.color = bonusLabel === "GOLD CLEAR" ? "#ffd700" : (bonusLabel === "SILVER CLEAR" ? "#c0c0c0" : "#cd7f32");
-                    this.msgSub.innerText = `+${bonusPoints} Time Bonus!\n[ BẤM SPACE ĐỂ TIẾP TỤC ]`;
+                    this.msgSub.innerText = `+${bonusPoints} ${t.messages.timeBonus}\n${t.hud.pressSpaceContinue}`;
                 } else {
-                    this.msgTitle.innerText = "WAVE CLEARED";
+                    this.msgTitle.innerText = t.messages.waveCleared;
                     this.msgTitle.style.color = "#00e676";
-                    this.msgSub.innerText = isWaitingManual ? "[ BẤM SPACE ĐỂ TIẾP TỤC ]" : "Chuẩn bị đợt mới...";
+                    this.msgSub.innerText = isWaitingManual ? t.hud.pressSpaceContinue : t.messages.preparingNextWave;
                 }
 
                 this.msgSub.style.color = "#fff";
@@ -1724,7 +2023,8 @@ export class UISystem {
             }
 
             // Restore UI (Show Menu, Hide Stop)
-            if (this.currentMode === 'study' && this.currentStudyLevel === 'n2') {
+            const isStudyMode = (this.currentMode === 'study' || this.currentMode === 'kanji' || this.currentMode === 'grammar');
+            if (isStudyMode && this.currentStudyLevel === 'n2') {
                 this.openJLPTHub();
                 if (this.menuControls) {
                     this.menuControls.classList.add('hidden'); // Ensure menu is hidden
@@ -1738,31 +2038,33 @@ export class UISystem {
 
             if (this.stopBtn) this.stopBtn.classList.add('hidden');
             if (this.audioMixerDropdown) this.audioMixerDropdown.classList.add('hidden');
+            if (this.wave5SpeedControl) this.wave5SpeedControl.classList.add('hidden');
             if (this.miniPlayer) this.miniPlayer.classList.remove('hidden');
             if (this.mainPlaylistHud) this.mainPlaylistHud.classList.add('hidden');
 
 
 
+            const t = LanguageConfig.translations[LanguageConfig.current];
             // Hiển thị thông báo nếu do chết (HP <= 0), không hiển thị nếu bấm STOP khi HP > 0
             if (this.currentHp <= 0) {
                 if (this.messageCenter && this.msgTitle && this.msgSub) {
                     this.messageCenter.classList.remove('hidden');
                     if (this.currentMode === 'study' && this.currentWaveNumber >= 5) {
-                        this.msgTitle.innerText = "BATTERY DEPLETED";
+                        this.msgTitle.innerText = t.messages.batteryDepleted;
                         this.msgTitle.style.color = "var(--neon-cyan)";
-                        this.msgSub.innerText = "CALCULATING RESULTS...";
+                        this.msgSub.innerText = t.messages.calculating;
                     } else {
-                        this.msgTitle.innerText = "BUSTED!";
+                        this.msgTitle.innerText = t.messages.busted;
                         this.msgTitle.style.color = "var(--danger)";
-                        this.msgSub.innerText = `Chết nhục nhã. Điểm: ${this.currentScore}`;
+                        this.msgSub.innerText = `${t.messages.sessionTerminated} ${this.currentScore}`;
                     }
                 }
             } else {
                 if (this.messageCenter && this.msgTitle && this.msgSub) {
                     this.messageCenter.classList.remove('hidden');
-                    this.msgTitle.innerText = "NINJA TYPING";
+                    this.msgTitle.innerText = t.messages.ninjaTyping;
                     this.msgTitle.style.color = "var(--primary-glow)";
-                    this.msgSub.innerText = `Chọn cấu hình và nhấn START để quẩy!`;
+                    this.msgSub.innerText = t.messages.configure;
                 }
             }
             if (this.bufferTyped) this.bufferTyped.innerText = "";
@@ -1784,8 +2086,9 @@ export class UISystem {
 
             // Hiện thông báo popup siêu cool về Rank
             if (this.messageCenter && this.msgTitle && this.msgSub) {
+                const t = LanguageConfig.translations[LanguageConfig.current];
                 this.messageCenter.classList.remove('hidden');
-                this.msgTitle.innerText = `SESSION CLEARED - RANK ${data.rank}`;
+                this.msgTitle.innerText = `${t.messages.sessionCleared} - RANK ${data.rank}`;
                 let color = "var(--primary-glow)";
                 if (data.rank === 'S') color = "#FFD700";
                 if (data.rank === 'A') color = "#00e676";
@@ -1804,7 +2107,14 @@ export class UISystem {
 
         // Bắt event update Music Info từ AudioSystem
         events.subscribe('MUSIC_INFO_UPDATED', (data: { title: string, progress: number, playing: boolean }) => {
-            if (this.miniTitle) this.miniTitle.innerText = data.title;
+            const t = LanguageConfig.translations[LanguageConfig.current];
+            if (this.miniTitle) {
+                let displayTitle = data.title;
+                if (displayTitle === "Ready to play...") {
+                    displayTitle = t.music.noSong;
+                }
+                this.miniTitle.innerText = displayTitle;
+            }
             if (this.miniProgressFill) this.miniProgressFill.style.width = `${data.progress}%`;
 
             if (this.miniPlayBtn) {
@@ -1851,7 +2161,20 @@ export class UISystem {
         };
 
         const onMatchEnd = () => {
+            // Guard: Chỉ thực hiện dọn dẹp nếu game đang thực sự active
+            if (!this.isGameActive) return;
             this.isGameActive = false;
+
+            console.log("[UISystem] onMatchEnd - Cleaning up UI...");
+
+            // Ẩn tất cả các modal có thể gây nhiễu ngay lập tức
+            [this.summaryModal, this.synapseMatrixModal, this.stopConfirmModal, this.messageCenter, this.jlptCalibrationModal].forEach(m => {
+                if (m) {
+                    m.classList.add('hidden');
+                    m.classList.remove('show');
+                }
+            });
+
             if (this.currentScoreBox) {
                 this.currentScoreBox.classList.add('hidden');
                 this.currentScoreBox.style.display = 'none';
@@ -1871,6 +2194,15 @@ export class UISystem {
             // Hiện lại profile card nếu đang ở Lobby
             if (this.profileCard && AuthSystem.getInstance().isLoggedIn()) {
                 this.profileCard.classList.remove('hidden');
+            }
+
+            // Nếu đang trong mode học và chuyển ra hub, đảm bảo hub được hiện đúng cách
+            if (this.currentMode === 'study' || this.currentMode === 'kanji' || this.currentMode === 'grammar') {
+                // Chúng ta không gọi showJLPTHub ở đây vì GAME_OVER subscriber khác (ở dòng 3215) đã xử lý
+                // Tuy nhiên cần đảm bảo các HUD kịch vây cá (menuControls) được xử lý
+                if (this.menuControls) {
+                    this.menuControls.classList.add('hidden');
+                }
             }
         };
 
@@ -2012,8 +2344,9 @@ export class UISystem {
         }
         const state = StateManager.getInstance();
 
+        const t = LanguageConfig.translations[LanguageConfig.current];
         if (this.playerNameEl) {
-            this.playerNameEl.innerText = user?.name || "Khách";
+            this.playerNameEl.innerText = user?.name || t.profile.guest;
         }
         if (this.playerTagEl) {
             this.playerTagEl.innerText = `#${user?.agentId || '000000'}`;
@@ -2082,7 +2415,7 @@ export class UISystem {
         } else {
             if (this.avgAccEl) this.avgAccEl.innerText = "0%";
             if (this.avgWpmEl) this.avgWpmEl.innerText = "0";
-            if (this.playerRankEl) this.playerRankEl.innerText = "Chưa xếp hạng";
+            if (this.playerRankEl) this.playerRankEl.innerText = t.profile.unranked;
         }
     }
 
@@ -2201,7 +2534,8 @@ export class UISystem {
 
         if (this.currentHp <= 0) {
             // Kết thúc phiên học nếu hết pin ở Wave 5
-            if (this.currentMode === 'study' && this.currentWaveNumber >= 5) {
+            if (this.currentMode === 'study' && this.currentWaveNumber >= 5 && !this.isSessionEnding) {
+                this.isSessionEnding = true;
                 EventBus.getInstance().publish('STUDY_SESSION_END', null);
             } else if (this.currentMode !== 'study') {
                 EventBus.getInstance().publish('GAME_OVER', null);
@@ -2458,20 +2792,44 @@ export class UISystem {
         if (!this.waveLabel || !this.waveProgressContainer) return;
         if (this.waveProgressContainer.classList.contains('hidden')) return;
 
+        const batteryContainer = byId('hpBatteryContainer');
+        const barFill = byId('waveProgressBarFill');
+        const pctText = byId('wavePercentText');
+
         if (this.currentWaveNumber === 5) {
             this.waveLabel.innerText = `WAVE 05 (ENDLESS)`;
             // Hides the segments and progress bar in Endless Sprint
-            const barFill = byId('waveProgressBarFill');
-            const pctText = byId('wavePercentText');
             if (barFill) barFill.parentElement!.style.display = 'none';
             if (pctText) pctText.parentElement!.style.display = 'none';
+
+            // Di chuyển thanh pin vào giữa thay thế thanh tiến trình
+            if (batteryContainer && this.waveProgressContainer && !this.waveProgressContainer.contains(batteryContainer)) {
+                this.waveProgressContainer.appendChild(batteryContainer);
+                batteryContainer.style.marginTop = '0';
+                batteryContainer.style.display = 'flex';
+                // Ẩn nhãn khi đưa vào giữa cho gọn
+                const label = batteryContainer.querySelector('.battery-label') as HTMLElement;
+                if (label) label.style.display = 'none';
+            }
+
+            // Show speed control
+            if (this.wave5SpeedControl) this.wave5SpeedControl.classList.remove('hidden');
         } else {
             this.waveLabel.innerText = `WAVE ${this.currentWaveNumber.toString().padStart(2, '0')}`;
+            if (this.wave5SpeedControl) this.wave5SpeedControl.classList.add('hidden');
 
-            const barFill = byId('waveProgressBarFill');
-            const pctText = byId('wavePercentText');
             if (barFill) barFill.parentElement!.style.display = 'block';
             if (pctText) pctText.parentElement!.style.display = 'flex';
+
+            // Trả thanh pin về vị trí cũ ở góc trái
+            const topLeftWrapper = document.querySelector('.top-left-wrapper');
+            if (batteryContainer && topLeftWrapper && !topLeftWrapper.contains(batteryContainer)) {
+                topLeftWrapper.appendChild(batteryContainer);
+                batteryContainer.style.marginTop = '15px';
+                // Hiện lại nhãn khi ở góc trái
+                const label = batteryContainer.querySelector('.battery-label') as HTMLElement;
+                if (label) label.style.display = 'block';
+            }
 
             let processedCount = 0;
             for (let i = 0; i < this.enemiesSpawnedThisWave; i++) {
@@ -2589,11 +2947,8 @@ export class UISystem {
 
     private showSynapseMatrix() {
         if (!this.synapseMatrixModal) return;
-        this.synapseMatrixModal.classList.remove('hidden');
-        this.synapseMatrixModal.classList.add('show');
 
         EventBus.getInstance().publish('GAME_OVER', null);
-
 
         // 1. Tính toán Rank dựa trên điểm số
         const thresholds = GameConfig.rankThresholds;
@@ -2654,6 +3009,8 @@ export class UISystem {
             </div>
         `;
         this.synapseMatrixModal.innerHTML = html;
+        this.synapseMatrixModal.classList.remove('hidden');
+        this.synapseMatrixModal.classList.add('show');
 
         this.synapseMatrixModal.querySelector('#closeSynapseBtn')?.addEventListener('click', () => {
             this.synapseMatrixModal?.classList.add('hidden');
@@ -2706,8 +3063,8 @@ export class UISystem {
     }
 
     private renderSVGRadialMenu() {
-        const tier1 = byId('svgTier1') as SVGElement | null;
-        const tier2 = byId('svgTier2') as SVGElement | null;
+        const tier1 = byId('svgTier1') as unknown as SVGElement | null;
+        const tier2 = byId('svgTier2') as unknown as SVGElement | null;
         if (!tier1 || !tier2) return;
 
         const cx = 250, cy = 250;
@@ -2724,31 +3081,38 @@ export class UISystem {
         tier1.appendChild(tier1Cushion);
 
         // --- TIER 1 --- (4 Chế độ = 90 độ mỗi Mode)
-        const modes = [
+        const modes: any[] = [
             { id: "custom", text: "CUSTOM (SOON)", start: -45, end: 45, mode: 'custom', disabled: true },  // TOP 
-            { id: "studyBlade", text: "言葉", start: 45, end: 135, mode: 'study', disabled: false, hasSub: true }, // RIGHT (WORDS)
-            { id: "kanjiBlade", text: "漢字", start: 135, end: 225, mode: 'kanji', disabled: false, hasSub: true }, // BOTTOM
-            { id: "grammar", text: "文法 (SOON)", start: 225, end: 315, mode: 'grammar', disabled: true }  // LEFT (GRAMMAR)
+            { id: "studyBlade", text: "言葉", start: 45, end: 135, mode: 'study', disabled: !GameConfig.features.enableStudy, hasSub: true }, // RIGHT (WORDS)
+            { id: "kanjiBlade", text: "漢字", start: 135, end: 225, mode: 'kanji', disabled: !GameConfig.features.enableKanji, hasSub: true }, // BOTTOM
+            { id: "grammarBlade", text: "文法", start: 225, end: 315, mode: 'grammar', disabled: !GameConfig.features.enableGrammar, hasSub: true }  // LEFT (GRAMMAR)
         ];
 
         let defs = document.querySelector('#radialSvg defs');
 
         modes.forEach(m => {
+            // Nếu bị tắt, thêm hậu tố SOON và buộc dùng màu xanh (bằng cách bỏ hasSub giả)
+            const displayDisabled = m.disabled;
+            const displayText = displayDisabled && m.mode !== 'custom' ? `${m.text} (SOON)` : m.text;
+
             let g = document.createElementNS("http://www.w3.org/2000/svg", "g");
             g.setAttribute("class", "fan-blade");
             g.setAttribute("data-mode", m.mode);
-            if ((m as any).disabled) {
+            if (displayDisabled) {
                 g.classList.add("disabled-blade");
                 g.style.opacity = "0.3";
                 g.style.pointerEvents = "none";
             }
-            if ((m as any).hasSub) {
+            
+            // Chỉ thêm has-sub và ID hiệu ứng nếu mode đang được kích hoạt
+            if (m.hasSub && !displayDisabled) {
                 g.classList.add("has-sub");
                 g.setAttribute("id", m.id);
 
                 // Cầu nối tàng hình giúp duy trì hover từ Tier 1 qua Tier 2, chống bug "né chuột"
+                let bridgeRadius = 200;
                 let studyBridge = document.createElementNS("http://www.w3.org/2000/svg", "path");
-                studyBridge.setAttribute("d", this.describeArc(cx, cy, 200, 255, m.start - 5, m.end + 5, true));
+                studyBridge.setAttribute("d", this.describeArc(cx, cy, bridgeRadius, 255, m.start - 5, m.end + 5, true));
                 studyBridge.setAttribute("fill", "rgba(0,0,0,0)");
                 studyBridge.setAttribute("stroke", "none");
                 g.appendChild(studyBridge);
@@ -2776,7 +3140,7 @@ export class UISystem {
             tp.setAttribute("href", `#${tpId}`);
             tp.setAttribute("startOffset", "50%");
             tp.setAttribute("text-anchor", "middle");
-            tp.textContent = m.text;
+            tp.textContent = displayText;
 
             txt.appendChild(tp);
             g.appendChild(path);
@@ -2794,7 +3158,7 @@ export class UISystem {
         ];
 
         // Render sub-blades and sticky-bridges for each mode that has them
-        modes.filter(m => (m as any).hasSub).forEach(parentMode => {
+        modes.filter(m => (m as any).hasSub && !m.disabled).forEach(parentMode => {
             const parentSegment = 90;
             const subSegment = parentSegment / 5;
             const isBottom = parentMode.mode === 'kanji';
@@ -2852,6 +3216,8 @@ export class UISystem {
     }
 
     public openJLPTHub(level: string = 'n2', modeType: string = 'study') {
+        this.currentHubMode = modeType;
+        this.currentHubLevel = level;
         const mLevel = level.toUpperCase();
         if (this.menuControls) this.menuControls.classList.add('hidden');
         if (this.messageCenter) this.messageCenter.classList.add('hidden');
@@ -2867,15 +3233,13 @@ export class UISystem {
         };
 
         if (this.hubLevelName) this.hubLevelName.innerText = mLevel;
+        const t = LanguageConfig.translations[LanguageConfig.current];
         if (this.hubTargetType) {
-            const lang = this.stateManager.studyLanguage;
-            if (lang === 'vi') {
-                this.hubTargetType.innerText = modeType === 'study' ? 'Từ Vựng' : 'Hán Tự';
-                if (this.hubMainTitle) this.hubMainTitle.innerText = '蔵経閣';
-            } else {
-                this.hubTargetType.innerText = modeType === 'study' ? 'Vocabulary' : 'Kanji';
-                if (this.hubMainTitle) this.hubMainTitle.innerText = 'NEURAL ARCHIVES';
-            }
+            if (modeType === 'study') this.hubTargetType.innerText = t.hub.vocabulary;
+            else if (modeType === 'kanji') this.hubTargetType.innerText = t.hub.kanji;
+            else if (modeType === 'grammar') this.hubTargetType.innerText = t.hub.grammar;
+
+            if (this.hubMainTitle) this.hubMainTitle.innerText = t.hub.archives;
         }
         if (this.hubSealName) this.hubSealName.innerText = sealNames[mLevel] || '---';
 
@@ -2897,14 +3261,15 @@ export class UISystem {
         console.log(`[UISystem] Bắt đầu render Hub. Số lượng Units nhận được: ${data.length}`);
 
         if (!this.jlptUnitsContainer) {
-            console.error('[UISystem] Không tìm thấy jlptUnitsContainer trong DOM!');
+            console.error('[UISystem] jlptUnitsContainer not found in DOM!');
             return;
         }
         this.jlptUnitsContainer.innerHTML = '';
 
+        const t = LanguageConfig.translations[LanguageConfig.current];
         if (data.length === 0) {
-            this.jlptUnitsContainer.innerHTML = '<div style="color: var(--danger); text-align: center; width: 100%; padding: 40px; font-family: monospace; font-size: 1.2rem; letter-spacing: 2px;">[ HỆ THỐNG: KHÔNG TÌM THẤY DỮ LIỆU CẤP ĐỘ NÀY ]</div>';
-            console.warn('[UISystem] Dữ liệu Hub rỗng, hiển thị thông báo trống.');
+            this.jlptUnitsContainer.innerHTML = `<div style="color: var(--danger); text-align: center; width: 100%; padding: 40px; font-family: monospace; font-size: 1.2rem; letter-spacing: 2px;">${t.hub.notFound}</div>`;
+            console.warn('[UISystem] Hub data empty.');
         }
 
         let completedCount = 0;
@@ -2984,6 +3349,7 @@ export class UISystem {
             header.className = 'jlpt-unit-header';
 
             // Xây dựng Bố cục Cyber-Bamboo (Hollow Engraving)
+            const t = LanguageConfig.translations[LanguageConfig.current];
             header.innerHTML = `
                 <div class="jlpt-unit-rope left-rope"></div>
                 
@@ -2994,22 +3360,22 @@ export class UISystem {
 
                 <div class="jlpt-unit-hud">
                     <div class="hud-stat-box">
-                        <span class="hud-label">RANK</span>
+                        <span class="hud-label">${t.profile.rank.toUpperCase()}</span>
                         <span class="hud-val jlpt-rank-${avgRank}">${avgRank}</span>
                     </div>
                     <div class="hud-stat-box">
-                        <span class="hud-label">ACCURACY</span>
+                        <span class="hud-label">${t.profile.accuracy.toUpperCase()}</span>
                         <span class="hud-val">${avgAcc}%</span>
                     </div>
                     <div class="hud-stat-box">
-                        <span class="hud-label">AVG WPM</span>
+                        <span class="hud-label">AVG ${t.profile.wpm.toUpperCase()}</span>
                         <span class="hud-val">${avgWpm}</span>
                     </div>
                     <div class="hud-stat-box">
-                        <span class="hud-label">TOTAL SCORE</span>
+                        <span class="hud-label">${t.profile.totalScore.toUpperCase()}</span>
                         <span class="hud-val" style="color: var(--primary); text-shadow: 0 0 10px rgba(0,245,255,0.6);">${unitScoreSum.toLocaleString()}</span>
                     </div>
-                    <div class="hud-sess-count">✦ ${unit.sessions.length} Cuộn ✦</div>
+                    <div class="hud-sess-count">✦ ${unit.sessions.length} ${t.hub.scrolls} ✦</div>
                 </div>
                 
                 <div class="jlpt-unit-rope right-rope"></div>
@@ -3165,8 +3531,9 @@ export class UISystem {
         const auth = AuthSystem.getInstance();
         const user = auth.getCurrentUser();
 
+        const t = LanguageConfig.translations[LanguageConfig.current];
         if (this.currentRankScope === 'friends') {
-            this.leaderboardList.innerHTML = '<div style="padding:40px; text-align:center; color:rgba(255,255,255,0.3); font-size:0.8rem;">FRIEND_SYSTEM_OFFLINE<br>(COMMING SOON WITH AGENT_LINK UPDATE)</div>';
+            this.leaderboardList.innerHTML = `<div style="padding:40px; text-align:center; color:rgba(255,255,255,0.3); font-size:0.8rem;">${t.leaderboard.friendOffline}<br>${t.leaderboard.comingSoon}</div>`;
             return;
         }
 
@@ -3221,7 +3588,7 @@ export class UISystem {
                             ${agent.avatar ? `<img src="${agent.avatar}">` : (agent.name ? agent.name[0].toUpperCase() : 'A')}
                         </div>
                         <div class="rank-info">
-                            <div class="rank-name">${agent.name || 'ANONYMOUS_AGENT'} ${isSelf ? '<span style="color:var(--safe); font-size:0.6rem;">(YOU)</span>' : ''}</div>
+                            <div class="rank-name">${agent.name || 'ANONYMOUS_AGENT'} ${isSelf ? `<span style="color:var(--safe); font-size:0.6rem;">${t.leaderboard.you}</span>` : ''}</div>
                             <div class="rank-tag">#${agent.agent_id || '000000'}</div>
                         </div>
                         <div class="rank-value">${displayValue}</div>
@@ -3229,7 +3596,7 @@ export class UISystem {
                     this.leaderboardList?.appendChild(item);
                 });
             } else {
-                this.leaderboardList.innerHTML = '<div style="padding:40px; text-align:center; color:rgba(255,255,255,0.3);">NO_AGENT_DATA_FOUND</div>';
+                this.leaderboardList.innerHTML = `<div style="padding:40px; text-align:center; color:rgba(255,255,255,0.3);">${t.leaderboard.noData}</div>`;
             }
 
             // Sync My Ranking Footer
@@ -3254,8 +3621,8 @@ export class UISystem {
                         ${finalMyAvatar ? `<img src="${finalMyAvatar}">` : (finalMyName ? finalMyName[0].toUpperCase() : 'Y')}
                     </div>
                     <div class="rank-info">
-                        <div class="rank-name" style="color:var(--primary);">${finalMyName} ${myIndex !== -1 ? '<span style="color:var(--safe); font-size:0.6rem;">(TOP PLAYER)</span>' : ''}</div>
-                        <div class="rank-tag">HIERARCHY_RANK: ${myRank}</div>
+                        <div class="rank-name" style="color:var(--primary);">${finalMyName} ${myIndex !== -1 ? `<span style="color:var(--safe); font-size:0.6rem;">${t.leaderboard.topPlayer}</span>` : ''}</div>
+                        <div class="rank-tag">${t.leaderboard.rankLabel}: ${myRank}</div>
                     </div>
                     <div class="rank-value" style="font-size:1.1rem; color:var(--primary-glow);">${myValue}</div>
                 `;
@@ -3263,7 +3630,7 @@ export class UISystem {
 
         } catch (err) {
             console.error('[Leaderboard] Sync Error:', err);
-            this.leaderboardList.innerHTML = '<div style="padding:40px; text-align:center; color:#ff4757;">CONNECTION_INTERRUPTED</div>';
+            this.leaderboardList.innerHTML = `<div style="padding:40px; text-align:center; color:#ff4757;">${LanguageConfig.translations[LanguageConfig.current].leaderboard.error}</div>`;
         }
     }
 
@@ -3274,5 +3641,22 @@ export class UISystem {
             case 'accuracy': return (agent.avg_acc || 0) + '%';
             default: return '0';
         }
+    }
+
+    private setupWave5SpeedLogic() {
+        if (!this.wave5SpeedSlider || !this.speedValDisplay) return;
+
+        this.wave5SpeedSlider.addEventListener('input', () => {
+            const val = parseFloat(this.wave5SpeedSlider.value);
+            if (this.speedValDisplay) {
+                this.speedValDisplay.innerText = `x${val.toFixed(1)}`;
+            }
+
+            // Sync with Game Engine
+            EventBus.getInstance().publish('GAME_SPEED_CHANGE', val);
+        });
+
+        // Initialize display
+        this.speedValDisplay.innerText = `x${parseFloat(this.wave5SpeedSlider.value).toFixed(1)}`;
     }
 }

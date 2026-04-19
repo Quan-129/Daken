@@ -14,10 +14,26 @@ export class StateManager {
   private n2ProgressKey = 'ninja_n2_progress';
   private n2Progress: Record<string, {rank: string, acc: number, wpm: number, score?: number}> = {};
   private n2HubData: any[] = [];
-  public studyLanguage: string = 'vi';
+  private _studyLanguage: string = 'vi';
+
+  public get studyLanguage(): string {
+      return this._studyLanguage;
+  }
+
+  public set studyLanguage(val: string) {
+      this._studyLanguage = val;
+      localStorage.setItem('ninja_study_lang', val);
+  }
 
   private constructor() {
     this.eventBus = EventBus.getInstance();
+    
+    // Load persisted language
+    const savedLang = localStorage.getItem('ninja_study_lang');
+    if (savedLang) {
+        this._studyLanguage = savedLang;
+    }
+
     this.initializeUserProgress();
 
     // Lắng nghe sự kiện đăng nhập để đổi "ngăn kéo" dữ liệu ngay lập tức
@@ -70,7 +86,7 @@ export class StateManager {
         const mLevel = level.toUpperCase();
         // Since we are using Vite, fetch will serve correctly from root if mapped, or we can use dynamic import.
         // But dynamic import is safer in Vite for JSON, wait, fetch('/src/data/vocabulary_generated.json') also works.
-        const response = await fetch('/data/vocabulary_generated.json');
+        const response = await fetch('/data/kotoba.json');
         if (!response.ok) throw new Error('Failed to fetch JSON');
         const data = await response.json();
         
@@ -107,7 +123,10 @@ export class StateManager {
   public async loadLevelHubData(level: string, type: string = 'study'): Promise<void> {
     try {
         const mLevel = level.toUpperCase();
-        const fileName = type === 'kanji' ? 'kanji.json' : 'kotoba.json';
+        let fileName = 'kotoba.json';
+        if (type === 'kanji') fileName = 'kanji.json';
+        else if (type === 'grammar') fileName = 'grammar.json';
+        
         const fetchUrl = `/data/${fileName}?v=${Date.now()}`;
         console.log(`[StateManager] Đang tải dữ liệu từ: ${fetchUrl} cho Level: ${mLevel} (Type: ${type})`);
         
@@ -125,16 +144,26 @@ export class StateManager {
             this.n2HubData = [];
             console.log(`[StateManager] Đã tìm thấy dữ liệu cho ${mLevel}. Đang chuẩn bị ${levelData.unit_list.length} Units...`);
             levelData.unit_list.forEach((unit: any, uIndex: number) => {
-                const words = unit.vocabulary_list || unit.kanji_list || [];
+                const words = unit.vocabulary_list || unit.kanji_list || unit.grammar_list || [];
                 const sessions = [];
                 for (let i = 0; i < words.length; i += 10) {
                     sessions.push(words.slice(i, i + 10));
                 }
+
+                let ja_fallback = '語彙';
+                let en_fallback = 'Vocabulary';
+                let vi_fallback = 'Từ Vựng';
+                if (type === 'kanji') {
+                    ja_fallback = '漢字'; en_fallback = 'Kanji'; vi_fallback = 'Hán Tự';
+                } else if (type === 'grammar') {
+                    ja_fallback = '文法'; en_fallback = 'Grammar'; vi_fallback = 'Ngữ Pháp';
+                }
+
                 this.n2HubData.push({
                     unitName: unit.unitId || `Unit ${uIndex + 1}`,
-                    studyName_JA: unit.studyName_JA || (type === 'kanji' ? '漢字' : '語彙'),
-                    studyName_ENG: unit.studyName_ENG || (type === 'kanji' ? 'Kanji' : 'Vocabulary'),
-                    studyName_VI: unit.studyName_VI || (type === 'kanji' ? 'Hán Tự' : 'Từ Vựng'),
+                    studyName_JA: unit.studyName_JA || ja_fallback,
+                    studyName_ENG: unit.studyName_ENG || en_fallback,
+                    studyName_VI: unit.studyName_VI || vi_fallback,
                     sessions: sessions
                 });
             });

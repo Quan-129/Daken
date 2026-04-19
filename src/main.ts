@@ -149,9 +149,19 @@ eventBus.subscribe('GAME_STOPPED', () => {
 const urlParams = new URLSearchParams(window.location.search);
 const testWave = urlParams.get('test');
 if (testWave && testWave.startsWith('wave')) {
-    console.log(`[main.ts] Auto-starting Study Mode for ${testWave} testing...`);
-    // Chờ UI/Auth init một chút
+    const waveNum = parseInt(testWave.replace('wave', ''));
+    console.log(`[main.ts] Auto-starting Study Mode for Wave ${waveNum} testing...`);
+    
     setTimeout(() => {
+        // Set wave before starting
+        const spawner = engine['spawner'];
+        if (spawner && !isNaN(waveNum)) {
+            spawner.currentStudyWave = waveNum;
+            // Nếu là wave 5 thì set luôn StartTime
+            if (waveNum === 5) {
+                (spawner as any).wave5StartTime = performance.now();
+            }
+        }
         eventBus.publish('GAME_START', { mode: 'study', studyLevel: 'N5' });
     }, 1500);
 }

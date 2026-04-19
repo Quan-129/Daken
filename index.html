@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="vi">
+<html lang="en">
 
 <head>
     <meta charset="UTF-8">
@@ -23,21 +23,21 @@
                     <label>CHOOSE YOUR BATTLE NAME</label>
                     <input type="text" id="setupName" maxlength="12" placeholder="Enter nickname...">
                 </div>
-                <p style="font-size: 0.75rem; color: rgba(255,255,255,0.4); margin-bottom: 20px;">* Hệ thống sẽ cấp mã Agent ngẫu nhiên sau khi bạn chốt tên.</p>
+                <p style="font-size: 0.75rem; color: rgba(255,255,255,0.4); margin-bottom: 20px;">* The system will assign a random Agent ID after you choose a name.</p>
                 <button id="finishSetupBtn" class="void-btn">[ SYNC_IDENTITY ]</button>
             </div>
 
             <!-- MAIN SYNC AREA -->
             <div id="social-login-area">
-                <div class="login-prompt">ĐĂNG NHẬP THÀNH VIÊN</div>
+                <div class="login-prompt">AGENT AUTHENTICATION</div>
                 <button id="googleLoginBtn" class="google-btn" style="width: 320px; height: 60px; font-size: 1.1rem;">
                     <img src="https://www.gstatic.com/images/branding/product/1x/gsa_512dp.png" alt="G">
-                    ĐĂNG NHẬP VỚI GOOGLE
+                    LOGIN WITH GOOGLE
                 </button>
-                <p style="color: rgba(255,255,255,0.3); font-size: 0.8rem; margin-top: 20px;">Đăng nhập để đồng bộ tiến trình học</p>
+                <p style="color: rgba(255,255,255,0.3); font-size: 0.8rem; margin-top: 20px;">Login to sync your learning progress</p>
             </div>
 
-            <div class="login-status" id="loginStatus">Trạng thái: Sẵn sàng</div>
+            <div class="login-status" id="loginStatus">Status: Ready</div>
         </div>
     </div>
 
@@ -59,31 +59,31 @@
                         <div class="avatar-container" id="avatarTrigger">
                             <img id="playerAvt" src="https://api.dicebear.com/7.x/bottts/svg?seed=DakenAgent"
                                 alt="Avatar">
-                            <div class="avatar-overlay">Đổi</div>
+                            <div class="avatar-overlay">EDIT</div>
                             <input type="file" id="avtFileInput" accept="image/*" style="display: none;">
                         </div>
                         <div class="profile-info">
                             <div class="player-name-wrapper" style="display: flex; align-items: baseline; gap: 8px;">
-                                <span id="playerName" class="player-name">Khách</span>
+                                <span id="playerName" class="player-name">Guest</span>
                                 <span id="playerTag" class="player-tag" style="font-family: 'Orbitron', monospace; font-size: 0.7rem; color: rgba(255,255,255,0.3); letter-spacing: 1px;">#000000</span>
                             </div>
                             <div class="player-rank-row">
-                                <span class="rank-label">Hạng:</span>
-                                <span id="playerRank" class="rank-value">Chưa xếp hạng</span>
+                                <span class="rank-label" id="profileRankLabel">Rank:</span>
+                                <span id="playerRank" class="player-value">Unranked</span>
                             </div>
                         </div>
                     </div>
                     <div class="profile-stats-grid">
                         <div class="stat-item">
-                            <span class="stat-label">Tổng điểm</span>
+                            <span class="stat-label" id="profileScoreLabel">TOTAL SCORE</span>
                             <span id="totalScoreVal" class="stat-val">0</span>
                         </div>
                         <div class="stat-item">
-                            <span class="stat-label">Độ chính xác</span>
+                            <span class="stat-label" id="profileAccLabel">ACCURACY</span>
                             <span id="avgAccVal" class="stat-val">0%</span>
                         </div>
                     <div class="stat-item">
-                        <span class="stat-label">Tốc độ (WPM)</span>
+                        <span class="stat-label" id="profileWpmLabel">WPM</span>
                         <span id="avgWpmVal" class="stat-val">0</span>
                     </div>
                 </div>
@@ -92,8 +92,9 @@
 
             <!-- Current Match Score (Always visible in-game, independent of profile) -->
             <div id="current-score-box" class="current-score-wrapper-independent hidden">
-                <span class="label">Điểm số:</span>
+                <span class="label">SCORE:</span>
                 <span id="scoreVal">0</span>
+                <div class="combo-label hidden" id="comboLabel">COMBO x2</div>
                 <div id="score-feed-container" class="score-feed-container"></div>
             </div>
 
@@ -120,23 +121,17 @@
 
             <!-- NEW Wave Progress & Timer UI -->
             <div class="wave-progress-container hidden" id="waveProgressContainer">
-                <div class="wave-header-row">
-                    <div class="wave-label" id="waveLabel">WAVE 01</div>
-                    <div class="combo-label hidden" id="comboLabel">COMBO x2</div>
+                <div class="wave-header-row" style="display: flex; justify-content: center; align-items: center; width: 220px; margin-bottom: 4px;">
+                    <div class="wave-label" id="waveLabel" style="font-family: 'Orbitron', sans-serif; font-size: 0.9rem; color: #fff; letter-spacing: 2px;">WAVE 01</div>
                 </div>
+
                 <!-- PERCENTAGE PROGRESS BAR -->
-                <div
-                    style="display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; font-weight: bold; margin-bottom: 4px; padding: 0 2px; width: 220px;">
-                    <span id="wavePercentText"
-                        style="color: var(--neon-cyan); text-shadow: 0 0 5px var(--neon-cyan);">0%</span>
-                    <span id="waveRetryLabel" class="hidden"
-                        style="color: #ff4757; text-shadow: 0 0 10px #ff4757; letter-spacing: 1px;">[ RETRY ]</span>
+                <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; font-weight: bold; margin-bottom: 4px; padding: 0 2px; width: 220px;">
+                    <span id="wavePercentText" style="color: var(--neon-cyan); text-shadow: 0 0 5px var(--neon-cyan);">0%</span>
+                    <span id="waveRetryLabel" class="hidden" style="color: #ff4757; text-shadow: 0 0 10px #ff4757; letter-spacing: 1px;">[ RETRY ]</span>
                 </div>
-                <div class="wave-progress-bar-wrapper"
-                    style="width: 220px; height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; margin-bottom: 8px; overflow: hidden; position: relative;">
-                    <div id="waveProgressBarFill"
-                        style="width: 0%; height: 100%; background: var(--safe); box-shadow: 0 0 10px var(--safe); transition: width 0.3s ease;">
-                    </div>
+                <div class="wave-progress-bar-wrapper" style="width: 220px; height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; margin-bottom: 8px; overflow: hidden; position: relative;">
+                    <div id="waveProgressBarFill" style="width: 0%; height: 100%; background: var(--safe); box-shadow: 0 0 10px var(--safe); transition: width 0.3s ease;"></div>
                 </div>
             </div>
 
@@ -192,16 +187,30 @@
                     </div> <!-- Close horizontal row (line 158) -->
                         
                     <!-- TOOLS COLUMN: Leaderboard + Guide (Dãy nút dọc thực sự nằm dưới) -->
-                    <div style="display: flex; flex-direction: column; gap: 15px; margin-top: 15px; align-items: flex-end; width: 40px; padding-right: 5px; pointer-events: auto;">
-                        <div id="leaderboard-trigger" class="lobby-tool-icon" title="Neural Hierarchy">
-                            <span class="material-icons">leaderboard</span>
+                    <div style="display: flex; flex-direction: row; align-items: flex-start; gap: 15px; margin-top: 15px;">
+                        
+                        <!-- WAVE 5 DYNAMIC SPEED CONTROL -->
+                        <div id="wave5-speed-control" class="wave5-speed-panel hidden">
+                            <div class="speed-label">PHÂN TÁCH TỐC ĐỘ: <span id="speedValDisplay">x1.0</span></div>
+                            <input type="range" id="wave5SpeedSlider" min="0.2" max="2" step="0.1" value="1.0">
+                            <div style="display: flex; justify-content: space-between; font-size: 0.6rem; color: rgba(255,255,255,0.3); font-family: 'Orbitron'; margin-top: -5px;">
+                                <span>0.2</span>
+                                <span>1.0</span>
+                                <span>2.0</span>
+                            </div>
                         </div>
-                        <div id="guideTrigger" class="lobby-tool-icon" title="Neural Link Protocol">?</div>
-                        <div id="feedback-trigger" class="lobby-tool-icon" title="Contact Admin">
-                            <span class="material-icons">feedback</span>
-                        </div>
-                        <div id="lang-toggle" class="lobby-tool-icon lang-toggle-icon" title="Neural Dialect">
-                            <div class="flag-icon" id="langFlag"></div>
+
+                        <div style="display: flex; flex-direction: column; gap: 15px; align-items: flex-end; width: 40px; padding-right: 5px; pointer-events: auto;">
+                            <div id="leaderboard-trigger" class="lobby-tool-icon" title="Neural Hierarchy">
+                                <span class="material-icons">leaderboard</span>
+                            </div>
+                            <div id="guideTrigger" class="lobby-tool-icon" title="Neural Link Protocol">?</div>
+                            <div id="feedback-trigger" class="lobby-tool-icon" title="Contact Admin">
+                                <span class="material-icons">feedback</span>
+                            </div>
+                            <div id="lang-toggle" class="lobby-tool-icon lang-toggle-icon" title="Neural Dialect">
+                                <div class="flag-icon" id="langFlag"></div>
+                            </div>
                         </div>
                     </div>
                     <!-- THỜI GIAN ĐÃ CHƠI -->
@@ -372,7 +381,7 @@
 
                 <button class="menu-btn" id="startJLPTSessionBtn"
                     style="width: 100%; margin-top: 25px; font-size: 1.2rem; background: rgba(0,245,255,0.1); border-color: var(--neon-cyan); color: var(--neon-cyan); box-shadow: 0 0 15px rgba(0,245,255,0.4);">[
-                    BẮT ĐẦU KẾT ẤN ]</button>
+                    INITIALIZE SYNC ]</button>
             </div>
         </div>
 
@@ -412,7 +421,7 @@
                             style="font-size: 2.5rem; font-family: 'Arial Black', Impact, sans-serif; font-style: italic; text-shadow: 0 0 15px;">S</span>
                     </div>
                 </div>
-                <button class="menu-btn" id="summaryCloseBtn" style="margin-top:20px; width:100%;">TIẾP TỤC</button>
+                <button class="menu-btn" id="summaryCloseBtn" style="margin-top:20px; width:100%;">CONTINUE</button>
             </div>
         </div>
 
@@ -420,12 +429,12 @@
         <div class="summary-modal hidden" id="synapseMatrixModal">
             <div class="summary-content" style="max-width: 800px; width: 90%;">
                 <h2 class="summary-title" style="color: #d81b60; text-shadow: 0 0 15px #d81b60;">SYNAPSE MATRIX</h2>
-                <p style="text-align: center; color: #fff; margin-bottom: 20px;">Trạng thái hấp thụ từ vựng của bạn</p>
+                <p style="text-align: center; color: #fff; margin-bottom: 20px;">Vocabulary neural absorption status</p>
                 <div id="synapseNodesContainer"
                     style="display: flex; flex-wrap: wrap; gap: 15px; justify-content: center; padding: 20px; background: rgba(0,0,0,0.5); border-radius: 12px; border: 1px solid #d81b60; min-height: 200px; margin-bottom: 20px;">
-                    <!-- Các node từ vựng được render ở đây -->
+                    <!-- Vocabulary nodes rendered here -->
                 </div>
-                <button class="menu-btn danger-btn" id="synapseCloseBtn" style="width:100%;">KẾT THÚC PHIÊN</button>
+                <button class="menu-btn danger-btn" id="synapseCloseBtn" style="width:100%;">TERMINATE SESSION</button>
             </div>
         </div>
 
@@ -437,13 +446,12 @@
                     style="position: absolute; top: 10px; right: 15px; background: transparent; border: none; color: #ff00ff; font-size: 28px; cursor: pointer; font-family: 'Orbitron'; text-shadow: 0 0 10px #ff00ff; padding: 0;">&times;</button>
                 <h2 class="summary-title"
                     style="color: #ff00ff; text-shadow: 0 0 15px #ff00ff; font-size: 1.8rem; margin-bottom: 5px; margin-top: 10px;">
-                    HỆ THỐNG CẢNH BÁO</h2>
-                <p style="text-align: center; color: #fff; margin-bottom: 25px; line-height: 1.5;">Bạn có chắc chắn muốn
-                    dừng tiến trình?<br><span style="color: #ff4757; font-weight: bold;">Cảnh báo: Dữ liệu chưa lưu sẽ
-                        bị mất vĩnh viễn!</span></p>
+                    SYSTEM WARNING</h2>
+                <p style="text-align: center; color: #fff; margin-bottom: 25px; line-height: 1.5;">Are you sure you want to
+                    stop the process?<br><span style="color: #ff4757; font-weight: bold;">Warning: Unsaved data will be
+                        lost permanently!</span></p>
                 <div style="display: flex; gap: 15px; justify-content: center;">
-                    <button class="menu-btn danger-btn" id="confirmStopBtn" style="width: 200px; font-size: 1.1rem;">XÁC
-                        NHẬN DỪNG</button>
+                    <button class="menu-btn danger-btn" id="confirmStopBtn" style="width: 200px; font-size: 1.1rem;">CONFIRM STOP</button>
                 </div>
             </div>
         </div>
@@ -459,10 +467,10 @@
             <div class="modal-content">
                 <!-- VIEW 1: Danh Sách Folder -->
                 <div id="folder-view">
-                    <h2>Thư Viện Nhạc Của Tôi</h2>
-                    <div class="add-song"> <!-- Mượn style add-song cho input Folder -->
-                        <input type="text" id="newFolderName" placeholder="Tên Folder mới (VD: Nhạc Chill)...">
-                        <button id="addFolderBtn">Tạo</button>
+                    <h2>My Music Library</h2>
+                    <div class="add-song">
+                        <input type="text" id="newFolderName" placeholder="New Folder Name (e.g. Chill Beats)...">
+                        <button id="addFolderBtn">CREATE</button>
                     </div>
                     <ul id="folderList" class="my-list-block">
                         <!-- list folder -->
@@ -472,15 +480,15 @@
 
                 <!-- VIEW 2: Danh sách Bài hát trong 1 Folder -->
                 <div id="song-view" class="hidden">
-                    <h2>🎵 <span id="currentFolderName">Tên</span></h2>
+                    <h2>🎵 <span id="currentFolderName">Name</span></h2>
                     <div class="add-song">
-                        <input type="text" id="newSongUrl" placeholder="Dán link YouTube mới...">
-                        <button id="addSongBtn">Thêm</button>
+                        <input type="text" id="newSongUrl" placeholder="Paste new YouTube link...">
+                        <button id="addSongBtn">ADD</button>
                     </div>
                     <ul id="playlistList" class="my-list-block">
-                        <!-- list bai hat -->
+                        <!-- song list -->
                     </ul>
-                    <button id="backToFoldersBtn" class="dark-btn">⬅ Quay Lại</button>
+                    <button id="backToFoldersBtn" class="dark-btn">⬅ BACK</button>
                 </div>
             </div>
         </div>
@@ -531,16 +539,16 @@
                         <div class="guide-slide active" data-index="0">
                             <div class="guide-slide-header">
                                 <span class="badge sync">WAVE 1 & 2</span>
-                                <h3>NHẬP MÔN – "NẠP DỮ LIỆU VÀO ĐẦU"</h3>
+                                <h3>KNOWLEDGE ACQUISITION – "INITIAL DATA SYNC"</h3>
                             </div>
                             <div class="guide-slide-content">
-                                <p class="vibe-text">Vibe: Thong thả, không áp lực.</p>
-                                <p>Đây là lúc <strong>bạn</strong> làm quen với từ mới. Cứ bình tĩnh mà gõ, không cần vội vì game chưa tính thời gian ở đây đâu.</p>
+                                <p class="vibe-text">Vibe: Calm, no pressure.</p>
+                                <p>This is where <strong>you</strong> get familiar with new words. Type at your own pace; the game hasn't started the timer yet.</p>
                                 <ul>
-                                    <li><strong>Điểm số:</strong> Mỗi từ gõ đúng bạn đút túi 10 điểm.</li>
-                                    <li><strong>Cảnh báo nhẹ:</strong> Nếu gõ sai quá 4 lần (typo), từ đó sẽ bị coi là "học lỏm" (Weak). Bạn sẽ phải gõ lại nó ở đoạn cuối Wave và lúc đó thì chả được đồng điểm nào đâu nhé.</li>
+                                    <li><strong>Scoring:</strong> Each correct word earns you 10 points.</li>
+                                    <li><strong>Warning:</strong> If you make more than 4 typos on a word, it's marked as "Weak". You'll have to re-type it at the end of the Wave with zero points earned.</li>
                                 </ul>
-                                <p class="hint">💡 <strong>Mẹo:</strong> Nhìn kỹ mặt chữ Kanji và nghĩa tiếng Việt, vì chúng chính là "phao cứu sinh" cho các màn sau đấy!</p>
+                                <p class="hint">💡 <strong>Hint:</strong> Pay attention to the Kanji and meanings; they are your lifelines for the upcoming stages!</p>
                             </div>
                         </div>
 
@@ -548,15 +556,15 @@
                         <div class="guide-slide" data-index="1">
                             <div class="guide-slide-header">
                                 <span class="badge combat">WAVE 3</span>
-                                <h3>PHẢN XẠ – "TAY NHANH HƠN NÃO"</h3>
+                                <h3>REFLEX – "NEURAL RESPONSE"</h3>
                             </div>
                             <div class="guide-slide-content">
-                                <p class="vibe-text">Vibe: Kịch tính, tập trung cao độ.</p>
-                                <p>Cá bắt đầu bơi nhanh hơn rồi! Bạn cần gõ vừa nhanh vừa chuẩn để tích Combo.</p>
+                                <p class="vibe-text">Vibe: Intense, high focus.</p>
+                                <p>The "fish" are swimming faster! You need to type both quickly and accurately to build your Combo.</p>
                                 <ul>
-                                    <li><strong>Combo thần thánh:</strong> Gõ đúng liên tiếp 5 từ hoàn hảo để bắt đầu được nhân điểm. Hệ số nhân (Multiplier) sẽ tăng dần lên đến <strong>tối đa x3.0</strong>.</li>
-                                    <li><strong>Cẩn thận:</strong> Chỉ cần gõ sai 1 phím duy nhất là Combo về 0 ngay lập tức.</li>
-                                    <li><strong>Thưởng lớn:</strong> Dọn sạch Wave dưới 30 giây, bạn nhận thêm 500 điểm thưởng thời gian.</li>
+                                    <li><strong>Divine Combo:</strong> Type 5 perfect words in a row to start your multiplier. It goes up to <strong>max x3.0</strong>.</li>
+                                    <li><strong>Danger:</strong> A single typo will reset your Combo to zero immediately.</li>
+                                    <li><strong>Time Bonus:</strong> Clear the Wave under 30 seconds to get 500 bonus points.</li>
                                 </ul>
                             </div>
                         </div>
@@ -565,14 +573,14 @@
                         <div class="guide-slide" data-index="2">
                             <div class="guide-slide-header">
                                 <span class="badge link">WAVE 4</span>
-                                <h3>GIẢI MÃ – "TRUYỀN THUYẾT CHỌN LỰA"</h3>
+                                <h3>DECRYPTION – "CHOICE PATTERN"</h3>
                             </div>
                             <div class="guide-slide-content">
-                                <p class="vibe-text">Vibe: Thử thách trí nhớ, thao tác dứt khoát.</p>
-                                <p>Không còn gõ chữ nữa, game sẽ đưa ra 4 ô lựa chọn. Hãy dùng các phím số <strong>[1], [2], [3], [4]</strong> trên bàn phím để chốt đáp án cho nhanh.</p>
+                                <p class="vibe-text">Vibe: Memory challenge, swift execution.</p>
+                                <p>Instead of typing full words, choose one of the 4 options using numerical keys <strong>[1], [2], [3], [4]</strong> for maximum speed.</p>
                                 <ul>
-                                    <li><strong>Điểm cao:</strong> Mỗi câu đúng bạn ăn trọn <strong>20 điểm</strong> (Gấp đôi Wave 1).</li>
-                                    <li><strong>Huy chương Vàng:</strong> Nếu "phá đảo" Wave này dưới 40 giây, bạn ẵm thêm <strong>800 điểm</strong> thưởng.</li>
+                                    <li><strong>High Rewards:</strong> Each correct answer earns <strong>20 points</strong> (Double of Wave 1).</li>
+                                    <li><strong>Gold Medal:</strong> Clear this Wave under 40 seconds for an extra <strong>800 points</strong>.</li>
                                 </ul>
                             </div>
                         </div>
@@ -581,14 +589,14 @@
                         <div class="guide-slide" data-index="3">
                             <div class="guide-slide-header">
                                 <span class="badge danger">WAVE 5</span>
-                                <h3>SINH TỒN – "TRỤ HẠNG ĐẾN CÙNG"</h3>
+                                <h3>SURVIVAL – "LIMIT BREAK"</h3>
                             </div>
                             <div class="guide-slide-content">
-                                <p class="vibe-text">Vibe: Áp lực, sinh tồn, phá bỏ giới hạn.</p>
-                                <p>Màn Endless này không dành cho người yếu tim. Sau 1 phút, cá sẽ bơi "như bay" và đẻ ra liên tục.</p>
+                                <p class="vibe-text">Vibe: Pressure, survival, exceeding limits.</p>
+                                <p>This Endless stage is not for the faint-hearted. After 1 minute, the speed increases drastically.</p>
                                 <ul>
-                                    <li><strong>Máu (HP):</strong> Bạn có 5 vạch pin. Đừng để cá lọt qua vạch đỏ, mỗi con lọt qua là bay màu 1 vạch đấy.</li>
-                                    <li><strong>PHÁ ĐẢO:</strong> Nếu bạn đạt được <strong>3000 điểm</strong>, hệ thống sẽ tự động chốt đơn thành công và đưa bạn về bảng tổng kết "vinh quang"!</li>
+                                    <li><strong>Health (HP):</strong> You have 5 battery bars. Don't let targets cross the red line; each leak drains 1 bar.</li>
+                                    <li><strong>VICTORY:</strong> Reach <strong>3000 points</strong> to automatically complete the mission and claim your glory!</li>
                                 </ul>
                             </div>
                         </div>
@@ -597,18 +605,18 @@
                         <div class="guide-slide" data-index="4">
                             <div class="guide-slide-header">
                                 <span class="badge link">SYSTEM</span>
-                                <h3>NEURAL RANKING – "BẢNG PHONG THẦN"</h3>
+                                <h3>NEURAL RANKING – "HALL OF FAME"</h3>
                             </div>
                             <div class="guide-slide-content">
-                                <p class="vibe-text">Vibe: Vinh quang, đẳng cấp Agent.</p>
-                                <p>Điểm số cuối cùng sẽ quyết định thứ hạng (Class) của bạn trong hệ thống Neural Network:</p>
+                                <p class="vibe-text">Vibe: Glory, Agent status.</p>
+                                <p>Your final score determines your Class within the Neural Network:</p>
                                 <ul class="rank-list" style="list-style: none; padding-left: 0;">
-                                    <li><strong style="color: #ffd700; text-shadow: 0 0 10px #ffd700;">[ Rank S ]</strong>: 2000+ Điểm (Huyền Thoại)</li>
-                                    <li><strong style="color: #00e676; text-shadow: 0 0 10px #00e676;">[ Rank A ]</strong>: 1500+ Điểm (Cao Thủ)</li>
-                                    <li><strong style="color: #00f5ff; text-shadow: 0 0 10px #00f5ff;">[ Rank B ]</strong>: 1000+ Điểm (Thành Thạo)</li>
-                                    <li><strong style="color: #ff9800; text-shadow: 0 0 10px #ff9800;">[ Rank C ]</strong>: 500+ Điểm (Tân Binh)</li>
+                                    <li><strong style="color: #ffd700; text-shadow: 0 0 10px #ffd700;">[ Rank S ]</strong>: 2000+ Score (Legendary)</li>
+                                    <li><strong style="color: #00e676; text-shadow: 0 0 10px #00e676;">[ Rank A ]</strong>: 1500+ Score (Elite)</li>
+                                    <li><strong style="color: #00f5ff; text-shadow: 0 0 10px #00f5ff;">[ Rank B ]</strong>: 1000+ Score (Skilled)</li>
+                                    <li><strong style="color: #ff9800; text-shadow: 0 0 10px #ff9800;">[ Rank C ]</strong>: 500+ Score (Rookie)</li>
                                 </ul>
-                                <p class="hint" style="text-align: center;">⚡ Phấn đấu đạt <strong>Rank S</strong> để khẳng định đẳng cấp Agent của bạn nhé!</p>
+                                <p class="hint" style="text-align: center;">⚡ Aim for <strong>Rank S</strong> to prove your superior Agent status!</p>
                             </div>
                         </div>
                     </div>
@@ -629,9 +637,9 @@
                 <div class="guide-footer">
                     <label class="dont-show-again">
                         <input type="checkbox" id="dontShowGuide">
-                        <span>Không hiện lại thông báo này</span>
+                        <span>Don't show this again</span>
                     </label>
-                    <button id="closeGuideBtn" class="confirm-btn">TÔI ĐÃ HIỂU</button>
+                    <button id="closeGuideBtn" class="confirm-btn">UNDERSTOOD</button>
                 </div>
             </div>
         </div>

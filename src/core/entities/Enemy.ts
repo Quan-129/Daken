@@ -1,6 +1,7 @@
 import { Word } from './Word';
 import { EventBus } from '../EventBus';
 import { GameConfig } from '../../config';
+import { LanguageConfig } from '../../configLanguage';
 
 export interface StudyState {
     wave: number;
@@ -22,6 +23,7 @@ export class Enemy {
     public y!: number;
     public baseSpeed!: number;
     public vx!: number;
+    private vxAtSpeed1: number = 0;
     public vy: number;
     public color: string;
     public isDead: boolean = false;
@@ -99,7 +101,7 @@ export class Enemy {
 
         // X and VX Logic
         const isStaticMode = this.mode === 'easy' || 
-                           (this.mode === 'study' && [1, 2, 4].includes(wave));
+                           ((this.mode === 'study' || this.mode === 'kanji' || this.mode === 'grammar') && [1, 2, 4].includes(wave));
 
         // Áp dụng Global Speed Factor từ Config
         const globalFactor = GameConfig.speeds.globalSpeedFactor || 1.0;
@@ -108,13 +110,17 @@ export class Enemy {
             this.x = canvasWidth / 2;
             this.y = canvasHeight / 2;
             this.vx = 0;
-        } else if (this.mode === 'chill' || (this.mode === 'study' && wave === 3)) {
+            this.vxAtSpeed1 = 0;
+        } else if (this.mode === 'chill' || ((this.mode === 'study' || this.mode === 'kanji' || this.mode === 'grammar') && wave === 3)) {
             this.x = canvasWidth + Math.random() * 200;
-            this.vx = -(this.baseSpeed + GameConfig.speeds.wave3SpeedBoost) * speedMod * globalFactor;
+            this.vxAtSpeed1 = -(this.baseSpeed + GameConfig.speeds.wave3SpeedBoost) * globalFactor;
+            this.vx = this.vxAtSpeed1 * speedMod;
         } else {
             this.x = canvasWidth + 50;
-            const boost = (this.mode === 'study' && wave === 5) ? GameConfig.speeds.wave5SpeedBoost : 0;
-            this.vx = -(this.baseSpeed + boost) * speedMod * globalFactor;
+            const isStudy = (this.mode === 'study' || this.mode === 'kanji' || this.mode === 'grammar');
+            const boost = (isStudy && wave === 5) ? GameConfig.speeds.wave5SpeedBoost : 0;
+            this.vxAtSpeed1 = -(this.baseSpeed + boost) * globalFactor;
+            this.vx = this.vxAtSpeed1 * speedMod;
         }
     }
 
@@ -128,7 +134,8 @@ export class Enemy {
         const { wave } = this.study;
 
         // Boundary Logic
-        if (this.mode === 'chill' || (this.mode === 'study' && wave === 3)) {
+        const isWave3 = (this.mode === 'study' || this.mode === 'kanji' || this.mode === 'grammar') && wave === 3;
+        if (this.mode === 'chill' || isWave3) {
             if (this.x < -250) {
                 this.resetPosition(canvasWidth, canvasHeight);
             }
@@ -146,12 +153,14 @@ export class Enemy {
     }
 
     private isStaticMode(): boolean {
-        return this.mode === 'easy' || (this.mode === 'study' && [1, 2, 4].includes(this.study.wave));
+        const isStudy = (this.mode === 'study' || this.mode === 'kanji' || this.mode === 'grammar');
+        return this.mode === 'easy' || (isStudy && [1, 2, 4].includes(this.study.wave));
     }
 
     private resetPosition(canvasWidth: number, canvasHeight: number) {
         this.x = canvasWidth + 150;
-        const topMargin = (this.mode === 'study' && this.study.wave === 3) ? 180 : 150;
+        const isWave3 = (this.mode === 'study' || this.mode === 'kanji' || this.mode === 'grammar') && this.study.wave === 3;
+        const topMargin = isWave3 ? 180 : 150;
         this.y = Math.random() * (canvasHeight - topMargin - 150) + topMargin;
         this.baseY = this.y;
         if (this.study.isWave3Target) {
@@ -181,9 +190,13 @@ export class Enemy {
 
     public setSpeedModifier(newSpeedMod: number) {
         if (!this.isStaticMode()) {
-            const globalFactor = GameConfig.speeds.globalSpeedFactor || 1.0;
-            this.vx = -this.baseSpeed * newSpeedMod * globalFactor;
+            this.vx = this.vxAtSpeed1 * newSpeedMod;
         }
+    }
+
+    public syncVelocityWithSpeedMod(customVxAtSpeed1: number, currentSpeedMod: number) {
+        this.vxAtSpeed1 = customVxAtSpeed1;
+        this.vx = this.vxAtSpeed1 * currentSpeedMod;
     }
 
     // --- RENDERING ZONE ---
@@ -326,7 +339,7 @@ export class Enemy {
         ctx.shadowBlur = 0;
         const { wave, revealType } = this.study;
 
-        if (this.mode === 'study') {
+        if (this.mode === 'study' || this.mode === 'kanji' || this.mode === 'grammar') {
             this.drawStudyText(ctx, wave, revealType);
         } else {
             this.drawSimpleText(ctx, this.word.visual, -10, "bold 26px 'Noto Sans JP'", "#fff");
@@ -342,7 +355,10 @@ export class Enemy {
             case 2:
             case 3:
             case 5:
-                const txt = revealType === 'vi' ? this.word.vi : this.word.visual;
+                const isEn = LanguageConfig.current === 'en';
+                const txt = revealType === 'vi' 
+                    ? (isEn ? (this.word.en || this.word.vi) : this.word.vi) 
+                    : this.word.visual;
                 const font = revealType === 'vi' ? "bold 20px 'Inter'" : "bold 26px 'Noto Sans JP'";
                 this.drawSimpleText(ctx, txt, 0, font, "#fff");
                 break;
