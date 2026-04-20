@@ -86,7 +86,7 @@ export class Spawner {
         } else if (isStudyRunning && this.currentStudyWave === 3) {
             const active = this.getActiveEnemiesCallback().filter(e => !e.isDead);
             if (active.length === 0 && this.hasMoreStudyEnemies()) {
-                this.spawnBatchWave3(speedModifier);
+                this.spawnBatchWave3(mode, speedModifier);
             }
         } else {
             // Trường hợp Chill / Normal mode
@@ -98,35 +98,16 @@ export class Spawner {
         }
     }
 
-    public startStudySession() {
-        // Mỗi session học 5 từ mới
-        this.currentStudyDeck = StateManager.getInstance().getStudySessionDeck(5);
-        
-        if (window.location.search.includes('test=wave5')) this.currentStudyWave = 5;
-        else if (window.location.search.includes('test=wave4')) this.currentStudyWave = 4;
-        else if (window.location.search.includes('test=wave3')) this.currentStudyWave = 3;
-        else if (window.location.search.includes('test=wave2')) this.currentStudyWave = 2;
-        else {
-            // Khởi tạo wave đầu tiên được kích hoạt
-            this.currentStudyWave = 1;
-            if (!this.isWaveEnabled(1)) {
-                this.nextStudyWave(); // Tự động nhảy đến wave tiếp theo nếu wave 1 bị tắt
-            }
+    public startStudySession(words: Word[] = []) {
+        if (words.length > 0) {
+            this.currentStudyDeck = words;
+        } else {
+            // Mặc định nạp 5 từ nếu không truyền vào (Dành cho Study Mode thường)
+            this.currentStudyDeck = StateManager.getInstance().getStudySessionDeck(5);
         }
-    }
-
-    public startN2Session(words: Word[]) {
-        this.currentStudyDeck = words;
-        if (window.location.search.includes('test=wave5')) this.currentStudyWave = 5;
-        else if (window.location.search.includes('test=wave4')) this.currentStudyWave = 4;
-        else if (window.location.search.includes('test=wave3')) this.currentStudyWave = 3;
-        else if (window.location.search.includes('test=wave2')) this.currentStudyWave = 2;
-        else {
-            this.currentStudyWave = 1;
-            if (!this.isWaveEnabled(1)) {
-                this.nextStudyWave();
-            }
-        }
+        this.currentStudyWave = 1;
+        this.retryTracker.clear();
+        this.retryQueue = [];
     }
 
     public resetStudySession() {
@@ -140,16 +121,18 @@ export class Spawner {
 
     public spawnWave(mode: string, speedModifier: number) {
         if (mode === 'easy') {
-            this.spawnStaticWave(mode, speedModifier);
-            return;
+            this.spawnEasyWave(speedModifier);
+        } else if (mode === 'study' || mode === 'kanji' || mode === 'grammar') {
+            this.spawnStudyWave(mode, speedModifier);
         }
-        if (mode === 'study' || mode === 'kanji' || mode === 'grammar') {
-            this.spawnStudyWave(speedModifier);
-            return;
+    }
+
+    private spawnEasyWave(speedModifier: number) {
+        const count = 5;
+        for (let i = 0; i < count; i++) {
+            this.spawnEnemy('easy', speedModifier);
         }
-        for (let i = 0; i < 8; i++) {
-            this.spawnEnemy(mode, speedModifier);
-        }
+        EventBus.getInstance().publish('WAVE_STARTED', { count, waveIndex: 1 });
     }
 
     private buildStudyQueueForCurrentWave() {
@@ -205,6 +188,7 @@ export class Spawner {
                     this.studyQueue.push({ word: w, revealType: 'kanji' });
                     this.studyQueue.push({ word: w, revealType: 'vi' });
                 }
+                this.studyQueue.sort(() => Math.random() - 0.5); // Trộn
             } else if (this.currentStudyWave === 3) {
                 const config = GameConfig.studyMode.wave3;
                 for (let w of this.currentStudyDeck) {
@@ -231,7 +215,7 @@ export class Spawner {
         this.currentStudyEntityIndex = 0;
     }
 
-    private spawnStudyWave(speedModifier: number) {
+    private spawnStudyWave(mode: string, speedModifier: number) {
         let maxWaves = 5;
         if (this.currentStudyWave > maxWaves) {
             if (this.currentStudyDeck.length === 10) {
@@ -252,20 +236,20 @@ export class Spawner {
 
         if (!isMassWave) {
             // Spawn từng con 1
-            this.spawnNextStudyEnemy(speedModifier);
+            this.spawnNextStudyEnemy(mode, speedModifier);
         } else if (this.currentStudyWave === 5) {
             // Wave 5: Không bắn ra một loạt quái ban đầu (Endless trickle). 
             // Chỉ cần publish signal để HUD cập nhật
             this.spawnTimer = 0; // Reset timer để con đầu tiên xuất hiện sau spawnIntervalMs
         } else if (this.currentStudyWave === 3) {
             // Wave 3: Spawn mẻ đầu tiên (5 con)
-            this.spawnBatchWave3(speedModifier);
+            this.spawnBatchWave3(mode, speedModifier);
         }
 
         EventBus.getInstance().publish('WAVE_STARTED', { count: count, waveIndex: this.currentStudyWave });
     }
 
-    public spawnBatchWave3(speedModifier: number) {
+    public spawnBatchWave3(mode: string, speedModifier: number) {
         const batchSize = 5;
         const spacing = 110;
         const startY = this.canvasHeight / 2 - ((batchSize - 1) * spacing) / 2;
@@ -275,7 +259,7 @@ export class Spawner {
             const q = this.studyQueue[this.currentStudyEntityIndex];
             this.currentStudyEntityIndex++;
 
-            const enemy = new Enemy(q.word, 'study', speedModifier, this.canvasWidth, this.canvasHeight, 3);
+            const enemy = new Enemy(q.word, mode, speedModifier, this.canvasWidth, this.canvasHeight, 3);
             enemy.study.revealType = q.revealType;
             if (q.isDebt) enemy.study.isDebt = true;
 
@@ -295,14 +279,14 @@ export class Spawner {
         return this.currentStudyEntityIndex < this.studyQueue.length;
     }
 
-    public spawnNextStudyEnemy(speedModifier: number) {
+    public spawnNextStudyEnemy(mode: string, speedModifier: number) {
         if (!this.hasMoreStudyEnemies()) return;
         const q = this.studyQueue[this.currentStudyEntityIndex];
         this.currentStudyEntityIndex++;
 
         // Wave 4: Bắn 4 lựa chọn (1 Đúng, 3 Nhiễu)
         if (this.currentStudyWave === 4) {
-            const trueEnemy = new Enemy(q.word, 'study', 0, this.canvasWidth, this.canvasHeight, this.currentStudyWave);
+            const trueEnemy = new Enemy(q.word, mode, 0, this.canvasWidth, this.canvasHeight, this.currentStudyWave);
             trueEnemy.isTruth = true;
             trueEnemy.study.revealType = q.revealType || 'kanji';
             if (q.isDebt) trueEnemy.study.isDebt = true;
@@ -312,9 +296,9 @@ export class Spawner {
             distractors.sort(() => Math.random() - 0.5);
             let pickedDistractors = distractors.slice(0, 3);
 
-            let d1 = new Enemy(pickedDistractors[0], 'study', 0, this.canvasWidth, this.canvasHeight, this.currentStudyWave);
-            let d2 = new Enemy(pickedDistractors[1], 'study', 0, this.canvasWidth, this.canvasHeight, this.currentStudyWave);
-            let d3 = new Enemy(pickedDistractors[2], 'study', 0, this.canvasWidth, this.canvasHeight, this.currentStudyWave);
+            let d1 = new Enemy(pickedDistractors[0], mode, 0, this.canvasWidth, this.canvasHeight, this.currentStudyWave);
+            let d2 = new Enemy(pickedDistractors[1], mode, 0, this.canvasWidth, this.canvasHeight, this.currentStudyWave);
+            let d3 = new Enemy(pickedDistractors[2], mode, 0, this.canvasWidth, this.canvasHeight, this.currentStudyWave);
             d1.isTruth = false; d2.isTruth = false; d3.isTruth = false;
 
             let candidates = [trueEnemy, d1, d2, d3].sort(() => Math.random() - 0.5);
@@ -342,7 +326,7 @@ export class Spawner {
             return;
         }
 
-        const enemy = new Enemy(q.word, 'study', speedModifier, this.canvasWidth, this.canvasHeight, this.currentStudyWave);
+        const enemy = new Enemy(q.word, mode, speedModifier, this.canvasWidth, this.canvasHeight, this.currentStudyWave);
         enemy.study.revealType = q.revealType;
         if (q.isDebt) enemy.study.isDebt = true;
 

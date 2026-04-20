@@ -202,8 +202,9 @@ export class Enemy {
     // --- RENDERING ZONE ---
 
     public draw(ctx: CanvasRenderingContext2D) {
-        if (this.isDead || (this.mode === 'study' && this.study.wave === 1)) return;
-        if (this.mode === 'study' && this.study.wave === 2 && this.isDefeated) return;
+        const isStudy = (this.mode === 'study' || this.mode === 'kanji' || this.mode === 'grammar');
+        if (this.isDead || (isStudy && this.study.wave === 1)) return;
+        if (isStudy && this.study.wave === 2 && this.isDefeated) return;
 
         const renderParams = this.calculateRenderParams();
         
@@ -227,7 +228,8 @@ export class Enemy {
         let drawOffsetY = 0;
         const { wave } = this.study;
 
-        if (this.mode === 'easy' || (this.mode === 'study' && [1, 2].includes(wave))) {
+        const isStudy = (this.mode === 'study' || this.mode === 'kanji' || this.mode === 'grammar');
+        if (this.mode === 'easy' || (isStudy && [1, 2].includes(wave))) {
             const pulse = (Math.sin(performance.now() / 600 + this.phase) + 1) / 2;
             bgAlpha = 0.3 + pulse * 0.6;
             glowPulse = 0.4 + pulse * 1.6;
@@ -246,7 +248,7 @@ export class Enemy {
 
     private getColorByState(): string {
         if (this.isDefeated) return this.isSkipped ? '#ff0000' : '#00e676';
-        if (this.mode === 'study') {
+        if (this.mode === 'study' || this.mode === 'kanji' || this.mode === 'grammar') {
             if (this.study.isDebt) return '#ff0040';
             if (this.study.isWeak && this.study.wave !== 2) return '#ff0000';
             if (this.isLocked) return '#00e676';
@@ -389,7 +391,8 @@ export class Enemy {
     }
 
     private drawOverlays(ctx: CanvasRenderingContext2D, p: any) {
-        if (this.mode === 'study' && [3, 5].includes(this.study.wave) && this.study.isWave3Target) {
+        const isStudy = (this.mode === 'study' || this.mode === 'kanji' || this.mode === 'grammar');
+        if (isStudy && [3, 5].includes(this.study.wave) && this.study.isWave3Target) {
             this.drawCrosshair(ctx, p.pillWidth);
         }
     }

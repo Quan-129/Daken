@@ -13,7 +13,8 @@ export class Wave1State extends BaseWaveState {
         const enemies = this.context.getEnemies();
         
         // Anti-ghosting: if a study enemy is already defeated and showing, ignore input
-        if (enemies.some((e: Enemy) => e.isDefeated && e.mode === 'study')) {
+        const isStudy = (e: Enemy) => (e.mode === 'study' || e.mode === 'kanji' || e.mode === 'grammar');
+        if (enemies.some((e: Enemy) => e.isDefeated && isStudy(e))) {
             return;
         }
 
@@ -115,8 +116,9 @@ export class Wave1State extends BaseWaveState {
 
     handleTargetSkip(): void {
         const enemies = this.context.getEnemies();
+        const isStudy = (e: Enemy) => (e.mode === 'study' || e.mode === 'kanji' || e.mode === 'grammar');
         let target = enemies.find((e: Enemy) => !e.isDead && !e.isDefeated && e.isLocked) || 
-                     enemies.find((e: Enemy) => !e.isDead && !e.isDefeated && e.mode === 'study');
+                     enemies.find((e: Enemy) => !e.isDead && !e.isDefeated && isStudy(e));
 
         if (target) {
             target.study.isWeak = true;

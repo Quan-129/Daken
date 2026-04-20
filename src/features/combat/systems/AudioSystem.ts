@@ -182,14 +182,16 @@ export class AudioSystem {
         events.subscribe('ENEMY_KILLED', (data: any) => {
             this.playKillSFX();
             if (data && data.enemy && data.enemy.word) {
-                let skipExample = data.enemy.mode === 'study' && (data.enemy.study.wave === 3 || data.enemy.study.wave === 5);
+                const isStudy = (data.enemy.mode === 'study' || data.enemy.mode === 'kanji' || data.enemy.mode === 'grammar');
+                let skipExample = isStudy && (data.enemy.study.wave === 3 || data.enemy.study.wave === 5);
                 this.playTTS(data.enemy.word, skipExample);
             }
         });
 
         events.subscribe('ENEMY_DEFEATED', (enemy: any) => {
             if (enemy && enemy.word) {
-                let skipExample = enemy.mode === 'study' && (enemy.study.wave === 3 || enemy.study.wave === 5);
+                const isStudy = (enemy.mode === 'study' || enemy.mode === 'kanji' || enemy.mode === 'grammar');
+                let skipExample = isStudy && (enemy.study.wave === 3 || enemy.study.wave === 5);
                 this.playTTS(enemy.word, skipExample, () => {
                     EventBus.getInstance().publish('AUDIO_TTS_ENDED', enemy);
                 });

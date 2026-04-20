@@ -7,10 +7,6 @@ import KuromojiAnalyzer from 'kuroshiro-analyzer-kuromoji';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Input là file text thiết kế theo mảng cột (nhẹ & tiết kiệm token)
-const inputPath = path.resolve(__dirname, '../kotoba.txt');
-const outputPath = path.resolve(__dirname, '../public/data/kotoba.json');
-
 const unitMetadata = {
     "Unit_1": {
         ja: "人・人間関係",
@@ -98,49 +94,28 @@ function getStudyInfo(unitId) {
     return unitMetadata[unitId] || defaultInfo;
 }
 
-async function main() {
-    console.log("🌊 [AI Data Architect] Đang khởi động Text-to-JSON Super Pipeline & Kuromoji...");
+async function processFile(kuroshiro, config) {
+    const { inputPath, outputPath, listKey } = config;
+
+    console.log(`\n📂 Bắt đầu xử lý: [${path.basename(inputPath)}] -> [${path.basename(outputPath)}]`);
 
     if (!fs.existsSync(inputPath)) {
-        console.log(`❌ Lỗi: Không tìm thấy file [kotoba.txt] tại thư mục root.`);
-        console.log(`💡 HƯỚNG DẪN: Hãy đặt file chứa dữ liệu thô cách nhau bằng cột '|' ở file kotoba.txt.`);
+        console.log(`❌ Lỗi: Không tìm thấy file [${inputPath}]`);
         return;
     }
 
     const rawInput = fs.readFileSync(inputPath, 'utf8');
     const lines = rawInput.split('\n').filter(line => line.trim().length > 0);
 
-    console.log(`🚀 Tìm thấy [${lines.length}] dòng dữ liệu văn bản. Bắt đầu chặt chuỗi...`);
+    console.log(`🚀 Tìm thấy [${lines.length}] dòng dữ liệu. Bắt đầu xử lý...`);
 
-    // Khởi tạo Kuromoji để gắn Furigana tự động
-    const KuroshiroClass = Kuroshiro.default || Kuroshiro;
-    const KuromojiAnalyzerClass = KuromojiAnalyzer.default || KuromojiAnalyzer;
-    const kuroshiro = new KuroshiroClass();
-    await kuroshiro.init(new KuromojiAnalyzerClass());
-
-    // Merge với file gốc database
     let finalData = [];
-    if (fs.existsSync(outputPath)) {
-        try { 
-            finalData = JSON.parse(fs.readFileSync(outputPath, 'utf8')); 
-            // Migration: Chuyển cấu trúc cũ lên cấu trúc bọc Level
-            if (finalData.length > 0 && finalData[0].unitId) {
-                console.log("🔄 Nâng cấp Database lên chuẩn mới (Level Bọc Ngoài)...");
-                finalData = [{ level: "N2", unit_list: finalData }];
-            }
-        } catch(e) {
-            console.log("⚠️ Cảnh báo: File vocabulary_generated.json hỏng định dạng, sẽ tạo lại mảng mới.");
-        }
-    }
-
     let injectedCount = 0;
 
     for (let i = 0; i < lines.length; i++) {
         const line = lines[i];
         const parts = line.split('|').map(s => s.trim());
 
-        // File cấu trúc 12 cột:
-        // 0: visual | 1: romaji | 2: hanviet | 3: vi | 4: en | 5: example_jp | 6: example_vi | 7: example_en | 8: grammar_jp | 9: grammar_vi | 10: grammar_en | 11: unitIdLevel
         if (parts.length < 12) {
             console.log(`⏩ Bỏ qua dòng ${i + 1} vì không đủ 12 cột: ${line.substring(0, 30)}...`);
             continue;
@@ -157,22 +132,22 @@ async function main() {
         const v_grammar_jp = parts[8];
         const v_grammar_vi = parts[9];
         const v_grammar_en = parts[10];
+        const rawTag = parts[11];
 
-        const rawUnitStr = parts[11];
-        const splitUnits = rawUnitStr.split('_'); // ['Unit', '1', 'N2']
-        const v_unitId = splitUnits.length >= 2 ? `${splitUnits[0]}_${splitUnits[1]}` : "Unit_1";
-        const v_level = splitUnits.length >= 3 ? splitUnits[2] : "N2";
+        const splitUnits = rawTag.split('_'); 
+        // Chuẩn hóa Tuần -> Unit để map với Metadata
+        const prefix = splitUnits[0] === 'Tuần' ? 'Unit' : splitUnits[0];
+        const v_unitId = splitUnits.length >= 2 ? `${prefix}_${splitUnits[1]}` : "Unit_1";
+        const v_level = splitUnits[splitUnits.length - 1] || "N2";
 
         const v_studyInfo = getStudyInfo(v_unitId);
 
-        // Tìm hoặc tạo Level Group
         let levelGroup = finalData.find(l => l.level === v_level);
         if (!levelGroup) {
             levelGroup = { level: v_level, unit_list: [] };
             finalData.push(levelGroup);
         }
 
-        // Tìm hoặc tạo Unit Group bên trong Level
         let group = levelGroup.unit_list.find(g => g.unitId === v_unitId);
         if (!group) {
             group = {
@@ -180,21 +155,24 @@ async function main() {
                 studyName_ENG: v_studyInfo.en,
                 studyName_JA: v_studyInfo.ja,
                 studyName_VI: v_studyInfo.vi,
-                vocabulary_list: []
+                [listKey]: []
             };
             levelGroup.unit_list.push(group);
         }
 
-        // Check trùng lặp từ vựng trong Unit
-        const existingWordIndex = group.vocabulary_list.findIndex(v => v.visual === v_visual);
-        
-        console.log(`⌛ Kuromoji xử lý Furigana: [${v_visual}]...`);
-        
-        // Nếu câu JP chưa có thẻ ngoặc nhọn {} thì tiêm Furigana vào
+        // Tự động convert Furigana nếu chưa có format {kanji|hiragana}
+        // Thường example_jp trong txt sử dụng [kanji]hiragana, ta cần chuyển sang {kanji|hiragana}
+        // Hoặc nếu text thô, dùng kuroshiro
         if (v_example_jp && !v_example_jp.includes('{')) {
-            const resultWithRuby = await kuroshiro.convert(v_example_jp, { mode: "furigana", to: "hiragana" });
-            // Gom <ruby> lại thành định dạng Game Engine
-            v_example_jp = resultWithRuby.replace(/<ruby>(.*?)<rt>(.*?)<\/rt><\/ruby>/g, '{$1|$2}');
+            // Hỗ trợ cả định dạng [た]ち入[い]り -> {立|た}ち {入|い}り
+            if (v_example_jp.includes('[')) {
+                // Sử dụng \p{Script=Han} để chỉ khớp chữ Hán trước dấu ngoặc
+                v_example_jp = v_example_jp.replace(/(\p{Script=Han}+)\[(\p{L}+)\]/gu, '{$1|$2}');
+            }
+            if (!v_example_jp.includes('{')) {
+                const resultWithRuby = await kuroshiro.convert(v_example_jp, { mode: "furigana", to: "hiragana" });
+                v_example_jp = resultWithRuby.replace(/<ruby>(.*?)<rp>.*?<\/rp><rt>(.*?)<\/rt><rp>.*?<\/rp><\/ruby>/g, '{$1|$2}');
+            }
         }
 
         const cleanObj = {
@@ -206,30 +184,49 @@ async function main() {
             example_jp: v_example_jp,
             example_vi: v_example_vi,
             example_en: v_example_en,
-            grammar_jp: v_grammar_jp,
+            grammar: v_grammar_jp,
             grammar_vi: v_grammar_vi,
-            grammar_en: v_grammar_en
+            grammar_en: v_grammar_en,
+            tag: rawTag
         };
 
-        if (existingWordIndex >= 0) {
-            group.vocabulary_list[existingWordIndex] = cleanObj;
-            console.log(`♻️  Đã CẬP NHẬT: ${v_visual}`);
-        } else {
-            group.vocabulary_list.push(cleanObj);
-            console.log(`✅ Đã TIÊM MỚI: ${v_visual}`);
-        }
-        
+        group[listKey].push(cleanObj);
         injectedCount++;
     }
 
-    // Ghi đè Database
     fs.writeFileSync(outputPath, JSON.stringify(finalData, null, 4), 'utf8');
-    
+    console.log(`✅ Hoàn tất! Đã nạp ${injectedCount} mục vào ${path.basename(outputPath)}`);
+}
+
+async function main() {
+    console.log("🌊 [AI Data Architect] Khởi động Text-to-JSON Pipeline...");
+
+    const KuroshiroClass = Kuroshiro.default || Kuroshiro;
+    const KuromojiAnalyzerClass = KuromojiAnalyzer.default || KuromojiAnalyzer;
+    const kuroshiro = new KuroshiroClass();
+    await kuroshiro.init(new KuromojiAnalyzerClass());
+
+    const tasks = [
+        {
+            inputPath: path.resolve(__dirname, '../kotoba.txt'),
+            outputPath: path.resolve(__dirname, '../public/data/kotoba.json'),
+            listKey: 'vocabulary_list'
+        },
+        {
+            inputPath: path.resolve(__dirname, '../kanji.txt'),
+            outputPath: path.resolve(__dirname, '../public/data/kanji.json'),
+            listKey: 'kanji_list'
+        }
+    ];
+
+    for (const task of tasks) {
+        await processFile(kuroshiro, task);
+    }
+
     console.log(`\n======================================================`);
-    console.log(`✨ HOÀN TẤT TEXT-TO-JSON PIPELINE!`);
-    console.log(`✨ Đã nạp thành công ${injectedCount} Nodes vào Data Cốt Lõi.`);
-    console.log(`✨ Định dạng mảng chuẩn: [kotoba.json]`);
+    console.log(`✨ TẤT CẢ PIPELINED ĐÃ HOÀN TẤT!`);
     console.log(`======================================================\n`);
 }
 
 main().catch(console.error);
+

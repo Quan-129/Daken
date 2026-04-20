@@ -11,14 +11,14 @@ export class Wave3State extends BaseWaveState {
 
     processInput(key: string): void {
         const enemies = this.context.getEnemies();
+        const isStudy = (e: Enemy) => (e.mode === 'study' || e.mode === 'kanji' || e.mode === 'grammar');
         this.context.incrementTotalKeystrokes();
 
-        let w3Target = enemies.find((e: Enemy) => e.mode === 'study' && (e.study.wave === 3 || e.study.wave === 5) && e.study.isWave3Target && !e.isDead);
+        let w3Target = enemies.find((e: Enemy) => isStudy(e) && (e.study.wave === 3 || e.study.wave === 5) && e.study.isWave3Target && !e.isDead);
         
         if (!w3Target) {
-            // Find new target if none locked
             let candidates = enemies.filter((e: Enemy) =>
-                !e.isDead && e.mode === 'study' &&
+                !e.isDead && isStudy(e) &&
                 e.word.romaji.toLowerCase().startsWith(key.toLowerCase()) &&
                 e.x < 1200 && e.x > 0
             );

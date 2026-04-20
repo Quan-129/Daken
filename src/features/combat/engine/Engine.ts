@@ -40,7 +40,8 @@ export class Engine {
         window.addEventListener('resize', () => this.resize());
 
         EventBus.getInstance().subscribe('PERFECT_RECALL', (enemy: Enemy) => {
-            if (this.mode === 'study') {
+            const isStudy = (this.mode === 'study' || this.mode === 'kanji' || this.mode === 'grammar');
+            if (isStudy) {
                 this.createTextParticle(enemy.x, enemy.y - 20, "PERFECT RECALL!", "#FFD700");
             }
         });
@@ -160,7 +161,8 @@ export class Engine {
     }
 
     public spawnWave() {
-        if (this.mode === 'study' && this.spawner.currentStudyWave === 0) {
+        const isStudyRunning = (this.mode === 'study' || this.mode === 'kanji' || this.mode === 'grammar');
+        if (isStudyRunning && this.spawner.currentStudyWave === 0) {
             this.spawner.startStudySession();
         }
         this.spawner.spawnWave(this.mode, this.speedModifier);
@@ -210,7 +212,8 @@ export class Engine {
 
 
 
-        if (this.mode !== 'chill' && this.mode !== 'easy' && !(this.mode === 'study' && this.spawner.currentStudyWave <= 4)) {
+        const isStudy = (this.mode === 'study' || this.mode === 'kanji' || this.mode === 'grammar');
+        if (this.mode !== 'chill' && this.mode !== 'easy' && !(isStudy && this.spawner.currentStudyWave <= 4)) {
             this.ctx.save();
             this.ctx.beginPath();
             this.ctx.moveTo(150, 0);
@@ -227,7 +230,8 @@ export class Engine {
         }
 
         // Đảm bảo luôn có 1 mục tiêu trong Wave 3 và Wave 5
-        if (this.mode === 'study' && (this.spawner.currentStudyWave === 3 || this.spawner.currentStudyWave === 5)) {
+        const isStudyRunning = (this.mode === 'study' || this.mode === 'kanji' || this.mode === 'grammar');
+        if (isStudyRunning && (this.spawner.currentStudyWave === 3 || this.spawner.currentStudyWave === 5)) {
             let activeTarget = this.enemies.find(e => e.study.isWave3Target && !e.isDead);
 
             if (activeTarget && activeTarget.x > this.canvas.width) {
@@ -238,7 +242,7 @@ export class Engine {
             // Wave 3: Chọn ngẫu nhiên (Random) 1 trong số các mục tiêu đang có trên màn hình
             // Wave 5: Giữ nguyên cơ chế Lock qua bàn phím (TypingLogic xử lý)
             if (!activeTarget && this.spawner.currentStudyWave === 3) {
-                let visibleTargets = this.enemies.filter(e => !e.isDead && e.mode === 'study' && e.study.wave === 3 && e.x > 0);
+                let visibleTargets = this.enemies.filter(e => !e.isDead && isStudyRunning && e.study.wave === 3 && e.x > 0);
                 if (visibleTargets.length > 0) {
                     // Chọn ngẫu nhiên hoàn toàn trong đám đang hiện diện
                     let nextTarget = visibleTargets[Math.floor(Math.random() * visibleTargets.length)];
@@ -276,11 +280,11 @@ export class Engine {
             let enemy = this.enemies[i];
 
             if (enemy.isDead) {
-                if (this.mode === 'easy' || this.mode === 'study') {
+                if (this.mode === 'easy' || this.mode === 'study' || this.mode === 'kanji' || this.mode === 'grammar') {
                     this.createExplosion(enemy.x, enemy.y, enemy.color);
                 }
 
-                if (this.mode === 'study' && enemy.study.isWeak) {
+                if ((this.mode === 'study' || this.mode === 'kanji' || this.mode === 'grammar') && enemy.study.isWeak) {
                     this.spawner.addRetryEnemy(enemy);
                 }
 
@@ -295,27 +299,27 @@ export class Engine {
                                 this.spawnWave();
                             }
                         }, GameConfig.timing.easyModeRespawnDelay);
-                    } else if (this.mode === 'study' && this.spawner.currentStudyWave !== 5) {
+                    } else if ((this.mode === 'study' || this.mode === 'kanji' || this.mode === 'grammar') && this.spawner.currentStudyWave !== 5) {
                         // Nếu đang chờ Space để qua Wave mới thì không làm gì thêm
                         if (this.isWaitingForProceed) return;
 
                         if ((this.spawner.currentStudyWave === 1 || this.spawner.currentStudyWave === 2 || this.spawner.currentStudyWave === 4) && this.spawner.hasMoreStudyEnemies()) {
                             // Đẻ quái tiếp theo của Wave học hiện tại
                             setTimeout(() => {
-                                if (this.isRunning && this.mode === 'study') {
-                                    this.spawner.spawnNextStudyEnemy(this.speedModifier);
+                                if (this.isRunning && (this.mode === 'study' || this.mode === 'kanji' || this.mode === 'grammar')) {
+                                    this.spawner.spawnNextStudyEnemy(this.mode, this.speedModifier);
                                 }
                             }, 500);
                         } else if (this.spawner.hasRetryEnemies()) {
                             // Khởi động vòng lặp đền mạng Retry Phase cho TẤT CẢ các Wave
                             this.spawner.startRetryPhase();
                             setTimeout(() => {
-                                if (this.isRunning && this.mode === 'study') {
+                                if (this.isRunning && (this.mode === 'study' || this.mode === 'kanji' || this.mode === 'grammar')) {
                                     if (this.spawner.currentStudyWave === 3) {
                                         // Wave 3 dùng Batch sinh 5 con
-                                        this.spawner.spawnBatchWave3(this.speedModifier);
+                                        this.spawner.spawnBatchWave3(this.mode, this.speedModifier);
                                     } else {
-                                        this.spawner.spawnNextStudyEnemy(this.speedModifier);
+                                        this.spawner.spawnNextStudyEnemy(this.mode, this.speedModifier);
                                     }
                                 }
                             }, 500);
@@ -333,7 +337,7 @@ export class Engine {
             }
         }
 
-        if (this.mode === 'easy' || this.mode === 'study') {
+        if (this.mode === 'easy' || this.mode === 'study' || this.mode === 'kanji' || this.mode === 'grammar') {
             for (let i = this.particles.length - 1; i >= 0; i--) {
                 let p = this.particles[i];
                 p.x += p.vx;
@@ -377,7 +381,7 @@ export class Engine {
             if (this.spawner.currentStudyWave < 5) {
                 this.spawner.nextStudyWave();
                 setTimeout(() => {
-                    if (this.isRunning && this.mode === 'study') {
+                    if (this.isRunning && (this.mode === 'study' || this.mode === 'kanji' || this.mode === 'grammar')) {
                         this.spawnWave();
                     }
                 }, GameConfig.timing.easyModeRespawnDelay);

@@ -10,4 +10,5 @@ export interface Word {
     grammar: string;
     grammar_vi?: string;
     grammar_en?: string;
+    tag?: string;
 }

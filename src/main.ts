@@ -74,15 +74,16 @@ eventBus.subscribe('GAME_START_N2', (config: { mode: string, studyLevel: string,
     engine.clearEnemiesAndCanvas();
     
     // Inject words directly into Spawner!
-    const spawner = engine['spawner']; // Hack để lấy spawner ra hoặc dùng public method
-    if (spawner && typeof spawner.startN2Session === 'function') {
-        spawner.startN2Session(config.words);
+    const spawner = (engine as any).spawner; // Hack để lấy spawner ra hoặc dùng public method
+    if (spawner && typeof spawner.startStudySession === 'function') {
+        spawner.startStudySession(config.words);
     }
     
     // Lưu N2 context để Game Over / Win report biết đường mà cập nhật UI nếu cần
     (engine as any).currentN2Context = {
         unitIdx: config.unitIdx,
-        sessionIdx: config.sessionIdx
+        sessionIdx: config.sessionIdx,
+        mode: config.mode
     };
     (engine as any).lastStartTime = performance.now();
     
@@ -112,7 +113,7 @@ eventBus.subscribe('STUDY_SESSION_END', () => {
 
     const ctx = (engine as any).currentN2Context;
     if (ctx) {
-        stateManager.saveN2SessionProgress(ctx.unitIdx, ctx.sessionIdx, {rank, acc, wpm, score});
+        stateManager.saveN2SessionProgress(ctx.unitIdx, ctx.sessionIdx, {rank, acc, wpm, score}, ctx.mode);
         eventBus.publish('N2_SESSION_CLEARED', { rank, acc, wpm, score, unitIdx: ctx.unitIdx, sessionIdx: ctx.sessionIdx });
         (engine as any).currentN2Context = null; // Clear
     }

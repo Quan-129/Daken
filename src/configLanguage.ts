@@ -83,7 +83,8 @@ export const LanguageConfig = {
                 systemWarning: "Wait a second!",
                 stopConfirm: "Do you want to stop now?",
                 unsavedWarning: "Warning: Unsaved progress will be lost!",
-                confirmStop: "Yes, Stop"
+                confirmStop: "Yes, Stop",
+                sessionCompleted: "SESSION COMPLETED"
             },
             feedback: {
                 title: "FEEDBACK & BUGS",
@@ -266,7 +267,8 @@ export const LanguageConfig = {
                 systemWarning: "Gượm đã!",
                 stopConfirm: "Bạn muốn dừng lại sao?",
                 unsavedWarning: "Cảnh báo: Kết quả chưa lưu sẽ bị mất hết đấy!",
-                confirmStop: "Đúng, dừng lại"
+                confirmStop: "Đúng, dừng lại",
+                sessionCompleted: "HOÀN THÀNH PHIÊN HỌC"
             },
             feedback: {
                 title: "GÓP Ý & BÁO LỖI",

@@ -1,5 +1,4 @@
 import { Word } from '../../core/entities/Word';
-import { mockVocabulary } from './MockData';
 import { EventBus } from '../../core/EventBus';
 import { supabase } from './supabase';
 
@@ -14,6 +13,7 @@ export class StateManager {
   private n2ProgressKey = 'ninja_n2_progress';
   private n2Progress: Record<string, {rank: string, acc: number, wpm: number, score?: number}> = {};
   private n2HubData: any[] = [];
+  private currentHubType: string = 'study';
   private _studyLanguage: string = 'vi';
 
   public get studyLanguage(): string {
@@ -73,12 +73,11 @@ export class StateManager {
   }
 
   public loadData(): void {
-    // Tạm thời nạp dữ liệu Mock từ bộ nhớ RAM thay vì gọi Supabase
-    this.words = [...mockVocabulary];
+    // Không còn dùng mock data, mặc định là mảng trống nếu fetch JSON thất bại
+    this.words = [];
     
-    // Gửi sự kiện báo hiệu rằng dữ liệu đã nạp xong
     this.eventBus.publish('DATA_LOADED', this.words);
-    console.log('[StateManager] Dữ liệu đã được nạp thành công:', this.words.length, 'từ vựng');
+    console.log('[StateManager] Dữ liệu khởi tạo trống (chờ load JSON).');
   }
 
   public async loadStudyData(level: string): Promise<void> {
@@ -103,7 +102,8 @@ export class StateManager {
                         vi: v.vi || "",
                         example_jp: v.example_jp || "",
                         example_vi: v.example_vi || "",
-                        grammar: v.grammar || ""
+                        grammar: v.grammar || "",
+                        tag: v.tag || ""
                     });
                 }
             }
@@ -123,6 +123,7 @@ export class StateManager {
   public async loadLevelHubData(level: string, type: string = 'study'): Promise<void> {
     try {
         const mLevel = level.toUpperCase();
+        this.currentHubType = type;
         let fileName = 'kotoba.json';
         if (type === 'kanji') fileName = 'kanji.json';
         else if (type === 'grammar') fileName = 'grammar.json';
@@ -145,10 +146,29 @@ export class StateManager {
             console.log(`[StateManager] Đã tìm thấy dữ liệu cho ${mLevel}. Đang chuẩn bị ${levelData.unit_list.length} Units...`);
             levelData.unit_list.forEach((unit: any, uIndex: number) => {
                 const words = unit.vocabulary_list || unit.kanji_list || unit.grammar_list || [];
-                const sessions = [];
-                for (let i = 0; i < words.length; i += 10) {
-                    sessions.push(words.slice(i, i + 10));
-                }
+                const sessions: Word[][] = [];
+                const sessionMap: Record<string, Word[]> = {};
+
+                words.forEach((w: any) => {
+                    const tag = w.tag || 'Default_Session';
+                    if (!sessionMap[tag]) {
+                        sessionMap[tag] = [];
+                    }
+                    sessionMap[tag].push(w);
+                });
+
+                // Lấy các tags và sắp xếp theo số Session/Day/Ngày trong tag (ví dụ: Session_1, Day_1, Ngày_1...)
+                const sortedTags = Object.keys(sessionMap).sort((a, b) => {
+                    const getNum = (s: string) => {
+                        const match = s.match(/(?:Session|Day|Ngày)_(\d+)/);
+                        return match ? parseInt(match[1]) : 0;
+                    };
+                    return getNum(a) - getNum(b);
+                });
+
+                sortedTags.forEach(tag => {
+                    sessions.push(sessionMap[tag]);
+                });
 
                 let ja_fallback = '語彙';
                 let en_fallback = 'Vocabulary';
@@ -216,7 +236,8 @@ export class StateManager {
       if (data && data.length > 0) {
           let hasNewData = false;
           data.forEach(row => {
-              const key = `u${row.unit_idx}_s${row.session_idx}`;
+              const activeMode = row.study_mode || 'vocabulary';
+              const key = `m${activeMode}_u${row.unit_idx}_s${row.session_idx}`;
               const cloudStats = { rank: row.rank, acc: row.acc, wpm: row.wpm, score: row.score };
               
               // Nếu Cloud xịn hơn hoặc Local chưa có -> Cập nhật local
@@ -252,9 +273,10 @@ export class StateManager {
   private saveN2Progress() {
       localStorage.setItem(this.n2ProgressKey, JSON.stringify(this.n2Progress));
   }
-  
-  public async saveN2SessionProgress(unitIdx: number, sessionIdx: number, stats: {rank: string, acc: number, wpm: number, score?: number}) {
-      const key = `u${unitIdx}_s${sessionIdx}`;
+
+  public async saveN2SessionProgress(unitIdx: number, sessionIdx: number, stats: {rank: string, acc: number, wpm: number, score?: number}, mode?: string) {
+      const activeMode = mode || this.currentHubType || 'vocabulary';
+      const key = `m${activeMode}_u${unitIdx}_s${sessionIdx}`;
       const current = this.n2Progress[key];
       
       let shouldUpdate = !current || this.isBetterStats(stats, current as any);
@@ -272,21 +294,53 @@ export class StateManager {
                       user_id: session.user.id,
                       unit_idx: unitIdx,
                       session_idx: sessionIdx,
+                      study_mode: activeMode,
                       rank: stats.rank,
                       acc: stats.acc,
                       wpm: stats.wpm,
                       score: stats.score || 0,
                       updated_at: new Date().toISOString()
-                  }, { onConflict: 'user_id,unit_idx,session_idx' });
+                  }, { onConflict: 'user_id,unit_idx,session_idx,study_mode' });
               
               if (error) console.error('[StateManager] Lỗi lưu Cloud:', error.message);
-              else console.log('[StateManager] Đã đồng bộ lên Cloud!');
+              
+              // [LEADERBOARD SYNC] Cập nhật ngay chỉ số tổng hợp lên Profile khi vừa có điểm mới
+              this.eventBus.publish('HUB_DATA_LOADED', null); 
           }
       }
   }
-  
-  public getN2SessionProgress(unitIdx: number, sessionIdx: number) {
-      return this.n2Progress[`u${unitIdx}_s${sessionIdx}`] || null;
+
+  public getN2SessionProgress(unitIdx: number, sessionIdx: number, mode?: string) {
+      const activeMode = mode || this.currentHubType || 'vocabulary';
+      const key = `m${activeMode}_u${unitIdx}_s${sessionIdx}`;
+      return this.n2Progress[key] || null;
+  }
+
+  public getGlobalN2Stats() {
+      let totalStatsCount = 0;
+      let accSum = 0;
+      let wpmSum = 0;
+      let totalScoreSum = 0;
+      let rankScoreSum = 0;
+      const rankMap: Record<string, number> = { 'S': 4, 'A': 3, 'B': 2, 'C': 1, 'D': 0 };
+
+      Object.values(this.n2Progress).forEach((prog: any) => {
+          if (prog && prog.rank !== '---') {
+              totalStatsCount++;
+              accSum += (prog.acc || 0);
+              wpmSum += (prog.wpm || 0);
+              totalScoreSum += (prog.score || 0);
+              rankScoreSum += rankMap[prog.rank] || 0;
+          }
+      });
+
+      return {
+          totalCount: totalStatsCount,
+          avgAcc: totalStatsCount > 0 ? (accSum / totalStatsCount) : 0,
+          avgWpm: totalStatsCount > 0 ? (wpmSum / totalStatsCount) : 0,
+          totalScore: totalScoreSum,
+          avgRankScore: totalStatsCount > 0 ? (rankScoreSum / totalStatsCount) : 0
+      };
   }
 
 

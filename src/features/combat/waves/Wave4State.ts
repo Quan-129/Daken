@@ -11,9 +11,10 @@ export class Wave4State extends BaseWaveState {
 
     processInput(key: string): void {
         const enemies = this.context.getEnemies();
+        const isStudy = (e: Enemy) => (e.mode === 'study' || e.mode === 'kanji' || e.mode === 'grammar');
         this.context.incrementTotalKeystrokes();
 
-        let w4Enemies = enemies.filter((e: Enemy) => e.mode === 'study' && e.study.wave === 4 && !e.isDead && !e.isDefeated);
+        let w4Enemies = enemies.filter((e: Enemy) => isStudy(e) && e.study.wave === 4 && !e.isDead && !e.isDefeated);
         if (w4Enemies.length === 0) return;
 
         let numericKey = parseInt(key, 10);
@@ -52,7 +53,7 @@ export class Wave4State extends BaseWaveState {
         });
 
         // Add dummy for revelation
-        let dummy = new Enemy(target.word, 'study', 0, 0, 0, 1);
+        let dummy = new Enemy(target.word, target.mode, 0, 0, 0, 1);
         dummy.isDefeated = true;
         dummy.isDead = false;
         dummy.x = -1000;
@@ -114,7 +115,8 @@ export class Wave4State extends BaseWaveState {
 
     handleTargetSkip(): void {
         const enemies = this.context.getEnemies();
-        const w4Enemies = enemies.filter((e: Enemy) => e.mode === 'study' && e.study.wave === 4 && !e.isDead && !e.isDefeated);
+        const isStudy = (e: Enemy) => (e.mode === 'study' || e.mode === 'kanji' || e.mode === 'grammar');
+        const w4Enemies = enemies.filter((e: Enemy) => isStudy(e) && e.study.wave === 4 && !e.isDead && !e.isDefeated);
         const trueEnemy = w4Enemies.find((e: Enemy) => e.isTruth);
 
         if (trueEnemy) {

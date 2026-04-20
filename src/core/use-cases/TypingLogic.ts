@@ -155,7 +155,8 @@ export class TypingLogic {
             });
 
             let target = matches[0];
-            if (target.mode === 'study') {
+            const isStudy = (target.mode === 'study' || target.mode === 'kanji' || target.mode === 'grammar');
+            if (isStudy) {
                 if (target.study.wave === 3 || target.study.wave === 5) {
                     target.isDead = true;
                     target.isLocked = false;
