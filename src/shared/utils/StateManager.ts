@@ -14,6 +14,7 @@ export class StateManager {
   private n2Progress: Record<string, {rank: string, acc: number, wpm: number, score?: number}> = {};
   private n2HubData: any[] = [];
   private currentHubType: string = 'study';
+  private currentHubLevel: string = 'n2';
   private _studyLanguage: string = 'vi';
 
   public get studyLanguage(): string {
@@ -124,6 +125,7 @@ export class StateManager {
     try {
         const mLevel = level.toUpperCase();
         this.currentHubType = type;
+        this.currentHubLevel = level.toLowerCase();
         let fileName = 'kotoba.json';
         if (type === 'kanji') fileName = 'kanji.json';
         else if (type === 'grammar') fileName = 'grammar.json';
@@ -235,10 +237,10 @@ export class StateManager {
 
       if (data && data.length > 0) {
           let hasNewData = false;
-          data.forEach(row => {
-              const activeMode = row.study_mode || 'vocabulary';
-              const key = `m${activeMode}_u${row.unit_idx}_s${row.session_idx}`;
-              const cloudStats = { rank: row.rank, acc: row.acc, wpm: row.wpm, score: row.score };
+          data.forEach((item: any) => {
+              const l = item.level || 'n2';
+              const key = `${l}_m${item.study_mode}_u${item.unit_idx}_s${item.session_idx}`;
+              const cloudStats = { rank: item.rank, acc: item.acc, wpm: item.wpm, score: item.score };
               
               // Nếu Cloud xịn hơn hoặc Local chưa có -> Cập nhật local
               if (!this.n2Progress[key] || this.isBetterStats(cloudStats, this.n2Progress[key] as any)) {
@@ -275,44 +277,62 @@ export class StateManager {
   }
 
   public async saveN2SessionProgress(unitIdx: number, sessionIdx: number, stats: {rank: string, acc: number, wpm: number, score?: number}, mode?: string) {
-      const activeMode = mode || this.currentHubType || 'vocabulary';
-      const key = `m${activeMode}_u${unitIdx}_s${sessionIdx}`;
-      const current = this.n2Progress[key];
+      let activeMode = mode || this.currentHubType || 'study';
+      // Ensure we don't accidentally downgrade kanji/grammar to generic study
+      if (mode === 'kanji' || mode === 'grammar') {
+          activeMode = mode;
+      }
+      const cappedScore = stats.score !== undefined ? Math.min(stats.score, 3000) : undefined;
+      const finalStats = { ...stats, score: cappedScore };
       
-      let shouldUpdate = !current || this.isBetterStats(stats, current as any);
+    const activeLevel = this.currentHubLevel || 'n2';
+    const key = `${activeLevel}_m${activeMode}_u${unitIdx}_s${sessionIdx}`;
+    const current = this.n2Progress[key];
+      
+      let shouldUpdate = !current || this.isBetterStats(finalStats, current as any);
       
       if (shouldUpdate) {
-          this.n2Progress[key] = stats;
+          this.n2Progress[key] = finalStats;
           this.saveN2Progress();
 
           // Đẩy lên Cloud nếu đã đăng nhập
           const { data: { session } } = await supabase.auth.getSession();
           if (session) {
-              const { error } = await supabase
+              console.log(`[StateManager] Đang đẩy lên Cloud cho User: ${session.user.id} | Mode: ${activeMode}`);
+              const { data, error } = await supabase
                   .from('n2_progress')
                   .upsert({
                       user_id: session.user.id,
+                      level: this.currentHubLevel || 'n2', // Lưu thêm cấp độ
                       unit_idx: unitIdx,
                       session_idx: sessionIdx,
                       study_mode: activeMode,
-                      rank: stats.rank,
-                      acc: stats.acc,
-                      wpm: stats.wpm,
-                      score: stats.score || 0,
+                      rank: finalStats.rank,
+                      acc: finalStats.acc,
+                      wpm: finalStats.wpm,
+                      score: finalStats.score || 0,
                       updated_at: new Date().toISOString()
-                  }, { onConflict: 'user_id,unit_idx,session_idx,study_mode' });
+                  }, { onConflict: 'user_id,level,unit_idx,session_idx,study_mode' })
+                  .select();
               
-              if (error) console.error('[StateManager] Lỗi lưu Cloud:', error.message);
+              if (error) {
+                  console.error('[StateManager] ❌ LỖI LƯU CLOUD:', error.message, error.details, error.hint);
+              } else {
+                  console.log('[StateManager] ✅ CLOUD SAVE SUCCESS!', data);
+              }
               
               // [LEADERBOARD SYNC] Cập nhật ngay chỉ số tổng hợp lên Profile khi vừa có điểm mới
               this.eventBus.publish('HUB_DATA_LOADED', null); 
+          } else {
+              console.warn('[StateManager] ⚠️ Không tìm thấy Session. Không thể lưu lên Cloud.');
           }
       }
   }
 
   public getN2SessionProgress(unitIdx: number, sessionIdx: number, mode?: string) {
-      const activeMode = mode || this.currentHubType || 'vocabulary';
-      const key = `m${activeMode}_u${unitIdx}_s${sessionIdx}`;
+      const activeLevel = this.currentHubLevel || 'n2';
+      const activeMode = mode || this.currentHubType || 'study';
+      const key = `${activeLevel}_m${activeMode}_u${unitIdx}_s${sessionIdx}`;
       return this.n2Progress[key] || null;
   }
 
@@ -324,19 +344,29 @@ export class StateManager {
       let rankScoreSum = 0;
       const rankMap: Record<string, number> = { 'S': 4, 'A': 3, 'B': 2, 'C': 1, 'D': 0 };
 
-      Object.values(this.n2Progress).forEach((prog: any) => {
-          if (prog && prog.rank !== '---') {
+      Object.entries(this.n2Progress).forEach(([key, prog]: [string, any]) => {
+          // Bất kể có nhãn cấp độ (n2_) hay không, miễn là chứa mstudy, mkanji hoặc mgrammar
+          const isValidMode = key.includes('mstudy_') || key.includes('mkanji_') || key.includes('mgrammar_');
+          
+          if (isValidMode && prog && prog.rank !== '---') {
               totalStatsCount++;
               accSum += (prog.acc || 0);
               wpmSum += (prog.wpm || 0);
-              totalScoreSum += (prog.score || 0);
+              totalScoreSum += Math.min(prog.score || 0, 3000);
               rankScoreSum += rankMap[prog.rank] || 0;
           }
       });
 
+      const rawAvgAcc = totalStatsCount > 0 ? (accSum / totalStatsCount) : 0;
+      // Nếu đã là > 100 thì có khả năng bị lỗi nhân đôi trước đó, ta chia lại cho 100.
+      // Nếu là hệ số thập phân (<= 1.1), nhân 100.
+      let avgAcc = rawAvgAcc;
+      if (rawAvgAcc > 110) avgAcc = rawAvgAcc / 100;
+      else if (rawAvgAcc <= 1.1 && rawAvgAcc > 0) avgAcc = rawAvgAcc * 100;
+
       return {
           totalCount: totalStatsCount,
-          avgAcc: totalStatsCount > 0 ? (accSum / totalStatsCount) : 0,
+          avgAcc: avgAcc,
           avgWpm: totalStatsCount > 0 ? (wpmSum / totalStatsCount) : 0,
           totalScore: totalScoreSum,
           avgRankScore: totalStatsCount > 0 ? (rankScoreSum / totalStatsCount) : 0

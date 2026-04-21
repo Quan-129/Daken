@@ -36,6 +36,10 @@ const engine = new Engine(canvas);
 new UISystem();
 new AudioSystem();
 
+// Expose globals for console debugging
+(window as any).EventBus = eventBus;
+(window as any).StateManager = stateManager;
+
 // 4. Lắng nghe Event GAME_START từ UI khi người dùng nhấn nút START
 eventBus.subscribe('GAME_START', async (config: { mode: string, studyLevel?: string }) => {
     console.log(`[main.ts] Starting game with mode: ${config.mode}, studyLevel: ${config.studyLevel}`);

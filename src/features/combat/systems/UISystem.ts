@@ -78,7 +78,7 @@ export class UISystem {
     private currentMode = 'medium';
     private currentHubMode: string = 'study'; // 'study', 'kanji', 'grammar'
     private currentHubLevel: string = 'n2';
-    private currentStudyLevel = 'n5';
+    private currentStudyLevel = 'n2';
     private enemiesSpawnedThisWave = 0;
     private isRetryPhase = false;
 
@@ -97,6 +97,7 @@ export class UISystem {
     private waveSegmentStates: ('empty' | 'filled' | 'failed')[] = [];
     private enemiesKilledThisWave = 0;
     private isSessionEnding = false;
+    private currentSessionWordsCount = 20;
 
     // Timer and Summary state
     private waveTimerEl = byId('waveTimer');
@@ -992,7 +993,7 @@ export class UISystem {
                 let level = (e.currentTarget as HTMLElement).getAttribute('data-level');
                 if (level) {
                     this.currentStudyLevel = level;
-                    this.currentMode = 'study';
+                    this.currentMode = (e.currentTarget as HTMLElement).getAttribute('data-parent-mode') || 'study';
 
                     document.querySelectorAll('.fan-blade, .sub-blade').forEach(p => p.classList.remove('active'));
                     const pOpt = byId('studyBlade');
@@ -1448,6 +1449,9 @@ export class UISystem {
 
             this.stopTimer();
             this.currentMode = config.mode;
+            // Lưu số lượng từ để điều tiết điểm số (Workflow cân bằng)
+            this.currentSessionWordsCount = config.words && config.words.length ? config.words.length : 20;
+
             if (this.waveProgressContainer) this.waveProgressContainer.classList.remove('hidden');
             if (this.waveTimerEl) this.waveTimerEl.classList.remove('hidden');
             if (this.currentScoreBox) this.currentScoreBox.classList.remove('hidden');
@@ -1867,15 +1871,20 @@ export class UISystem {
             }
 
             let points = data && typeof data.points === 'number' ? data.points : 10;
-            this.updateScore(this.currentScore + points);
-            this.savedBaseScore += points;
-            this.currentWaveBaseScore += points;
+            
+            // Điều tiết điểm số dựa trên số lượng từ (Baseline: 20 từ)
+            const scalingFactor = 20 / Math.max(this.currentSessionWordsCount, 1);
+            const scaledPoints = Math.round(points * scalingFactor);
+
+            this.updateScore(this.currentScore + scaledPoints);
+            this.savedBaseScore += scaledPoints;
+            this.currentWaveBaseScore += scaledPoints;
 
 
             // Add to combat log
             const t = LanguageConfig.translations[LanguageConfig.current];
             const label = data.combo > 1 ? `COMBO x${data.combo}` : t.messages.wordClear;
-            this.addScoreFeedItem(points, label);
+            this.addScoreFeedItem(scaledPoints, label);
 
             // Xóa buffer UI
             if (this.bufferTyped) this.bufferTyped.innerText = "";
@@ -2321,6 +2330,7 @@ export class UISystem {
 
     private updateProfileUI() {
         const auth = AuthSystem.getInstance();
+        const state = StateManager.getInstance();
         const user = auth.getCurrentUser();
         const isAdmin = user?.email === 'minhquan12092005@gmail.com';
 
@@ -2344,7 +2354,6 @@ export class UISystem {
             }
         }
 
-        const state = StateManager.getInstance();
         const t = LanguageConfig.translations[LanguageConfig.current];
 
         if (this.playerNameEl) {
@@ -2371,34 +2380,21 @@ export class UISystem {
         if (this.totalScoreEl) this.totalScoreEl.innerText = totalScoreSum.toLocaleString();
 
         if (totalStatsCount > 0) {
-            const avgAcc = Math.floor(globalStats.avgAcc * 100);
             const avgWpm = Math.floor(globalStats.avgWpm);
             const avgRank = reverseRank[Math.round(globalStats.avgRankScore)];
 
-            if (this.avgAccEl) this.avgAccEl.innerText = avgAcc + "%";
+            const rawAcc = globalStats.avgAcc || 0;
+            const displayAcc = (rawAcc <= 1.1 && rawAcc > 0) ? rawAcc * 100 : rawAcc;
+            if (this.avgAccEl) this.avgAccEl.innerText = displayAcc.toFixed(1) + '%';
             if (this.avgWpmEl) this.avgWpmEl.innerText = avgWpm.toString();
             if (this.playerRankEl) {
                 this.playerRankEl.innerText = `CLASS ${avgRank}`;
                 this.playerRankEl.className = `rank-value jlpt-rank-${avgRank}`;
             }
 
-            // [LEADERBOARD] Tự động đồng bộ các chỉ số tổng hợp lên Cloud
-            if (auth.isLoggedIn()) {
-                const totalScore = totalScoreSum;
-                const lastSyncedScore = parseInt(localStorage.getItem('LAST_SYNCED_TOTAL_SCORE') || '0');
-                
-                // Đồng bộ nếu điểm mới cao hơn, HOẶC nếu điểm trên Cloud đang là 0
-                if (totalScore > lastSyncedScore || (user && user.total_score === 0 && totalScore > 0)) {
-                    auth.updateProfile({
-                        total_score: totalScore,
-                        avg_wpm: avgWpm,
-                        avg_acc: avgAcc
-                    }).then(() => {
-                        localStorage.setItem('LAST_SYNCED_TOTAL_SCORE', totalScore.toString());
-                        console.log("[Social] Stats synchronized with Neural Hierarchy.");
-                    }).catch(err => console.error("[Social] Link synchronization failed:", err));
-                }
-            }
+            // --- REDUNDANT SYNC REMOVED ---
+            // Leaderboard and stats are derived from n2_progress table.
+            // Avoid calling auth.updateProfile here to prevent 429 errors.
         } else {
             if (this.avgAccEl) this.avgAccEl.innerText = "0%";
             if (this.avgWpmEl) this.avgWpmEl.innerText = "0";
@@ -3282,7 +3278,7 @@ export class UISystem {
         let globalRankScoreSum = 0;
         let globalScoreSum = 0;
 
-        data.forEach((unit, uIdx) => {
+        data.forEach((unit: any, uIdx: number) => {
             let unitAccSum = 0;
             let unitWpmSum = 0;
             let unitSessCompleted = 0;
@@ -3302,7 +3298,7 @@ export class UISystem {
                 let rank = prog ? prog.rank : '---';
                 let acc = prog ? Math.floor(prog.acc * 100) : 0;
                 let wpm = prog ? prog.wpm : 0;
-                let score = prog && prog.score ? prog.score : 0;
+                let score = prog && prog.score ? Math.min(prog.score, 3000) : 0;
 
                 if (prog && prog.rank !== '---') {
                     completedCount++;
@@ -3422,23 +3418,9 @@ export class UISystem {
             this.jlptTotalProgress.innerText = `${perc}% (${completedCount}/${totalCount})`;
         }
 
-        // --- FORCE SYNC TO PROFILE (Đảm bảo Bảng xếp hạng khớp với Hub) ---
-        const auth = AuthSystem.getInstance();
-        if (auth.isLoggedIn()) {
-            const user = auth.getCurrentUser();
-            // Chỉ cập nhật nếu có sự thay đổi hoặc điểm Hub cao hơn điểm Profile hiện tại
-            if (user && (user.total_score !== globalScoreSum)) {
-                console.log(`[Sync] Phát hiện dữ liệu không đồng nhất. Đang ép đồng bộ Hub (${globalScoreSum}) -> Profile.`);
-                auth.updateProfile({
-                    total_score: globalScoreSum,
-                    avg_acc: gAcc,
-                    avg_wpm: gWpm
-                }).then(() => {
-                    console.log('[Sync] Đồng bộ Profile thành công. Bảng xếp hạng sẽ cập nhật ở lần mở tới.');
-                    this.updateProfileUI(); 
-                }).catch(e => console.error("[Sync] Lỗi đồng bộ Profile:", e));
-            }
-        }
+        // --- FORCE SYNC REMOVED ---
+        // This was causing Rate Limit (429) errors because it used supabase.auth.updateUser too frequently.
+        // Aggregate stats are already handled by the global_leaderboard view and n2_progress table.
     }
 
     private openjlptCalibrationModal(unitName: string, sessionNum: number) {
@@ -3527,6 +3509,7 @@ export class UISystem {
     }
 
     private async refreshLeaderboard() {
+        const state = StateManager.getInstance();
         if (!this.leaderboardList) return;
         this.leaderboardList.innerHTML = '<div class="loading-spinner">SYNCING_DATA...</div>';
 
@@ -3545,12 +3528,11 @@ export class UISystem {
             if (this.currentRankMetric === 'wpm') sortColumn = 'avg_wpm';
             if (this.currentRankMetric === 'accuracy') sortColumn = 'avg_acc';
 
-            // Query từ bảng profiles (giả định có các cột này, fallback nếu lỗi)
+            // Query từ bảng global_leaderboard
             const { data, error } = await supabase
-                .from('profiles')
+                .from('global_leaderboard')
                 .select('name, agent_id, avatar, total_score, avg_wpm, avg_acc')
                 .order(sortColumn, { ascending: false })
-                .order('updated_at', { ascending: false })
                 .limit(10);
 
             if (error) throw error;
@@ -3568,10 +3550,11 @@ export class UISystem {
                     // Local-favoring logic: Nếu điểm local cao hơn server (do trễ sync), hiện điểm local cho bản thân
                     let displayValue = serverValueStr;
                     if (isSelf && user) {
+                        const localStats = state.getGlobalN2Stats();
                         const localData = {
-                            total_score: user.total_score || 0,
-                            avg_wpm: user.avg_wpm || 0,
-                            avg_acc: user.avg_acc || 0
+                            total_score: localStats.totalScore || 0,
+                            avg_wpm: localStats.avgWpm || 0,
+                            avg_acc: localStats.avgAcc || 0
                         };
                         const localValueStr = this.getFormattedMetricValue(localData);
                         
@@ -3611,10 +3594,11 @@ export class UISystem {
                 const finalMyAvatar = myInTop ? myInTop.avatar : user.avatar;
                 
                 // Sử dụng giá trị cao nhất giữa Server và Local để đảm bảo hiển thị đúng nhất
+                const localStats = StateManager.getInstance().getGlobalN2Stats();
                 const myMetricData = {
-                    total_score: Math.max(user.total_score || 0, myInTop ? myInTop.total_score : 0),
-                    avg_wpm: Math.max(user.avg_wpm || 0, myInTop ? myInTop.avg_wpm : 0),
-                    avg_acc: Math.max(user.avg_acc || 0, myInTop ? myInTop.avg_acc : 0)
+                    total_score: Math.max(localStats.totalScore || 0, myInTop ? myInTop.total_score : 0),
+                    avg_wpm: Math.max(localStats.avgWpm || 0, myInTop ? myInTop.avg_wpm : 0),
+                    avg_acc: Math.max(localStats.avgAcc || 0, myInTop ? myInTop.avg_acc : 0)
                 };
                 const myValue = this.getFormattedMetricValue(myMetricData);
 
@@ -3640,7 +3624,10 @@ export class UISystem {
         switch (this.currentRankMetric) {
             case 'score': return (agent.total_score || 0).toLocaleString();
             case 'wpm': return (agent.avg_wpm || 0).toFixed(1);
-            case 'accuracy': return (agent.avg_acc || 0) + '%';
+            case 'accuracy': 
+                const acc = agent.avg_acc || 0;
+                const dAcc = (acc <= 1.1 && acc > 0) ? acc * 100 : acc;
+                return dAcc.toFixed(1) + '%';
             default: return '0';
         }
     }
