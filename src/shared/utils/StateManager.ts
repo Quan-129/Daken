@@ -152,11 +152,17 @@ export class StateManager {
                 const sessionMap: Record<string, Word[]> = {};
 
                 words.forEach((w: any) => {
-                    const tag = w.tag || 'Default_Session';
-                    if (!sessionMap[tag]) {
-                        sessionMap[tag] = [];
+                    const rawTag = w.tag || '';
+                    const match = rawTag.match(/(?:Session|Day|Ngày)_(\d+)/);
+                    if (match) {
+                        if (!sessionMap[rawTag]) {
+                            sessionMap[rawTag] = [];
+                        }
+                        sessionMap[rawTag].push(w);
+                    } else {
+                        // Thường là tag bị thiếu hoặc sai định dạng, không tạo session rác
+                        console.warn(`[StateManager] Bỏ qua mục dữ liệu có tag không hợp lệ trong ${unit.unitId}:`, w.visual, "Tag:", rawTag);
                     }
-                    sessionMap[tag].push(w);
                 });
 
                 // Lấy các tags và sắp xếp theo số Session/Day/Ngày trong tag (ví dụ: Session_1, Day_1, Ngày_1...)
@@ -291,8 +297,7 @@ export class StateManager {
           activeMode = mode;
       }
 
-      const cappedScore = stats.score !== undefined ? Math.min(stats.score, 3000) : undefined;
-      const finalStats = { ...stats, score: cappedScore };
+      const finalStats = { ...stats };
       
       const activeLevel = this.currentHubLevel || 'n2';
       // Local key: Vẫn giữ key cố định cho Review để tránh rác localStorage (chọn điểm cao nhất hoặc mới nhất)
@@ -373,7 +378,7 @@ export class StateManager {
               totalStatsCount++;
               accSum += (prog.acc || 0);
               wpmSum += (prog.wpm || 0);
-              totalScoreSum += Math.min(prog.score || 0, 3000);
+              totalScoreSum += (prog.score || 0);
               rankScoreSum += rankMap[prog.rank] || 0;
           }
       });

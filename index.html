@@ -392,6 +392,11 @@
                         <div class="wave-chk-box"><input type="checkbox" class="calib-wave-chk" value="5" checked><span>W5</span></div>
                     </div>
                 </div>
+
+                <div class="mixer-row" id="calibReviewWordCountRow" style="display: none; margin-top: 15px; flex-direction: column; align-items: center; gap: 5px;">
+                    <label style="color: var(--neon-cyan); font-size: 0.9rem; font-weight: bold; width: 100%; text-align: center;">SỐ LƯỢNG TỪ ÔN TẬP: <span id="calibWordCountDisplay">50</span></label>
+                    <input type="range" id="calibWordCountSlider" min="5" max="500" step="5" value="50" style="width: 100%;">
+                </div>
                 <button class="menu-btn" id="startJLPTSessionBtn"
                     style="width: 100%; margin-top: 25px; font-size: 1.2rem; background: rgba(0,245,255,0.1); border-color: var(--neon-cyan); color: var(--neon-cyan); box-shadow: 0 0 15px rgba(0,245,255,0.4);">[
                     INITIALIZE SYNC ]</button>

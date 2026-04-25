@@ -198,11 +198,16 @@ export class UISystem {
     private feedbackCountEl = byId('feedback-count');
 
     private calibWaveRow = byId('calibWaveRow');
+    private calibReviewWordCountRow = byId('calibReviewWordCountRow');
+    private calibWordCountSlider = byId('calibWordCountSlider') as HTMLInputElement;
+    private calibWordCountDisplay = byId('calibWordCountDisplay');
+
     private getCalibWaveChecks(): HTMLInputElement[] {
         return Array.from(document.querySelectorAll('.calib-wave-chk')) as HTMLInputElement[];
     }
 
     private isReviewMode = false;
+    private dynamicTargetScore = 3000;
 
     // State Thư Viện
     private myLibrary: { id: string, name: string, songs: { url: string, title: string }[] }[] = [];
@@ -1314,6 +1319,16 @@ export class UISystem {
             }
         });
 
+        if (this.calibWordCountSlider) {
+            this.calibWordCountSlider.addEventListener('input', () => {
+                const val = parseInt(this.calibWordCountSlider.value);
+                if (this.calibWordCountDisplay) {
+                    const target = this.calculateDynamicTargetScore(val);
+                    this.calibWordCountDisplay.innerHTML = `${val} <br><span style="color: #FFD700; font-size: 0.85rem; margin-top: 5px; display: block; letter-spacing: 1px;">TARGET REVIEW SCORE: ${target} PTS</span>`;
+                }
+            });
+        }
+
         if (this.closeCalibrationBtn) {
             this.closeCalibrationBtn.addEventListener('click', () => {
                 if (this.jlptCalibrationModal) this.jlptCalibrationModal.classList.add('hidden');
@@ -1364,10 +1379,21 @@ export class UISystem {
                         // Review mode: Aggregate all session words
                         const unit = data[this.currentN2Context.unitIdx];
                         unit.sessions.forEach((s: any[]) => sessionWords.push(...s));
-                        // Limit to 50 items for stability
-                        sessionWords = sessionWords.slice(0, 50);
+                        
+                        // Shuffle for better review experience
+                        sessionWords = sessionWords.sort(() => Math.random() - 0.5);
+                        
+                        // Apply word limit from slider if in review mode
+                        const limit = this.calibWordCountSlider ? parseInt(this.calibWordCountSlider.value) : 50;
+                        this.currentSessionWordsCount = limit;
+                        this.dynamicTargetScore = this.calculateDynamicTargetScore(limit);
+                        if (sessionWords.length > limit) {
+                            sessionWords = sessionWords.slice(0, limit);
+                        }
                     } else {
                         sessionWords = data[this.currentN2Context.unitIdx].sessions[this.currentN2Context.sessionIdx];
+                        this.currentSessionWordsCount = sessionWords.length;
+                        this.dynamicTargetScore = 3000; // Mặc định cho session thường
                     }
 
                     this.updateHp(5);
@@ -1912,8 +1938,8 @@ export class UISystem {
 
             let points = data && typeof data.points === 'number' ? data.points : 10;
             
-            // Điều tiết điểm số dựa trên số lượng từ (Baseline: 20 từ)
-            const scalingFactor = 20 / Math.max(this.currentSessionWordsCount, 1);
+            // Điều tiết điểm số: Study mode dùng Scaling (Baseline 20), Review mode nhận full điểm
+            const scalingFactor = this.isReviewMode ? 1 : (20 / Math.max(this.currentSessionWordsCount, 1));
             const scaledPoints = Math.round(points * scalingFactor);
 
             this.updateScore(this.currentScore + scaledPoints);
@@ -2421,13 +2447,13 @@ export class UISystem {
         if (this.totalScoreEl) this.totalScoreEl.innerText = totalScoreSum.toLocaleString();
 
         if (totalStatsCount > 0) {
-            const avgWpm = Math.floor(globalStats.avgWpm);
+            const avgWpm = globalStats.avgWpm || 0;
             const avgRank = reverseRank[Math.round(globalStats.avgRankScore)];
 
             const rawAcc = globalStats.avgAcc || 0;
             const displayAcc = (rawAcc <= 1.1 && rawAcc > 0) ? rawAcc * 100 : rawAcc;
             if (this.avgAccEl) this.avgAccEl.innerText = displayAcc.toFixed(1) + '%';
-            if (this.avgWpmEl) this.avgWpmEl.innerText = avgWpm.toString();
+            if (this.avgWpmEl) this.avgWpmEl.innerText = avgWpm.toFixed(1);
             if (this.playerRankEl) {
                 this.playerRankEl.innerText = `CLASS ${avgRank}`;
                 this.playerRankEl.className = `rank-value jlpt-rank-${avgRank}`;
@@ -2438,7 +2464,7 @@ export class UISystem {
             // Avoid calling auth.updateProfile here to prevent 429 errors.
         } else {
             if (this.avgAccEl) this.avgAccEl.innerText = "0%";
-            if (this.avgWpmEl) this.avgWpmEl.innerText = "0";
+            if (this.avgWpmEl) this.avgWpmEl.innerText = "0.0";
             if (this.playerRankEl) {
                 this.playerRankEl.innerText = t.profile.unranked;
             }
@@ -2581,15 +2607,15 @@ export class UISystem {
         this.currentScore = score;
         if (this.scoreEl) this.scoreEl.innerText = this.currentScore.toString();
 
-        // Wave 5 Victory condition: 3000 points
+        // Wave 5 Victory condition: dynamicTargetScore points
         const isStudy = (this.currentMode === 'study' || this.currentMode === 'kanji' || this.currentMode === 'grammar');
-        if (isStudy && this.currentWaveNumber >= 5 && this.currentScore >= 3000 && !this.isSessionEnding) {
+        if (isStudy && this.currentWaveNumber >= 5 && this.currentScore >= this.dynamicTargetScore && !this.isSessionEnding) {
             this.isSessionEnding = true;
             if (this.messageCenter && this.msgTitle && this.msgSub) {
                 this.messageCenter.classList.remove('hidden');
                 this.msgTitle.innerText = "GOAL REACHED";
                 this.msgTitle.style.color = "#FFD700";
-                this.msgSub.innerText = "SIÊU CẤP ĐẠI CA ĐÃ ĐẠT 3000 ĐIỂM!";
+                this.msgSub.innerText = `SIÊU CẤP ĐẠI CA ĐÃ ĐẠT ${this.dynamicTargetScore} ĐIỂM!`;
             }
             setTimeout(() => {
                 EventBus.getInstance().publish('STUDY_SESSION_END', null);
@@ -3489,7 +3515,6 @@ export class UISystem {
         this.isReviewMode = isReview;
         if (this.calibWaveRow) {
             this.calibWaveRow.style.display = isReview ? 'flex' : 'none';
-            
             // Đồng bộ trạng thái checkbox với GameConfig
             const workflow = GameConfig.studyMode.workflow;
             const checks = this.getCalibWaveChecks();
@@ -3508,6 +3533,31 @@ export class UISystem {
             });
         }
 
+        // --- REVIEW WORD COUNT SLIDER LOGIC ---
+        if (this.calibReviewWordCountRow && this.calibWordCountSlider) {
+            this.calibReviewWordCountRow.style.display = isReview ? 'flex' : 'none';
+            if (isReview) {
+                const data = StateManager.getInstance().getN2HubData();
+                if (data && this.currentN2Context) {
+                    const unit = data[this.currentN2Context.unitIdx];
+                    let totalWords = 0;
+                    unit.sessions.forEach((s: any[]) => totalWords += s.length);
+                    
+                    // Cập nhật max cho slider dựa trên số từ thực tế của Unit
+                    this.calibWordCountSlider.max = totalWords.toString();
+                    
+                    // Mặc định 50 từ, nếu Unit có ít hơn 50 thì lấy tối đa
+                    const defaultVal = Math.min(50, totalWords);
+                    this.calibWordCountSlider.value = defaultVal.toString();
+                    
+                    const target = this.calculateDynamicTargetScore(defaultVal);
+                    if (this.calibWordCountDisplay) {
+                        this.calibWordCountDisplay.innerHTML = `${defaultVal} <br><span style="color: #FFD700; font-size: 0.85rem; margin-top: 5px; display: block; letter-spacing: 1px;">TARGET REVIEW SCORE: ${target} PTS</span>`;
+                    }
+                }
+            }
+        }
+
         // Cập nhật giá trị UI theo cache Audio hiện tại
         if (this.bgmVolSlider && this.calibBgmSlider) this.calibBgmSlider.value = this.bgmVolSlider.value;
         if (this.sfxVolSlider && this.calibSfxSlider) this.calibSfxSlider.value = this.sfxVolSlider.value;
@@ -3518,6 +3568,14 @@ export class UISystem {
         }
 
         this.jlptCalibrationModal.classList.remove('hidden');
+    }
+
+    private calculateDynamicTargetScore(wordCount: number): number {
+        if (wordCount <= 50) return 3000;
+        // Công thức: 3000 + 1500 * sqrt((wordCount - 50) / 50)
+        const bonus = 1500 * Math.sqrt((wordCount - 50) / 50);
+        // Làm tròn hàng trăm cho đẹp
+        return Math.floor((3000 + bonus) / 100) * 100;
     }
 
     // ============================================================
@@ -3614,7 +3672,7 @@ export class UISystem {
                 .from('global_leaderboard')
                 .select('name, agent_id, avatar, total_score, avg_wpm, avg_acc')
                 .order(sortColumn, { ascending: false })
-                .limit(10);
+                .limit(50);
 
             if (error) throw error;
 
