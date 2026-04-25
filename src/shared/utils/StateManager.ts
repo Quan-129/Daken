@@ -276,55 +276,76 @@ export class StateManager {
       localStorage.setItem(this.n2ProgressKey, JSON.stringify(this.n2Progress));
   }
 
-  public async saveN2SessionProgress(unitIdx: number, sessionIdx: number, stats: {rank: string, acc: number, wpm: number, score?: number}, mode?: string) {
+    public async saveN2SessionProgress(unitIdx: number, sessionIdx: number, stats: {rank: string, acc: number, wpm: number, score?: number}, mode?: string) {
       let activeMode = mode || this.currentHubType || 'study';
-      // Ensure we don't accidentally downgrade kanji/grammar to generic study
-      if (mode === 'kanji' || mode === 'grammar') {
+      let dbSessionIdx = sessionIdx;
+
+      // [REVIEW MODE LOGIC]
+      if (sessionIdx === -1) {
+          activeMode = 'review';
+          // Tạo một ID âm duy nhất dựa trên thời gian để TÍCH LŨY điểm (không ghi đè)
+          dbSessionIdx = -Math.floor(Date.now() / 1000);
+      }
+      // Đảm bảo không ghi đè nhầm chế độ học
+      else if (mode === 'kanji' || mode === 'grammar') {
           activeMode = mode;
       }
+
       const cappedScore = stats.score !== undefined ? Math.min(stats.score, 3000) : undefined;
       const finalStats = { ...stats, score: cappedScore };
       
-    const activeLevel = this.currentHubLevel || 'n2';
-    const key = `${activeLevel}_m${activeMode}_u${unitIdx}_s${sessionIdx}`;
-    const current = this.n2Progress[key];
+      const activeLevel = this.currentHubLevel || 'n2';
+      // Local key: Vẫn giữ key cố định cho Review để tránh rác localStorage (chọn điểm cao nhất hoặc mới nhất)
+      const localKey = sessionIdx === -1 
+          ? `${activeLevel}_m${activeMode}_u${unitIdx}_aggregate` 
+          : `${activeLevel}_m${activeMode}_u${unitIdx}_s${sessionIdx}`;
+
+      const currentLocal = this.n2Progress[localKey];
+      let shouldUpdateLocal = !currentLocal || this.isBetterStats(finalStats, currentLocal as any);
       
-      let shouldUpdate = !current || this.isBetterStats(finalStats, current as any);
-      
-      if (shouldUpdate) {
-          this.n2Progress[key] = finalStats;
+      if (shouldUpdateLocal || sessionIdx === -1) {
+          if (sessionIdx === -1 && currentLocal) {
+              // Cộng dồn điểm ở local cho đồng bộ với Cloud
+              this.n2Progress[localKey] = {
+                  ...finalStats,
+                  score: (currentLocal.score || 0) + (finalStats.score || 0)
+              };
+          } else {
+              this.n2Progress[localKey] = finalStats;
+          }
           this.saveN2Progress();
 
           // Đẩy lên Cloud nếu đã đăng nhập
           const { data: { session } } = await supabase.auth.getSession();
           if (session) {
-              console.log(`[StateManager] Đang đẩy lên Cloud cho User: ${session.user.id} | Mode: ${activeMode}`);
-              const { data, error } = await supabase
-                  .from('n2_progress')
-                  .upsert({
-                      user_id: session.user.id,
-                      level: this.currentHubLevel || 'n2', // Lưu thêm cấp độ
-                      unit_idx: unitIdx,
-                      session_idx: sessionIdx,
-                      study_mode: activeMode,
-                      rank: finalStats.rank,
-                      acc: finalStats.acc,
-                      wpm: finalStats.wpm,
-                      score: finalStats.score || 0,
-                      updated_at: new Date().toISOString()
-                  }, { onConflict: 'user_id,level,unit_idx,session_idx,study_mode' })
-                  .select();
+              console.log(`[StateManager] 🚀 Đang đẩy lên Cloud | Mode: ${activeMode} | ID: ${dbSessionIdx}`);
+              
+              const payload = {
+                  user_id: session.user.id,
+                  level: activeLevel,
+                  unit_idx: unitIdx,
+                  session_idx: dbSessionIdx,
+                  study_mode: activeMode,
+                  rank: finalStats.rank,
+                  acc: finalStats.acc,
+                  wpm: finalStats.wpm,
+                  score: finalStats.score || 0,
+                  updated_at: new Date().toISOString()
+              };
+
+              // Nếu là Review, dùng insert để cộng dồn. Nếu là Study, dùng upsert để ghi đè session cũ.
+              const query = sessionIdx === -1 
+                  ? supabase.from('n2_progress').insert(payload)
+                  : supabase.from('n2_progress').upsert(payload, { onConflict: 'user_id,level,unit_idx,session_idx,study_mode' });
+
+              const { data, error } = await query.select();
               
               if (error) {
-                  console.error('[StateManager] ❌ LỖI LƯU CLOUD:', error.message, error.details, error.hint);
+                  console.error('[StateManager] ❌ LỖI LƯU CLOUD:', error.message);
               } else {
                   console.log('[StateManager] ✅ CLOUD SAVE SUCCESS!', data);
+                  this.eventBus.publish('HUB_DATA_LOADED', null); 
               }
-              
-              // [LEADERBOARD SYNC] Cập nhật ngay chỉ số tổng hợp lên Profile khi vừa có điểm mới
-              this.eventBus.publish('HUB_DATA_LOADED', null); 
-          } else {
-              console.warn('[StateManager] ⚠️ Không tìm thấy Session. Không thể lưu lên Cloud.');
           }
       }
   }
@@ -358,8 +379,6 @@ export class StateManager {
       });
 
       const rawAvgAcc = totalStatsCount > 0 ? (accSum / totalStatsCount) : 0;
-      // Nếu đã là > 100 thì có khả năng bị lỗi nhân đôi trước đó, ta chia lại cho 100.
-      // Nếu là hệ số thập phân (<= 1.1), nhân 100.
       let avgAcc = rawAvgAcc;
       if (rawAvgAcc > 110) avgAcc = rawAvgAcc / 100;
       else if (rawAvgAcc <= 1.1 && rawAvgAcc > 0) avgAcc = rawAvgAcc * 100;
@@ -371,6 +390,16 @@ export class StateManager {
           totalScore: totalScoreSum,
           avgRankScore: totalStatsCount > 0 ? (rankScoreSum / totalStatsCount) : 0
       };
+  }
+
+  public getReviewStats() {
+      let totalReviewScore = 0;
+      Object.entries(this.n2Progress).forEach(([key, prog]: [string, any]) => {
+          if (key.includes('mreview_') && prog) {
+              totalReviewScore += (prog.score || 0);
+          }
+      });
+      return { totalScore: totalReviewScore };
   }
 
 

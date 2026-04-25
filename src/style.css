@@ -271,14 +271,20 @@ body {
 
 .profile-info {
     flex: 1;
+    min-width: 0;
 }
 
 .player-name {
-    font-size: 1rem;
+    font-size: 1.1rem; /* Tăng size một chút cho đẹp */
     font-weight: 900;
     color: var(--primary);
     text-shadow: 0 0 8px var(--primary);
     margin-bottom: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: block;
+    width: 100%;
 }
 
 .player-rank-row {
@@ -298,11 +304,11 @@ body {
 
 .profile-stats-grid {
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 8px;
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
-    padding-top: 10px;
-    margin-bottom: 10px;
+    grid-template-columns: 1fr 1.2fr;
+    gap: 15px;
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 1px solid rgba(0, 245, 255, 0.1);
 }
 
 .stat-item {
@@ -312,14 +318,15 @@ body {
 
 .stat-label {
     font-size: 0.55rem;
-    opacity: 0.5;
+    opacity: 0.8;
     letter-spacing: 1px;
+    font-weight: bold;
 }
 
 .stat-val {
-    font-size: 0.85rem;
+    font-size: 0.95rem;
     color: #fff;
-    font-weight: bold;
+    font-weight: 900;
 }
 
 /* Match Score (Visible only during gameplay) */
@@ -338,10 +345,32 @@ body {
 }
 
 #scoreVal {
-    font-size: 1.8rem;
-    font-weight: 900;
-    color: var(--safe);
-    text-shadow: 0 0 10px var(--safe);
+    font-size: 1.5rem;
+    color: var(--primary);
+    text-shadow: 0 0 10px var(--primary);
+    font-family: 'Orbitron', sans-serif;
+}
+
+.player-tag {
+    opacity: 0.3;
+    font-weight: normal;
+    flex-shrink: 0;
+}
+
+.rank-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.rank-name {
+    font-weight: bold;
+    font-size: 0.9rem;
+    color: #fff;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .logout-btn {
@@ -1061,7 +1090,7 @@ input[type="text"]::placeholder {
     border: 1px solid var(--danger);
     color: var(--danger);
     width: 140px;
-    align-self: flex-start;
+    align-self: center;
     font-family: 'Orbitron', sans-serif;
     font-size: 0.7rem;
     letter-spacing: 1px;
@@ -2073,6 +2102,66 @@ input[type="text"]::placeholder {
     align-items: center;
 }
 
+.jlpt-review-trigger {
+    background: rgba(0, 245, 255, 0.05);
+    border: 1px solid rgba(0, 245, 255, 0.3);
+    color: var(--neon-cyan);
+    padding: 6px 12px;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.7rem;
+    letter-spacing: 2px;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    text-shadow: 0 0 5px var(--neon-cyan);
+    margin-left: 10px;
+    border-radius: 2px;
+}
+
+.jlpt-review-trigger:hover {
+    background: rgba(0, 245, 255, 0.2);
+    border-color: var(--neon-cyan);
+    box-shadow: 0 0 15px rgba(0, 245, 255, 0.4);
+    transform: translateY(-2px);
+}
+
+.jlpt-review-trigger:active {
+    transform: translateY(0);
+    background: var(--neon-cyan);
+    color: #000;
+}
+
+.wave-chk-box {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+    background: rgba(0, 245, 255, 0.05);
+    padding: 8px 5px;
+    border: 1px solid rgba(0, 245, 255, 0.2);
+    border-radius: 4px;
+    min-width: 55px;
+    transition: all 0.2s ease;
+}
+
+.wave-chk-box:hover {
+    background: rgba(0, 245, 255, 0.1);
+    border-color: var(--neon-cyan);
+}
+
+.wave-chk-box span {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.7rem;
+    color: var(--neon-cyan);
+    text-shadow: 0 0 5px var(--neon-cyan);
+}
+
+.calib-wave-chk {
+    cursor: pointer;
+    width: 18px;
+    height: 18px;
+    accent-color: var(--neon-cyan);
+}
+
 .hud-stat-box {
     display: flex;
     flex-direction: column;
@@ -3056,9 +3145,11 @@ input[type="text"]::placeholder {
 }
 
 .rank-tag {
-    font-size: 0.7rem;
-    color: rgba(255, 255, 255, 0.3);
+    font-size: 0.75rem;
+    color: #fff;
     font-family: monospace;
+    font-weight: 900;
+    opacity: 1;
 }
 
 .rank-value {
@@ -3119,7 +3210,7 @@ input[type="text"]::placeholder {
 }
 
 .feedback-content {
-    animation: feedbackSlideIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    animation: feedbackSlideIn 0.3s ease-out;
 }
 
 @keyframes feedbackSlideIn {

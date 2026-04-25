@@ -69,8 +69,8 @@ eventBus.subscribe('GAME_START', async (config: { mode: string, studyLevel?: str
     engine.start();
 });
 
-eventBus.subscribe('GAME_START_N2', (config: { mode: string, studyLevel: string, words: any[], unitIdx: number, sessionIdx: number }) => {
-    console.log(`[main.ts] Starting N2 Session: Unit ${config.unitIdx}, Session ${config.sessionIdx}`);
+eventBus.subscribe('GAME_START_N2', (config: { mode: string, studyLevel: string, words: any[], unitIdx: number, sessionIdx: number, startingWave?: number, enabledWaves?: number[] }) => {
+    console.log(`[main.ts] Starting N2 Session: Unit ${config.unitIdx}, Session ${config.sessionIdx}, Wave ${config.startingWave || 1}`);
     engine.mode = config.mode;
     engine.setSpeedModifier(1.0);
     
@@ -80,7 +80,7 @@ eventBus.subscribe('GAME_START_N2', (config: { mode: string, studyLevel: string,
     // Inject words directly into Spawner!
     const spawner = (engine as any).spawner; // Hack để lấy spawner ra hoặc dùng public method
     if (spawner && typeof spawner.startStudySession === 'function') {
-        spawner.startStudySession(config.words);
+        spawner.startStudySession(config.words, config.startingWave || 1, config.enabledWaves);
     }
     
     // Lưu N2 context để Game Over / Win report biết đường mà cập nhật UI nếu cần

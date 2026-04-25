@@ -19,6 +19,7 @@ export class Spawner {
     private retryQueue: { word: Word, revealType: 'kanji' | 'vi', isDebt?: boolean }[] = [];
     private retryTracker: Map<string, number> = new Map();
     private wave5StartTime: number = 0;
+    private sessionEnabledWaves: number[] | null = null;
 
     constructor(
         canvasWidth: number,
@@ -98,14 +99,15 @@ export class Spawner {
         }
     }
 
-    public startStudySession(words: Word[] = []) {
+    public startStudySession(words: Word[] = [], startingWave: number = 1, enabledWaves?: number[]) {
         if (words.length > 0) {
             this.currentStudyDeck = words;
         } else {
             // Mặc định nạp 5 từ nếu không truyền vào (Dành cho Study Mode thường)
             this.currentStudyDeck = StateManager.getInstance().getStudySessionDeck(5);
         }
-        this.currentStudyWave = 1;
+        this.currentStudyWave = startingWave;
+        this.sessionEnabledWaves = enabledWaves || null;
         this.retryTracker.clear();
         this.retryQueue = [];
     }
@@ -117,6 +119,7 @@ export class Spawner {
         this.studyQueue = [];
         this.retryQueue = [];
         this.retryTracker.clear();
+        this.sessionEnabledWaves = null;
     }
 
     public spawnWave(mode: string, speedModifier: number) {
@@ -351,6 +354,10 @@ export class Spawner {
     }
 
     private isWaveEnabled(waveIndex: number): boolean {
+        if (this.sessionEnabledWaves) {
+            return this.sessionEnabledWaves.includes(waveIndex);
+        }
+
         const workflow = GameConfig.studyMode.workflow;
         switch (waveIndex) {
             case 1: return workflow.enableWave1 !== false;

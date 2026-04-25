@@ -63,20 +63,20 @@
                             <input type="file" id="avtFileInput" accept="image/*" style="display: none;">
                         </div>
                         <div class="profile-info">
-                            <div class="player-name-wrapper" style="display: flex; align-items: baseline; gap: 8px;">
+                            <div class="player-name-wrapper" style="width: 100%; overflow: hidden; margin-bottom: 2px;">
                                 <span id="playerName" class="player-name">Guest</span>
-                                <span id="playerTag" class="player-tag" style="font-family: 'Orbitron', monospace; font-size: 0.7rem; color: rgba(255,255,255,0.3); letter-spacing: 1px;">#000000</span>
                             </div>
-                            <div class="player-rank-row">
+                            <div class="player-rank-row" style="display: flex; align-items: center; gap: 8px; white-space: nowrap;">
                                 <span class="rank-label" id="profileRankLabel">Rank:</span>
-                                <span id="playerRank" class="player-value">Unranked</span>
+                                <span id="playerRank" class="rank-value">Unranked</span>
                             </div>
+                            <div id="playerTag" class="player-tag" style="font-family: 'Orbitron', monospace; font-size: 0.85rem; color: #fff; font-weight: 900; text-shadow: 0 0 12px #00f5ff; letter-spacing: 1.5px; margin-top: 5px;">#000000</div>
                         </div>
                     </div>
                     <div class="profile-stats-grid">
-                        <div class="stat-item">
-                            <span class="stat-label" id="profileScoreLabel">TOTAL SCORE</span>
-                            <span id="totalScoreVal" class="stat-val">0</span>
+                        <div class="stat-item" style="border-left: 2px solid #00e676; background: rgba(0, 230, 118, 0.05); padding-left: 10px;">
+                            <span class="stat-label" id="profileScoreLabel" style="color: #00e676; opacity: 1;">TOTAL SCORE</span>
+                            <span id="totalScoreVal" class="stat-val" style="color: #00e676; text-shadow: 0 0 10px rgba(0, 230, 118, 0.6);">0</span>
                         </div>
                         <div class="stat-item">
                             <span class="stat-label" id="profileAccLabel">ACCURACY</span>
@@ -85,6 +85,10 @@
                     <div class="stat-item">
                         <span class="stat-label" id="profileWpmLabel">WPM</span>
                         <span id="avgWpmVal" class="stat-val">0</span>
+                    </div>
+                    <div class="stat-item" style="border-left: 2px solid #a855f7; background: rgba(168, 85, 247, 0.05); padding-left: 10px;">
+                        <span class="stat-label" style="color: #a855f7; opacity: 1; font-weight: 800; letter-spacing: 1px;">REVIEW SCORE</span>
+                        <span id="reviewScoreVal" class="stat-val" style="color: #bf80ff; font-weight: 900; text-shadow: 0 0 12px rgba(168, 85, 247, 0.8);">0</span>
                     </div>
                 </div>
                 <button id="logoutBtn" class="logout-btn">DISCONNECT</button>
@@ -192,11 +196,11 @@
                         <!-- WAVE 5 DYNAMIC SPEED CONTROL -->
                         <div id="wave5-speed-control" class="wave5-speed-panel hidden">
                             <div class="speed-label">PHÂN TÁCH TỐC ĐỘ: <span id="speedValDisplay">x1.0</span></div>
-                            <input type="range" id="wave5SpeedSlider" min="0.2" max="2" step="0.1" value="1.0">
+                            <input type="range" id="wave5SpeedSlider" min="0.2" max="5" step="0.1" value="1.0">
                             <div style="display: flex; justify-content: space-between; font-size: 0.6rem; color: rgba(255,255,255,0.3); font-family: 'Orbitron'; margin-top: -5px;">
                                 <span>0.2</span>
                                 <span>1.0</span>
-                                <span>2.0</span>
+                                <span>5.0</span>
                             </div>
                         </div>
 
@@ -378,7 +382,16 @@
                     <input type="range" id="calibTtsSlider" min="0" max="2" step="0.1" value="1.0">
                 </div>
 
-
+                <div class="mixer-row" id="calibWaveRow" style="display: none; margin-top: 15px; border-top: 1px dashed rgba(0,245,255,0.2); padding-top: 15px; flex-direction: column; align-items: flex-start; gap: 10px;">
+                    <label style="color: var(--neon-cyan); font-size: 0.9rem; font-weight: bold; width: 100%; text-align: center; margin-bottom: 5px;">TỔNG ÔN - CHỌN WAVE LUYỆN TẬP:</label>
+                    <div style="display: flex; gap: 12px; width: 100%; justify-content: center;">
+                        <div class="wave-chk-box"><input type="checkbox" class="calib-wave-chk" value="1" checked><span>W1</span></div>
+                        <div class="wave-chk-box"><input type="checkbox" class="calib-wave-chk" value="2" checked><span>W2</span></div>
+                        <div class="wave-chk-box"><input type="checkbox" class="calib-wave-chk" value="3" checked><span>W3</span></div>
+                        <div class="wave-chk-box"><input type="checkbox" class="calib-wave-chk" value="4" checked><span>W4</span></div>
+                        <div class="wave-chk-box"><input type="checkbox" class="calib-wave-chk" value="5" checked><span>W5</span></div>
+                    </div>
+                </div>
                 <button class="menu-btn" id="startJLPTSessionBtn"
                     style="width: 100%; margin-top: 25px; font-size: 1.2rem; background: rgba(0,245,255,0.1); border-color: var(--neon-cyan); color: var(--neon-cyan); box-shadow: 0 0 15px rgba(0,245,255,0.4);">[
                     INITIALIZE SYNC ]</button>
@@ -648,25 +661,25 @@
     <!-- YOUTUBE BGM PLAYER (Mẹo chống Chrome tự động tắt video khi khuất màn hình) -->
         <!-- FEEDBACK MODAL (Contact Admin) -->
         <div id="feedback-modal" class="modal-overlay hidden" style="z-index: 2000;">
-            <div class="summary-content feedback-content" style="max-width: 500px; border-color: #ff00c1; box-shadow: 0 0 30px rgba(255, 0, 193, 0.2);">
+            <div class="summary-content feedback-content" style="max-width: 600px; width: 90vw; border-color: #ff00c1; box-shadow: 0 0 40px rgba(255, 0, 193, 0.3); padding: 40px;">
                 <button id="closeFeedbackBtn" class="close-terminal-btn" style="position: absolute; top: 15px; right: 20px;">×</button>
-                <h2 class="summary-title" style="color: #ff00c1; text-shadow: 0 0 15px #ff00c1; font-size: 1.6rem; margin-bottom: 20px;">
+                <h2 class="summary-title" style="color: #ff00c1; text-shadow: 0 0 15px #ff00c1; font-size: 2rem; margin-bottom: 25px;">
                     GÓP Ý & BÁO LỖI
                 </h2>
-                <p style="color: rgba(255,255,255,0.7); font-size: 0.9rem; text-align: center; margin-bottom: 20px; line-height: 1.4;">
+                <p style="color: rgba(255,255,255,0.7); font-size: 1rem; text-align: center; margin-bottom: 25px; line-height: 1.6;">
                     Gửi phản hồi, báo lỗi hoặc góp ý cho Admin qua đường truyền bảo mật.<br>
-                    <span style="color: #ff00c1; font-size: 0.8rem;">[ TARGET: minhquan12092005@gmail.com ]</span>
+                    <span style="color: #ff00c1; font-size: 0.9rem;">[ TARGET: minhquan12092005@gmail.com ]</span>
                 </p>
                 <div class="feedback-form">
                     <div class="input-group" style="display: flex; flex-direction: column;">
-                        <label style="color: #ff00c1; font-weight: bold; margin-bottom: 5px;">NỘI DUNG PHẢN HỒI</label>
+                        <label style="color: #ff00c1; font-weight: bold; margin-bottom: 10px; letter-spacing: 2px;">NỘI DUNG PHẢN HỒI</label>
                         <textarea id="feedbackText" placeholder="Gõ phản hồi của bạn tại đây..." 
-                                  style="width: 100%; height: 180px; background: rgba(0,0,0,0.5); border: 1px solid rgba(255, 0, 193, 0.3); color: #fff; padding: 15px; font-family: 'Inter', sans-serif; font-size: 1rem; resize: none; border-radius: 8px; outline: none; transition: border-color 0.3s;"></textarea>
+                                  style="width: 100%; height: 250px; background: rgba(0,0,0,0.6); border: 1px solid rgba(255, 0, 193, 0.4); color: #fff; padding: 20px; font-family: 'Inter', sans-serif; font-size: 1.1rem; resize: none; border-radius: 12px; outline: none; transition: all 0.3s; line-height: 1.5;"></textarea>
                     </div>
                 </div>
-                <div id="feedback-status" style="text-align: center; margin-top: 10px; font-size: 0.8rem; height: 1.2rem; color: #ff00c1;"></div>
-                <button class="menu-btn" id="sendFeedbackBtn" style="width:100%; margin-top: 20px; background: rgba(255, 0, 193, 0.1); border-color: #ff00c1; color: #ff00c1;">
-                    [ GửI GÓP Ý ]
+                <div id="feedback-status" style="text-align: center; margin-top: 15px; font-size: 0.9rem; height: 1.5rem; color: #ff00c1; font-weight: bold; letter-spacing: 1px;"></div>
+                <button class="menu-btn" id="sendFeedbackBtn" style="width:100%; height: 55px; margin-top: 15px; background: rgba(255, 0, 193, 0.15); border-color: #ff00c1; color: #ff00c1; font-size: 1.2rem; filter: drop-shadow(0 0 10px rgba(255, 0, 193, 0.2));">
+                    [ GỬI GÓP Ý ]
                 </button>
             </div>
         </div>

@@ -15,6 +15,10 @@ Một dự án Web Game Luyện gõ phím & Trí nhớ mang âm hưởng **Lofi 
   - **Cơ chế Retry Không Khoan Nhượng (Anki Red Stacks)**: Mọi sự do dự hay buông xuôi đều bị ghim cờ "Weak" và vứt vào một Vòng Lặp Vay Nợ. Khi Wave kết thúc, hệ thống ép bạn xử lý khoản nợ đỏ rực kia cho tới khi vượt qua chính mình.
   - **Cơ chế Trừng Phạt Bầy Đàn (Swarm Mode - Wave 3)**: Đây là nơi thanh toán ân oán. Mọi khoản "nợ đỏ" sinh sôi thành bầy cá (clones). Đặc biệt, hệ thống **Viewfinder Khóa Mục Tiêu (Hardcore Lock-on)** ép bạn phải ngắm bắn chuẩn xác theo thứ tự, gõ chệch mục tiêu sẽ bị tịch thu phím và trừ sạch Combo!
   - **Ma Trận Trắc Nghiệm Ngữ Pháp (Wave 4 - Đã hoàn thiện)**: Bài thi tàn nhẫn và tốc độ nhất! Đóng vai trò là chuỗi bài Contextual Choice chắp vá cấu trúc câu thông qua cụm Ô Trống `[ ]`. Các Flashcard tĩnh được nhồi cơ chế Render Font tự thu phóng (Auto-scaling), chắt lọc Furigana tinh tế bên trong Canvas và chốt chặn điểm rơi thông minh (Safe-area margin). Xóa bỏ cách gõ phím thông thường, áp dụng hoàn toàn Căn Chỉnh Phím Tắt (Hotkeys 1->4) tạo cảm giác Instant Kill tràn ngập Dopamine! Thả quái sai rơi ngay vào hàng đợi Học Lại (Stack), đồng thời thuật toán tự triệt tiêu biến ảnh (Ghost Text) kích hoạt giải phóng thẻ Terminal rộng tối đa giúp đọc mượt những định nghĩa ngữ pháp từ vựng siêu dài.
+- **Tính năng Tổng Ôn & Tích Chọn Wave (Unit Revision)**:
+  - Cho phép người học ôn tập toàn bộ từ vựng của một Unit bất kỳ. Hệ thống sẽ tự động tổng hợp tất cả các phiên học (Sessions) thành một chiến dịch duy nhất.
+  - **Lựa chọn Wave linh hoạt**: Bạn có quyền "tích chọn" chính xác những Wave muốn luyện tập (từ W1 đến W5). Thích luyện sinh tồn? Chỉ việc tích ô W5 và nhảy thẳng vào trận chiến!
+  - **Review Score Statistics**: Điểm số từ quá trình ôn tập được lưu trữ riêng biệt và hiển thị trên thẻ Profile với sắc **Tím (Purple #a855f7)** sang trọng, giúp bạn theo dõi nỗ lực "trui rèn" mà không làm nhiễu loạn bảng xếp hạng chính.
 - **Trạng Thái Ngưng Đọng Tuyệt Đối**: Cảm giác trải nghiệm tiệm cận AAA. Bấm Stop - toàn bộ Vũ trụ Game (Thời gian và Nhạc nền YouTube) lập tức đóng băng. Bấm Tiếp tục - đếm ngược 3-2-1 bùng nổ để bạn vào lại nhịp Flow State mượt nhất.
 - **Dynamic HUD Float Engine**: Sự kết hợp tinh tế của toán học và DOM API. Bảng thông tin siêu meta (Kanji, Nghiã, Ngữ pháp...) được Neo cứng ở nửa dưới màn hình để chừa không gian trống tuyệt đối cho Vùng Gõ Phím. Những Viên Thuốc từ vựng được điều khiển bởi thuật toán đo tọa độ vật lý thời gian thực, đảm bảo luôn bay lơ lửng, giữ khoảng cách an toàn tuyệt đối 15px so với mép trên của bảng thông tin, bất chấp nội dung bên trong bảng có phình to ra như thế nào. Trí tuệ tuyệt đối vào từng khung hình.
 - **Web Component UI Ecosystem**: Kiến trúc Dashboard chia tách hoàn toàn bằng Vanilla ShadowDOM (Cột Mộc Ấn Avatar, Phong Thần Bảng Rank eSports, và Hệ thống Side-Banner Sự kiện trượt tự động). Tự động tính toán không gian co giãn chiều cao theo màn hình người chơi (`calc(100vh)`) để tuyệt đối không xảy ra hiện tượng chồng lấp.
@@ -29,6 +33,10 @@ Một dự án Web Game Luyện gõ phím & Trí nhớ mang âm hưởng **Lofi 
 - **Supabase High-Res Asset Storage**: Nâng tầm cá nhân hóa với Supabase Storage. Avatar giờ đây hỗ trợ dung lượng lên tới 2MB, được lưu trữ và truyền tải qua hệ thống Public URL tốc độ cao, đảm bảo hiển thị sắc nét trên toàn cầu.
 - **Bản địa hoá Song ngữ & Ghi nhớ Trạng thái**: Tích hợp hoàn hảo hệ thống chuyển đổi ngôn ngữ Anh - Việt. Trò chơi không chỉ tự động dịch mọi thành phần UI (Trở về sảnh, Năng lượng, Trạng thái...) mà còn sở hữu "trí nhớ ngắn hạn" thông qua `localStorage`, đảm bảo lựa chọn ngôn ngữ của bạn luôn bền vững sau mỗi lần tải lại trang.
 - **Tối ưu hóa Chuyển cảnh (Zero-Flicker Transition)**: Loại bỏ triệt để hiện tượng nháy trắng 0.2s khi thoát trận. Hệ thống giờ đây sử dụng các "chốt chặn trạng thái" (State Guards) và ép buộc ẩn các modal trung gian ngay lập tức để đảm bảo trải nghiệm quay về sảnh mượt mà như một dòng chảy duy nhất.
+- **Kiến trúc JLPT Đa Tầng & Hệ số Điểm Cân Bằng (v0.11.0)**:
+  - **Đa cấp độ N1-N5**: Dự án đã chính thức hỗ trợ toàn bộ các cấp độ JLPT. Dữ liệu học tập được cô lập theo nhãn (Level-tag), cho phép học nhiều cấp độ song song mà không bị trộn lẫn hay ghi đè.
+  - **Hệ số Công bằng (Score Scaling Factor)**: Thuật toán điều tiết điểm số dựa trên mốc chuẩn 20 từ. Bài học ngắn sẽ được tăng kịch tính bằng điểm số cao, bài học dài sẽ được giãn biên độ điểm số, đảm bảo nỗ lực cày cuốc luôn nằm trong "vùng an toàn" của Bảng xếp hạng.
+  - **Chuẩn hóa Accuracy Precision**: Hệ thống tự động nhận diện và chuyển đổi thông minh giữa dữ liệu thập phân từ Database và hiển thị phần trăm trên UI, triệt tiêu hoàn toàn các con số "ảo" lệch pha hàng ngàn lần.
 - **Tùy Chỉnh Âm Nhạc Bất Tận**: Nhúng trực tiếp Youtube Lofi Player với Playlist HUD riêng biệt, cho phép lưu trữ Local Storage các folder bài hát mà bạn thích nhất!
 - **Hệ Sinh Thái Âm Thanh & Text-To-Speech (TTS)**: 
   - Mọi "Kẻ địch" bị hạ gục trong Study Mode sẽ được xướng danh bằng hệ thống tự động đọc (Web Speech API chuẩn giọng ja-JP) lướt sâu vào đại não.
@@ -66,10 +74,10 @@ graph TD
 # Cài gói
 npm install
 
-# Build data Furigana thủ công (Nếu bạn định thêm data gốc mới)
-node scripts/fix-furigana.cjs
+# Xây dựng dữ liệu từ file .txt (Cập nhật Kanji/Kotoba mới)
+node scripts/ai_data_builder.js
 
-# Tiến trình khởi chạy
+# Tiến trình khởi chạy game
 npm run dev
 ```
 

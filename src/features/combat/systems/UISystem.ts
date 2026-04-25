@@ -197,6 +197,13 @@ export class UISystem {
     private refreshFeedbackBtn = byId('refreshFeedbackBtn');
     private feedbackCountEl = byId('feedback-count');
 
+    private calibWaveRow = byId('calibWaveRow');
+    private getCalibWaveChecks(): HTMLInputElement[] {
+        return Array.from(document.querySelectorAll('.calib-wave-chk')) as HTMLInputElement[];
+    }
+
+    private isReviewMode = false;
+
     // State Thư Viện
     private myLibrary: { id: string, name: string, songs: { url: string, title: string }[] }[] = [];
     private activeFolderId: string | null = null;
@@ -593,6 +600,9 @@ export class UISystem {
 
         // Mở modal
         this.feedbackTrigger.addEventListener('click', () => {
+            if (this.isGameActive) {
+                EventBus.getInstance().publish('GAME_PAUSED', null);
+            }
             this.feedbackModal?.classList.remove('hidden');
             this.feedbackText.value = '';
             if (this.feedbackStatus) this.feedbackStatus.innerText = '';
@@ -608,6 +618,9 @@ export class UISystem {
             this.feedbackModal?.classList.add('hidden');
             EventBus.getInstance().publish('LOCK_KEYBOARD', false);
             EventBus.getInstance().publish('AUDIO_BEEP', null);
+            if (this.isGameActive) {
+                this.triggerResumeCountdown();
+            }
         };
 
         this.closeFeedbackBtn.addEventListener('click', closeModal);
@@ -696,6 +709,30 @@ export class UISystem {
                 this.sendFeedbackBtn!.disabled = false;
             }
         });
+    }
+
+    private triggerResumeCountdown() {
+        let countdownEl = byId('resumeCountdown');
+        if (countdownEl) {
+            countdownEl.style.display = 'flex';
+            let count = 3;
+            countdownEl.innerText = count.toString();
+            EventBus.getInstance().publish('AUDIO_BEEP', null);
+
+            let interval = setInterval(() => {
+                count--;
+                if (count > 0) {
+                    countdownEl!.innerText = count.toString();
+                    EventBus.getInstance().publish('AUDIO_BEEP', null);
+                } else {
+                    clearInterval(interval);
+                    countdownEl!.style.display = 'none';
+                    EventBus.getInstance().publish('GAME_RESUMED', null);
+                }
+            }, 1000);
+        } else {
+            EventBus.getInstance().publish('GAME_RESUMED', null);
+        }
     }
 
     private setupAdminLogic() {
@@ -1124,27 +1161,7 @@ export class UISystem {
                     this.stopConfirmModal.classList.remove('show');
                 }
 
-                let countdownEl = byId('resumeCountdown');
-                if (countdownEl) {
-                    countdownEl.style.display = 'flex';
-                    let count = 3;
-                    countdownEl.innerText = count.toString();
-                    EventBus.getInstance().publish('AUDIO_BEEP', null);
-
-                    let interval = setInterval(() => {
-                        count--;
-                        if (count > 0) {
-                            countdownEl!.innerText = count.toString();
-                            EventBus.getInstance().publish('AUDIO_BEEP', null);
-                        } else {
-                            clearInterval(interval);
-                            countdownEl!.style.display = 'none';
-                            EventBus.getInstance().publish('GAME_RESUMED', null);
-                        }
-                    }, 1000);
-                } else {
-                    EventBus.getInstance().publish('GAME_RESUMED', null);
-                }
+                this.triggerResumeCountdown();
             });
         }
 
@@ -1337,12 +1354,21 @@ export class UISystem {
                 if (this.jlptCalibrationModal) this.jlptCalibrationModal.classList.add('hidden');
                 if (this.jlptHubPage) this.jlptHubPage.classList.add('hidden');
 
-                this.currentMode = this.currentHubMode;
+                this.currentMode = this.isReviewMode ? 'review' : this.currentHubMode;
                 this.currentStudyLevel = this.currentHubLevel;
 
                 const data = StateManager.getInstance().getN2HubData();
                 if (this.currentN2Context && data) {
-                    const sessionWords = data[this.currentN2Context.unitIdx].sessions[this.currentN2Context.sessionIdx];
+                    let sessionWords: any[] = [];
+                    if (this.currentN2Context.sessionIdx === -1) {
+                        // Review mode: Aggregate all session words
+                        const unit = data[this.currentN2Context.unitIdx];
+                        unit.sessions.forEach((s: any[]) => sessionWords.push(...s));
+                        // Limit to 50 items for stability
+                        sessionWords = sessionWords.slice(0, 50);
+                    } else {
+                        sessionWords = data[this.currentN2Context.unitIdx].sessions[this.currentN2Context.sessionIdx];
+                    }
 
                     this.updateHp(5);
                     this.updateScore(0);
@@ -1350,12 +1376,26 @@ export class UISystem {
                     if (this.menuControls) this.menuControls.classList.add('hidden');
                     if (this.stopBtn) this.stopBtn.classList.remove('hidden');
 
+                    const workflow = GameConfig.studyMode.workflow;
+                    const defaultEnabledWaves = [1, 2, 3, 4, 5].filter(w => {
+                        const key = `enableWave${w}` as keyof typeof workflow;
+                        return workflow[key] !== false;
+                    });
+
+                    const enabledWaves = this.isReviewMode ? 
+                        this.getCalibWaveChecks().filter(chk => chk.checked).map(chk => parseInt(chk.value)) : 
+                        defaultEnabledWaves;
+
+                    const startWave = enabledWaves.length > 0 ? enabledWaves[0] : 1;
+
                     EventBus.getInstance().publish('GAME_START_N2', {
                         mode: this.currentHubMode,
                         studyLevel: this.currentHubLevel,
                         words: sessionWords,
                         unitIdx: this.currentN2Context.unitIdx,
-                        sessionIdx: this.currentN2Context.sessionIdx
+                        sessionIdx: this.currentN2Context.sessionIdx,
+                        startingWave: this.isReviewMode ? startWave : (defaultEnabledWaves.length > 0 ? defaultEnabledWaves[0] : 1),
+                        enabledWaves: enabledWaves
                     });
                 }
             });
@@ -2358,6 +2398,7 @@ export class UISystem {
 
         if (this.playerNameEl) {
             this.playerNameEl.innerText = user?.name || t.profile.guest;
+            this.playerNameEl.title = user?.name || t.profile.guest; // Hiện tên đầy đủ khi di chuột vào
         }
         if (this.playerTagEl) {
             this.playerTagEl.innerText = `#${user?.agentId || '000000'}`;
@@ -2401,6 +2442,13 @@ export class UISystem {
             if (this.playerRankEl) {
                 this.playerRankEl.innerText = t.profile.unranked;
             }
+        }
+
+        // Cập nhật REVIEW SCORE (Lưu trữ độc lập)
+        const reviewStats = state.getReviewStats();
+        const reviewScoreEl = byId('reviewScoreVal');
+        if (reviewScoreEl) {
+            reviewScoreEl.innerText = reviewStats.totalScore.toLocaleString();
         }
     }
 
@@ -3374,10 +3422,22 @@ export class UISystem {
                         <span class="hud-val" style="color: var(--primary); text-shadow: 0 0 10px rgba(0,245,255,0.6);">${unitScoreSum.toLocaleString()}</span>
                     </div>
                     <div class="hud-sess-count">✦ ${unit.sessions.length} ${t.hub.scrolls} ✦</div>
+                    <button class="jlpt-review-trigger" data-unit-idx="${uIdx}" title="Ôn tập toàn bộ Unit này">TỔNG ÔN</button>
                 </div>
                 
                 <div class="jlpt-unit-rope right-rope"></div>
             `;
+
+            const reviewBtn = header.querySelector('.jlpt-review-trigger');
+            reviewBtn?.addEventListener('click', (e) => {
+                e.stopPropagation();
+                // Combine all sessions words for review
+                const allWords: any[] = [];
+                unit.sessions.forEach((s: any[]) => allWords.push(...s));
+
+                this.currentN2Context = { unitIdx: uIdx, sessionIdx: -1 }; // -1 indicates review
+                this.openjlptCalibrationModal(unit.studyName_JA, 'ALL SESSION', true);
+            });
 
 
 
@@ -3423,17 +3483,38 @@ export class UISystem {
         // Aggregate stats are already handled by the global_leaderboard view and n2_progress table.
     }
 
-    private openjlptCalibrationModal(unitName: string, sessionNum: number) {
+    private openjlptCalibrationModal(unitName: string, sessionNum: number | string, isReview: boolean = false) {
         if (!this.jlptCalibrationModal) return;
+
+        this.isReviewMode = isReview;
+        if (this.calibWaveRow) {
+            this.calibWaveRow.style.display = isReview ? 'flex' : 'none';
+            
+            // Đồng bộ trạng thái checkbox với GameConfig
+            const workflow = GameConfig.studyMode.workflow;
+            const checks = this.getCalibWaveChecks();
+            checks.forEach(chk => {
+                const w = parseInt(chk.value);
+                const key = `enableWave${w}` as keyof typeof workflow;
+                const isEnabled = workflow[key] !== false;
+                
+                chk.checked = isEnabled;
+                // Nếu wave bị disable cứng trong config, làm mờ checkbox đó đi để user biết
+                const box = chk.closest('.wave-chk-box') as HTMLElement;
+                if (box) {
+                    box.style.opacity = isEnabled ? '1' : '0.3';
+                    box.style.pointerEvents = isEnabled ? 'auto' : 'none';
+                }
+            });
+        }
 
         // Cập nhật giá trị UI theo cache Audio hiện tại
         if (this.bgmVolSlider && this.calibBgmSlider) this.calibBgmSlider.value = this.bgmVolSlider.value;
         if (this.sfxVolSlider && this.calibSfxSlider) this.calibSfxSlider.value = this.sfxVolSlider.value;
         if (this.ttsVolSlider && this.calibTtsSlider) this.calibTtsSlider.value = this.ttsVolSlider.value;
 
-
         if (this.calibSessionTitle) {
-            this.calibSessionTitle.innerText = `${unitName} - Session ${sessionNum}`;
+            this.calibSessionTitle.innerText = isReview ? `${unitName} - REVISION` : `${unitName} - Session ${sessionNum}`;
         }
 
         this.jlptCalibrationModal.classList.remove('hidden');
@@ -3573,7 +3654,7 @@ export class UISystem {
                             ${agent.avatar ? `<img src="${agent.avatar}">` : (agent.name ? agent.name[0].toUpperCase() : 'A')}
                         </div>
                         <div class="rank-info">
-                            <div class="rank-name">${agent.name || 'ANONYMOUS_AGENT'} ${isSelf ? `<span style="color:var(--safe); font-size:0.6rem;">${t.leaderboard.you}</span>` : ''}</div>
+                            <div class="rank-name" title="${agent.name || ''}">${agent.name || 'ANONYMOUS_AGENT'} ${isSelf ? `<span style="color:var(--safe); font-size:0.6rem;">${t.leaderboard.you}</span>` : ''}</div>
                             <div class="rank-tag">#${agent.agent_id || '000000'}</div>
                         </div>
                         <div class="rank-value">${displayValue}</div>
@@ -3607,7 +3688,7 @@ export class UISystem {
                         ${finalMyAvatar ? `<img src="${finalMyAvatar}">` : (finalMyName ? finalMyName[0].toUpperCase() : 'Y')}
                     </div>
                     <div class="rank-info">
-                        <div class="rank-name" style="color:var(--primary);">${finalMyName} ${myIndex !== -1 ? `<span style="color:var(--safe); font-size:0.6rem;">${t.leaderboard.topPlayer}</span>` : ''}</div>
+                        <div class="rank-name" title="${finalMyName}" style="color:var(--primary);">${finalMyName} ${myIndex !== -1 ? `<span style="color:var(--safe); font-size:0.6rem;">${t.leaderboard.topPlayer}</span>` : ''}</div>
                         <div class="rank-tag">${t.leaderboard.rankLabel}: ${myRank}</div>
                     </div>
                     <div class="rank-value" style="font-size:1.1rem; color:var(--primary-glow);">${myValue}</div>

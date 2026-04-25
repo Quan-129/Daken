@@ -7,9 +7,6 @@ export interface UserProfile {
     name: string;
     avatar?: string;
     agentId?: string; // numeric short ID
-    total_score?: number;
-    avg_wpm?: number;
-    avg_acc?: number;
 }
 
 export class AuthSystem {
@@ -53,10 +50,7 @@ export class AuthSystem {
             email: user.email || '',
             name: meta?.display_name || meta?.full_name || localStorage.getItem('DAKEN_NAME') || 'GUEST_AGENT',
             avatar: meta?.avatar_url || localStorage.getItem('DAKEN_PLAYER_AVATAR') || '',
-            agentId: meta?.agent_unique_id || localStorage.getItem('DAKEN_AGENT_ID') || '000000',
-            total_score: meta?.total_score || 0,
-            avg_wpm: meta?.avg_wpm || 0,
-            avg_acc: meta?.avg_acc || 0
+            agentId: meta?.agent_unique_id || localStorage.getItem('DAKEN_AGENT_ID') || '000000'
         };
         
         localStorage.setItem('DAKEN_ID', user.id);
@@ -122,15 +116,12 @@ export class AuthSystem {
         return data;
     }
 
-    public async updateProfile(updates: { name?: string; avatar?: string, agentId?: string, total_score?: number, avg_wpm?: number, avg_acc?: number }) {
+    public async updateProfile(updates: { name?: string; avatar?: string, agentId?: string }) {
         const { data, error } = await supabase.auth.updateUser({
             data: { 
                 display_name: updates.name || (this.currentUser ? this.currentUser.name : undefined),
                 avatar_url: updates.avatar || (this.currentUser ? this.currentUser.avatar : undefined),
-                agent_unique_id: updates.agentId || (this.currentUser ? this.currentUser.agentId : undefined),
-                total_score: updates.total_score !== undefined ? updates.total_score : (this.currentUser ? this.currentUser.total_score : undefined),
-                avg_wpm: updates.avg_wpm !== undefined ? updates.avg_wpm : (this.currentUser ? this.currentUser.avg_wpm : undefined),
-                avg_acc: updates.avg_acc !== undefined ? updates.avg_acc : (this.currentUser ? this.currentUser.avg_acc : undefined)
+                agent_unique_id: updates.agentId || (this.currentUser ? this.currentUser.agentId : undefined)
             }
         });
         if (error) throw error;
@@ -149,9 +140,6 @@ export class AuthSystem {
                 this.currentUser.agentId = updates.agentId;
                 localStorage.setItem('DAKEN_AGENT_ID', updates.agentId);
             }
-            if (updates.total_score !== undefined) this.currentUser.total_score = updates.total_score;
-            if (updates.avg_wpm !== undefined) this.currentUser.avg_wpm = updates.avg_wpm;
-            if (updates.avg_acc !== undefined) this.currentUser.avg_acc = updates.avg_acc;
         }
 
         // [Neural Hierarchy Sync] Cập nhật bảng profiles công khai
@@ -163,9 +151,6 @@ export class AuthSystem {
                 avatar: this.currentUser?.avatar,
                 updated_at: new Date().toISOString()
             };
-            if (this.currentUser?.total_score !== undefined) syncData.total_score = this.currentUser.total_score;
-            if (this.currentUser?.avg_wpm !== undefined) syncData.avg_wpm = this.currentUser.avg_wpm;
-            if (this.currentUser?.avg_acc !== undefined) syncData.avg_acc = this.currentUser.avg_acc;
 
             await supabase.from('profiles').upsert(syncData);
         } catch (err) {
