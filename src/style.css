@@ -1550,12 +1550,8 @@ input[type="text"]::placeholder {
 
 /* Redundant definition removed */
 
-.daken-core:hover {
-    box-shadow: 0 0 50px rgba(0, 245, 255, 0.8), inset 0 0 30px rgba(255, 0, 255, 0.7);
-}
-
 .daken-core:active {
-    transform: scale(0.95);
+    transform: translate(-50%, -50%) scale(0.95);
 }
 
 @keyframes osuPulse {
@@ -1623,6 +1619,20 @@ input[type="text"]::placeholder {
     animation: none;
 }
 
+/* Hiệu ứng xoay nổ cho vành khuyên */
+.radial-spin {
+    animation: radialPulseSpin 0.7s cubic-bezier(0.19, 1, 0.22, 1);
+}
+
+@keyframes radialPulseSpin {
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
 /* KHUNG NHỤY HOA (SVG Arc Tracks) */
 .radial-svg {
     position: absolute;
@@ -1632,6 +1642,8 @@ input[type="text"]::placeholder {
     height: 100%;
     z-index: 40;
     pointer-events: none;
+    transform-origin: 50% 50%; /* Tâm xoay chuẩn cho SVG */
+    transform-box: fill-box;
 }
 
 .fan-blade,

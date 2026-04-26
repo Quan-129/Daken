@@ -18,7 +18,7 @@ export class Spawner {
     private studyQueue: { word: Word, revealType: 'kanji' | 'vi', isDebt?: boolean }[] = [];
     private retryQueue: { word: Word, revealType: 'kanji' | 'vi', isDebt?: boolean }[] = [];
     private retryTracker: Map<string, number> = new Map();
-    private wave5StartTime: number = 0;
+    public wave5StartTime: number = 0;
     private sessionEnabledWaves: number[] | null = null;
 
     constructor(
@@ -120,6 +120,7 @@ export class Spawner {
         this.retryQueue = [];
         this.retryTracker.clear();
         this.sessionEnabledWaves = null;
+        this.wave5StartTime = 0;
     }
 
     public spawnWave(mode: string, speedModifier: number) {

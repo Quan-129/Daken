@@ -100,7 +100,13 @@ eventBus.subscribe('GAME_START_N2', (config: { mode: string, studyLevel: string,
 
 eventBus.subscribe('STUDY_SESSION_END', () => {
     console.log(`[main.ts] Study Session End!`);
-    const elapsedMs = performance.now() - ((engine as any).lastStartTime || performance.now());
+    const spawner = (engine as any).spawner;
+    const wave5Start = spawner ? spawner.wave5StartTime : 0;
+    
+    // Nếu có Wave 5 (Endless Sprint), tính thời gian dựa trên Wave 5 để lấy WPM chính xác cho wave này
+    const elapsedMs = (wave5Start > 0) 
+        ? (performance.now() - wave5Start) 
+        : (performance.now() - ((engine as any).lastStartTime || performance.now()));
     const elapsedMins = elapsedMs / 60000;
     
     const typing = engine.getTypingLogic();

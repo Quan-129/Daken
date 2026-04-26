@@ -53,6 +53,7 @@ Một dự án Web Game Luyện gõ phím & Trí nhớ mang âm hưởng **Lofi 
   - Mọi "Kẻ địch" bị hạ gục trong Study Mode sẽ được xướng danh bằng hệ thống tự động đọc (Web Speech API chuẩn giọng ja-JP) lướt sâu vào đại não.
   - Tích hợp **Bảng Điều Khiển Master Audio Mixer** dạng kính mờ (Glassmorphism) cực lãng mạn. Trượt tay chia rẽ các cõi âm: Giọng Đọc (Vocals), Nhạc Nền (BGM), Hiệu Ứng (SFX) & Tốc Độ Truyền Âm.
   - **Ducking Volume**: Điệu nhảy nhịp nhàng của âm thanh. Tiếng nhạc Lofi lùi bước nhẹ bằng 20% khi bản tin bài đọc được xướng lên, chừa khoảng trống cho tư duy, và tự động dâng trào 70% trở lại vào những quãng nghỉ trứ danh.
+  - **Tiếng Bọt Nước & Phản Hồi Cơ Học (v0.11.6)**: Tiến hóa thính giác lên tầm cao mới với hiệu ứng **Bọt Nước Phản Hồi** (`AUDIO_BUBBLE`) cho mỗi ký tự đúng. Tiếng "pop" nhẹ nhàng, mướt mát kết hợp cùng âm thanh báo lỗi Typo uy lực (được tăng 150% âm lượng) và tiếng vút xoay Radial 360 độ cực mượt, tạo ra một dòng chảy "Mechanical Flow" đầy mê hoặc.
 
 ## Stack Thần Thánh Xây Lên Game 💻
 

@@ -281,18 +281,19 @@ export class StateManager {
   }
 
   private isBetterStats(newStats: {rank: string, acc: number, wpm: number, score?: number}, oldStats: {rank: string, acc: number, wpm: number, score?: number}) {
-      const ranks = ['S', 'A', 'B', 'C', 'D'];
-      const oldRankIdx = ranks.indexOf(oldStats.rank);
-      const newRankIdx = ranks.indexOf(newStats.rank);
-      
-      if (newRankIdx < oldRankIdx) return true; // S tốt hơn A
-      if (newRankIdx === oldRankIdx) {
-          if (newStats.score !== undefined && oldStats.score !== undefined) {
-              return newStats.score > oldStats.score;
-          }
-          return newStats.acc > oldStats.acc;
-      }
-      return false;
+      const newScore = newStats.score || 0;
+      const oldScore = oldStats.score || 0;
+
+      // 1. Điểm số là ưu tiên cao nhất
+      if (newScore > oldScore) return true;
+      if (newScore < oldScore) return false;
+
+      // 2. Nếu điểm bằng nhau, xét đến Độ chính xác (Accuracy)
+      if (newStats.acc > oldStats.acc) return true;
+      if (newStats.acc < oldStats.acc) return false;
+
+      // 3. Nếu cả điểm và Acc đều bằng nhau, xét đến Tốc độ (WPM)
+      return newStats.wpm > oldStats.wpm;
   }
 
   private saveN2Progress() {

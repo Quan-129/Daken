@@ -206,14 +206,15 @@ export class AudioSystem {
         });
 
         // Chỉ phát âm thanh type khi có ký tự ĐÚNG được khớp. 
-        // Phải đảm bảo không spam quá đà.
+        // Đã được thay thế bởi AUDIO_BUBBLE trong TypingLogic
         events.subscribe('TARGET_LOCKED', () => {
-            this.playTypeSFX();
+            // this.playTypeSFX(); 
         });
 
         // Summary SFX
         events.subscribe('AUDIO_BEEP', () => this.playBeepSFX());
         events.subscribe('AUDIO_SLAM', () => this.playSlamSFX());
+        events.subscribe('AUDIO_BUBBLE', () => this.playBubbleSFX());
         
         events.subscribe('PLAY_DING', () => this.playDingSFX());
         events.subscribe('PLAY_GLITCH', () => this.playGlitchSFX());
@@ -467,7 +468,7 @@ export class AudioSystem {
         
         osc.type = 'sawtooth';
         osc.frequency.setValueAtTime(150, this.audioCtx.currentTime);
-        gain.gain.setValueAtTime(0.08, this.audioCtx.currentTime);
+        gain.gain.setValueAtTime(0.12, this.audioCtx.currentTime);
         gain.gain.exponentialRampToValueAtTime(0.001, this.audioCtx.currentTime + 0.1);
         
         osc.start();
@@ -505,6 +506,38 @@ export class AudioSystem {
         
         osc.start();
         osc.stop(this.audioCtx.currentTime + 0.05);
+    }
+
+    public playBubbleSFX() {
+        if (this.audioCtx.state === 'suspended') {
+            this.audioCtx.resume()
+                .then(() => this._playBubbleSFX())
+                .catch(() => {});
+        } else {
+            this._playBubbleSFX();
+        }
+    }
+
+    private _playBubbleSFX() {
+        // "Water Bubble Pop" Synthesis
+        const osc = this.audioCtx.createOscillator();
+        const gain = this.audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(this.masterSfxGain);
+        
+        osc.type = 'sine';
+        
+        // Randomize pitch slightly for more natural feel
+        const baseFreq = 600 + Math.random() * 200;
+        osc.frequency.setValueAtTime(baseFreq, this.audioCtx.currentTime);
+        // Fast upward slide makes it sound like a bubble popping
+        osc.frequency.exponentialRampToValueAtTime(baseFreq * 1.8, this.audioCtx.currentTime + 0.04);
+        
+        gain.gain.setValueAtTime(0.2, this.audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, this.audioCtx.currentTime + 0.06);
+        
+        osc.start();
+        osc.stop(this.audioCtx.currentTime + 0.06);
     }
     
     public playSlamSFX() {

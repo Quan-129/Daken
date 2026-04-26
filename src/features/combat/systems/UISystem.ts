@@ -1080,6 +1080,20 @@ export class UISystem {
 
         if (this.startBtn) {
             this.startBtn.addEventListener('click', () => {
+                // Hiệu ứng âm thanh chân thực
+                EventBus.getInstance().publish('PLAY_DING', null);
+
+                // Hiệu ứng xoay nan quạt khi click bừa hay click thật
+                const radialSvg = byId('radialSvg');
+                if (radialSvg) {
+                    radialSvg.classList.remove('radial-spin');
+                    // Force reflow and wait for next frame to ensure restart
+                    radialSvg.getBoundingClientRect(); 
+                    requestAnimationFrame(() => {
+                        radialSvg.classList.add('radial-spin');
+                    });
+                }
+
                 const selectedMode = this.startBtn?.getAttribute('data-mode');
                 if (!selectedMode || selectedMode === '') {
                     // Chưa chọn mode thì không làm gì cả, vờ như Lõi chỉ là nút trang trí!
@@ -3097,8 +3111,8 @@ export class UISystem {
             const wpm = Math.round((this.wave5Performance.correct / 5) / (this.wave5Performance.durationMs / 60000));
             perfHtml = `
                 <div style="display: flex; gap: 20px; justify-content: center; margin: 15px 0; padding: 10px; background: rgba(0, 230, 118, 0.1); border: 1px dashed #00e676; border-radius: 8px;">
-                    <div style="text-align: center;"><div style="font-size: 0.7rem; color: #888;">W5 ACCURACY</div><div style="color: #00e676; font-weight: bold; font-size: 1.2rem;">${acc}%</div></div>
-                    <div style="text-align: center;"><div style="font-size: 0.7rem; color: #888;">W5 SPEED</div><div style="color: #00e676; font-weight: bold; font-size: 1.2rem;">${wpm} WPM</div></div>
+                    <div style="text-align: center;"><div style="font-size: 0.7rem; color: #888; text-transform: uppercase;">W5 Accuracy</div><div style="color: #00e676; font-weight: bold; font-size: 1.2rem;">${acc}%</div></div>
+                    <div style="text-align: center;"><div style="font-size: 0.7rem; color: #888; text-transform: uppercase;">W5 Peak Speed</div><div style="color: #00e676; font-weight: bold; font-size: 1.2rem;">${wpm} WPM</div></div>
                 </div>
             `;
         }

@@ -107,7 +107,10 @@ export class TypingLogic {
     public getEnemies(): Enemy[] { return this.getEnemiesCb(); }
 
     public incrementTotalKeystrokes() { this.totalKeystrokes++; }
-    public incrementCorrectKeystrokes() { this.correctKeystrokes++; }
+    public incrementCorrectKeystrokes() { 
+        this.correctKeystrokes++; 
+        EventBus.getInstance().publish('AUDIO_BUBBLE', null);
+    }
     
     public getTypoCount(): number { return this.currentWordTypoCount; }
     public incrementTypoCount() { this.currentWordTypoCount++; }
