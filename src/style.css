@@ -215,6 +215,7 @@ body {
     color: var(--text-primary);
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
     transition: all 0.3s ease;
+    position: relative; /* Thêm để định vị nút Sync */
     pointer-events: auto;
 }
 
@@ -371,6 +372,33 @@ body {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+}
+
+.profile-sync-btn {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: transparent !important;
+    border: none !important;
+    color: rgba(0, 243, 255, 0.4) !important;
+    cursor: pointer;
+    padding: 5px !important;
+    transition: all 0.3s ease;
+    z-index: 10;
+    box-shadow: none !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.profile-sync-btn:hover {
+    color: var(--primary) !important;
+    text-shadow: 0 0 10px var(--primary);
+    transform: scale(1.2);
+}
+
+.profile-sync-btn .material-icons {
+    font-size: 1.3rem;
 }
 
 .logout-btn {

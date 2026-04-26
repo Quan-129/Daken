@@ -8,19 +8,15 @@ try {
     const content = fs.readFileSync(txtPath, 'utf8');
     const lines = content.split('\n').filter(line => line.trim() && line.includes('|'));
 
-    // Cấu trúc map theo Unit
-    const unitMap = {
-        'Unit_1': { unitId: 'Unit_1', studyName_ENG: 'Human & Life', studyName_JA: '人間と生活', studyName_VI: 'Con người & Quan hệ nhân sinh', kanji_list: [] },
-        'Unit_2': { unitId: 'Unit_2', studyName_ENG: 'Daily Life & Time', studyName_JA: '生活と時間', studyName_VI: 'Sinh hoạt & Thời gian', kanji_list: [] },
-        'Unit_3': { unitId: 'Unit_3', studyName_ENG: 'Actions & Movement', studyName_JA: '動作と動き', studyName_VI: 'Hành động & Duy chuyển', kanji_list: [] }
-    };
+    // Cấu trúc map theo Unit (sẽ được tạo động)
+    const unitMap = {};
 
     lines.forEach((line) => {
         const parts = line.split('|').map(p => p.trim());
         if (parts.length < 12) return;
 
         let tag = parts[11];
-        // Sửa lỗi tag typo nếu có
+        // Sửa lỗi tag typo nếu có (ví dụ Ngày_6_6 -> Ngày_6)
         tag = tag.replace(/_(\d+)_(\d+)_N2$/, '_$1_N2');
 
         const kanjiObj = {
@@ -38,9 +34,21 @@ try {
             tag: tag
         };
 
-        if (tag.includes('Tuần_1')) unitMap['Unit_1'].kanji_list.push(kanjiObj);
-        else if (tag.includes('Tuần_2')) unitMap['Unit_2'].kanji_list.push(kanjiObj);
-        else if (tag.includes('Tuần_3')) unitMap['Unit_3'].kanji_list.push(kanjiObj);
+        // Trích xuất số Tuần từ tag (ví dụ: Tuần_6_Ngày_1_N2 -> 6)
+        const weekMatch = tag.match(/Tuần_(\d+)/);
+        const weekNum = weekMatch ? weekMatch[1] : '1';
+        const unitId = `Unit_${weekNum}`;
+
+        if (!unitMap[unitId]) {
+            unitMap[unitId] = {
+                unitId: unitId,
+                studyName_ENG: `Week ${weekNum} Focus`,
+                studyName_JA: `第${weekNum}週`,
+                studyName_VI: `Tuần ${weekNum}`,
+                kanji_list: []
+            };
+        }
+        unitMap[unitId].kanji_list.push(kanjiObj);
     });
 
     // BỌC LẠI TRONG CẤU TRÚC LEVEL "n2" ĐỂ GAME NHẬN DẠNG ĐÚNG

@@ -56,7 +56,8 @@ export const GameConfig: any = {
         defaultSfxVolume: 0.5,           // Mức volume Gain WebAudio (0-1.0)
         defaultVocalsVolume: 0.8,        // Mức volume TTS (0-1.0)
         bgmDuckVolume: 15,              // Mức volume nhạc nền khi đang đọc TTS (0-100)
-        autoPlayBgm: false              // Tự động phát nhạc khi vào game/lobby (Mặc định: tắt)
+        autoPlayBgm: false,             // Tự động phát nhạc khi vào game/lobby (Mặc định: tắt)
+        enableBgmDucking: true          // Bật/Tắt tính năng giảm nhạc khi đọc TTS
     },
 
     // ---------------------------------------------------------

@@ -4,6 +4,7 @@ import { Engine } from './features/combat/engine/Engine';
 import { EventBus } from './core/EventBus';
 import { UISystem } from './features/combat/systems/UISystem';
 import { AudioSystem } from './features/combat/systems/AudioSystem';
+import { AuthSystem } from './shared/utils/AuthSystem';
 import { initAutoFitText } from './shared/utils/AutoFitText';
 import { byId } from './shared/utils/uiHelpers';
 
@@ -39,6 +40,7 @@ new AudioSystem();
 // Expose globals for console debugging
 (window as any).EventBus = eventBus;
 (window as any).StateManager = stateManager;
+(window as any).AuthSystem = AuthSystem.getInstance();
 
 // 4. Lắng nghe Event GAME_START từ UI khi người dùng nhấn nút START
 eventBus.subscribe('GAME_START', async (config: { mode: string, studyLevel?: string }) => {
@@ -69,8 +71,8 @@ eventBus.subscribe('GAME_START', async (config: { mode: string, studyLevel?: str
     engine.start();
 });
 
-eventBus.subscribe('GAME_START_N2', (config: { mode: string, studyLevel: string, words: any[], unitIdx: number, sessionIdx: number, startingWave?: number, enabledWaves?: number[] }) => {
-    console.log(`[main.ts] Starting N2 Session: Unit ${config.unitIdx}, Session ${config.sessionIdx}, Wave ${config.startingWave || 1}`);
+eventBus.subscribe('GAME_START_N2', (config: { mode: string, studyLevel: string, words: any[], unitIdx: number, sessionIdx: number, startingWave?: number, enabledWaves?: number[], targetScore?: number }) => {
+    console.log(`[main.ts] Starting N2 Session: Unit ${config.unitIdx}, Session ${config.sessionIdx}, Wave ${config.startingWave || 1} | Target: ${config.targetScore || 3000}`);
     engine.mode = config.mode;
     engine.setSpeedModifier(1.0);
     
@@ -87,7 +89,8 @@ eventBus.subscribe('GAME_START_N2', (config: { mode: string, studyLevel: string,
     (engine as any).currentN2Context = {
         unitIdx: config.unitIdx,
         sessionIdx: config.sessionIdx,
-        mode: config.mode
+        mode: config.mode,
+        targetScore: config.targetScore || 3000
     };
     (engine as any).lastStartTime = performance.now();
     
@@ -107,7 +110,14 @@ eventBus.subscribe('STUDY_SESSION_END', () => {
     const scoreEl = byId('scoreVal');
     const score = scoreEl ? parseInt(scoreEl.innerText) || 0 : 0;
 
-    // Calculate Rank based on Score thresholds in GameConfig
+    const ctx = (engine as any).currentN2Context;
+    const isReview = ctx && ctx.sessionIdx === -1;
+    const target = isReview ? (ctx?.targetScore || 3000) : 3000;
+    
+    // Capping score at target for saving
+    const finalScore = Math.min(score, target);
+
+    // Calculate Rank based on OLD thresholds from GameConfig
     const thresholds = GameConfig.rankThresholds;
     let rank = 'D';
     if (score >= thresholds.S) rank = 'S';
@@ -115,10 +125,9 @@ eventBus.subscribe('STUDY_SESSION_END', () => {
     else if (score >= thresholds.B) rank = 'B';
     else if (score >= thresholds.C) rank = 'C';
 
-    const ctx = (engine as any).currentN2Context;
     if (ctx) {
-        stateManager.saveN2SessionProgress(ctx.unitIdx, ctx.sessionIdx, {rank, acc, wpm, score}, ctx.mode);
-        eventBus.publish('N2_SESSION_CLEARED', { rank, acc, wpm, score, unitIdx: ctx.unitIdx, sessionIdx: ctx.sessionIdx });
+        stateManager.saveN2SessionProgress(ctx.unitIdx, ctx.sessionIdx, {rank, acc, wpm, score: finalScore}, ctx.mode);
+        eventBus.publish('N2_SESSION_CLEARED', { rank, acc, wpm, score: finalScore, unitIdx: ctx.unitIdx, sessionIdx: ctx.sessionIdx });
         (engine as any).currentN2Context = null; // Clear
     }
     

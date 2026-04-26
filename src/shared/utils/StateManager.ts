@@ -247,9 +247,14 @@ export class StateManager {
               const l = item.level || 'n2';
               const key = `${l}_m${item.study_mode}_u${item.unit_idx}_s${item.session_idx}`;
               const cloudStats = { rank: item.rank, acc: item.acc, wpm: item.wpm, score: item.score };
+              const currentLocal = this.n2Progress[key] as any;
               
-              // Nếu Cloud xịn hơn hoặc Local chưa có -> Cập nhật local
-              if (!this.n2Progress[key] || this.isBetterStats(cloudStats, this.n2Progress[key] as any)) {
+              // Nếu Cloud có dữ liệu khác biệt -> Cập nhật local để đồng bộ với DB
+              const isDifferent = !currentLocal || 
+                                 currentLocal.score !== cloudStats.score || 
+                                 currentLocal.rank !== cloudStats.rank;
+
+              if (isDifferent) {
                   this.n2Progress[key] = cloudStats;
                   hasNewData = true;
               }
@@ -261,6 +266,18 @@ export class StateManager {
               this.eventBus.publish('N2_PROGRESS_SYNCED', this.n2Progress);
           }
       }
+  }
+
+  public async forceSyncWithCloud() {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      
+      // Xóa cache local cho phần tiến độ JLPT (nhưng giữ nguyên format cấu trúc)
+      this.n2Progress = {};
+      localStorage.removeItem(this.n2ProgressKey);
+      
+      // Kéo lại từ Cloud
+      await this.syncN2ProgressWithCloud();
   }
 
   private isBetterStats(newStats: {rank: string, acc: number, wpm: number, score?: number}, oldStats: {rank: string, acc: number, wpm: number, score?: number}) {

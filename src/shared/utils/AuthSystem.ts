@@ -117,6 +117,12 @@ export class AuthSystem {
     }
 
     public async updateProfile(updates: { name?: string; avatar?: string, agentId?: string }) {
+        // [Security Check] Chỉ Admin mới được phép tùy chỉnh Agent ID
+        if (updates.agentId && this.currentUser?.email !== 'minhquan12092005@gmail.com') {
+            console.error("[Auth] Security Violation: Only Admin can customize Agent ID.");
+            delete updates.agentId; // Loại bỏ yêu cầu đổi ID nếu không phải Admin
+        }
+
         const { data, error } = await supabase.auth.updateUser({
             data: { 
                 display_name: updates.name || (this.currentUser ? this.currentUser.name : undefined),

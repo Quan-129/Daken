@@ -184,7 +184,8 @@ export const LanguageConfig = {
                 ttsRate: "TTS Rate",
                 slow: "Slow",
                 medium: "Medium",
-                fast: "Fast"
+                fast: "Fast",
+                musicDucking: "Music Ducking"
             }
         },
         vi: {
@@ -368,7 +369,8 @@ export const LanguageConfig = {
                 ttsRate: "Tốc độ đọc",
                 slow: "Chậm",
                 medium: "Vừa",
-                fast: "Nhanh"
+                fast: "Nhanh",
+                musicDucking: "Giảm nhạc khi đọc"
             }
         }
     }

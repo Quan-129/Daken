@@ -62,6 +62,7 @@ export class UISystem {
     private hubTargetType = byId('hubTargetType');
     private hubMainTitle = byId('hubMainTitle');
     private hubSealName = byId('hubSealName');
+    private profileSyncBtn = byId('profileSyncBtn');
     private jlptTotalProgress = byId('jlpt-total-progress');
     private calibBgmSlider = byId('calibBgmSlider') as HTMLInputElement;
     private calibSfxSlider = byId('calibSfxSlider') as HTMLInputElement;
@@ -165,6 +166,8 @@ export class UISystem {
     private ttsVolSlider = byId('ttsVolSlider') as HTMLInputElement;
     private bgmVolSlider = byId('bgmVolSlider') as HTMLInputElement;
     private sfxVolSlider = byId('sfxVolSlider') as HTMLInputElement;
+    private duckingToggle = byId('duckingToggle') as HTMLInputElement;
+    private calibDuckingToggle = byId('calibDuckingToggle') as HTMLInputElement;
     private ttsRateSelect = byId('ttsRateSelect') as HTMLSelectElement;
 
     private menuControls = byId('menuControls');
@@ -341,6 +344,8 @@ export class UISystem {
         // Re-assign display element because we just overwrote its parent's innerHTML
         this.speedValDisplay = byId('speedValDisplay');
         if (this.batteryLabel) this.batteryLabel.textContent = t.hud.energy;
+        const duckingLabel = byId('duckingLabel');
+        if (duckingLabel) duckingLabel.textContent = t.audio.musicDucking;
 
         // 4. MODALS
         if (this.jlptCalibrationModal) {
@@ -527,6 +532,8 @@ export class UISystem {
                 labels[1].textContent = t.audio.sfx;
                 labels[2].textContent = t.audio.vocals;
             }
+            const calibDuckingLabel = this.jlptCalibrationModal.querySelector('.calibDuckingLabel');
+            if (calibDuckingLabel) calibDuckingLabel.textContent = t.audio.musicDucking;
         }
 
         const miniTitle = byId('mini-title');
@@ -832,6 +839,7 @@ export class UISystem {
             bgm: 1.0,
             sfx: 1.0,
             rate: GameConfig.audio.defaultTtsRate,
+            ducking: GameConfig.audio.enableBgmDucking
         };
         if (prefsStr) {
             try {
@@ -851,6 +859,9 @@ export class UISystem {
             EventBus.getInstance().publish('MUSIC_VOL', prefs.bgm);
             EventBus.getInstance().publish('SFX_VOL_CHANGED', prefs.sfx);
             EventBus.getInstance().publish('TTS_RATE_CHANGED', prefs.rate);
+            EventBus.getInstance().publish('DUCKING_TOGGLE_CHANGED', prefs.ducking);
+            if (this.duckingToggle) this.duckingToggle.checked = prefs.ducking;
+            if (this.calibDuckingToggle) this.calibDuckingToggle.checked = prefs.ducking;
         }, 100);
     }
 
@@ -859,7 +870,8 @@ export class UISystem {
             tts: parseFloat(this.ttsVolSlider ? this.ttsVolSlider.value : "1.0"),
             bgm: parseFloat(this.bgmVolSlider ? this.bgmVolSlider.value : "1.0"),
             sfx: parseFloat(this.sfxVolSlider ? this.sfxVolSlider.value : "1.0"),
-            rate: parseFloat(this.ttsRateSelect ? this.ttsRateSelect.value : GameConfig.audio.defaultTtsRate.toString())
+            rate: parseFloat(this.ttsRateSelect ? this.ttsRateSelect.value : GameConfig.audio.defaultTtsRate.toString()),
+            ducking: this.duckingToggle ? this.duckingToggle.checked : true
         };
         localStorage.setItem('ninja_typing_audio_prefs', JSON.stringify(prefs));
     }
@@ -1298,6 +1310,23 @@ export class UISystem {
                 this.saveAudioPrefs();
             });
         }
+        if (this.duckingToggle) {
+            this.duckingToggle.addEventListener('change', () => {
+                const enabled = this.duckingToggle.checked;
+                EventBus.getInstance().publish('DUCKING_TOGGLE_CHANGED', enabled);
+                if (this.calibDuckingToggle) this.calibDuckingToggle.checked = enabled;
+                this.saveAudioPrefs();
+            });
+        }
+
+        if (this.calibDuckingToggle) {
+            this.calibDuckingToggle.addEventListener('change', () => {
+                const enabled = this.calibDuckingToggle.checked;
+                EventBus.getInstance().publish('DUCKING_TOGGLE_CHANGED', enabled);
+                if (this.duckingToggle) this.duckingToggle.checked = enabled;
+                this.saveAudioPrefs();
+            });
+        }
 
 
 
@@ -1324,7 +1353,8 @@ export class UISystem {
                 const val = parseInt(this.calibWordCountSlider.value);
                 if (this.calibWordCountDisplay) {
                     const target = this.calculateDynamicTargetScore(val);
-                    this.calibWordCountDisplay.innerHTML = `${val} <br><span style="color: #FFD700; font-size: 0.85rem; margin-top: 5px; display: block; letter-spacing: 1px;">TARGET REVIEW SCORE: ${target} PTS</span>`;
+                    this.calibWordCountDisplay.innerHTML = `${val} <br><span style="color: #bf80ff; font-size: 0.85rem; font-weight: 900; text-shadow: 0 0 12px rgba(168, 85, 247, 0.8); margin-top: 5px; display: block; letter-spacing: 1px;">TARGET REVIEW SCORE: ${target} PTS</span>`;
+                    this.calibWordCountSlider.style.accentColor = '#bf80ff';
                 }
             });
         }
@@ -1421,7 +1451,8 @@ export class UISystem {
                         unitIdx: this.currentN2Context.unitIdx,
                         sessionIdx: this.currentN2Context.sessionIdx,
                         startingWave: this.isReviewMode ? startWave : (defaultEnabledWaves.length > 0 ? defaultEnabledWaves[0] : 1),
-                        enabledWaves: enabledWaves
+                        enabledWaves: enabledWaves,
+                        targetScore: this.dynamicTargetScore
                     });
                 }
             });
@@ -1434,10 +1465,33 @@ export class UISystem {
             
             this.updateFlagUI();
             this.applyLanguage();
-            
             EventBus.getInstance().publish('LANGUAGE_CHANGED', sm.studyLanguage);
             EventBus.getInstance().publish('PLAY_SUBMIT');
         });
+        
+        // Profile Sync button
+        if (this.profileSyncBtn) {
+            this.profileSyncBtn.addEventListener('click', async () => {
+                const icon = this.profileSyncBtn?.querySelector('.material-icons');
+                if (icon) (icon as HTMLElement).style.transform = 'rotate(360deg)';
+                
+                await StateManager.getInstance().forceSyncWithCloud();
+                
+                if (icon) {
+                    setTimeout(() => {
+                        (icon as HTMLElement).style.transition = 'none';
+                        (icon as HTMLElement).style.transform = 'rotate(0deg)';
+                        setTimeout(() => (icon as HTMLElement).style.transition = 'transform 0.5s', 50);
+                    }, 500);
+                }
+                
+                // Cập nhật lại UI profile và Hub (nếu Hub đang mở)
+                this.updateProfileUI();
+                if (this.jlptHubPage && !this.jlptHubPage.classList.contains('hidden')) {
+                    this.renderJLPTUnits();
+                }
+            });
+        }
     }
 
     private subscribeToEventBus() {
@@ -3552,8 +3606,9 @@ export class UISystem {
                     
                     const target = this.calculateDynamicTargetScore(defaultVal);
                     if (this.calibWordCountDisplay) {
-                        this.calibWordCountDisplay.innerHTML = `${defaultVal} <br><span style="color: #FFD700; font-size: 0.85rem; margin-top: 5px; display: block; letter-spacing: 1px;">TARGET REVIEW SCORE: ${target} PTS</span>`;
+                        this.calibWordCountDisplay.innerHTML = `${defaultVal} <br><span style="color: #bf80ff; font-size: 0.85rem; font-weight: 900; text-shadow: 0 0 12px rgba(168, 85, 247, 0.8); margin-top: 5px; display: block; letter-spacing: 1px;">TARGET REVIEW SCORE: ${target} PTS</span>`;
                     }
+                    this.calibWordCountSlider.style.accentColor = '#bf80ff';
                 }
             }
         }

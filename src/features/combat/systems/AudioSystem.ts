@@ -23,6 +23,7 @@ export class AudioSystem {
     private currentIndex: number = 0;
     
     private wasPlayingBeforePause: boolean = false;
+    private duckingEnabled: boolean = GameConfig.audio.enableBgmDucking;
     private activeUtterances: Set<SpeechSynthesisUtterance> = new Set();
 
     constructor() {
@@ -234,6 +235,10 @@ export class AudioSystem {
             if (this.audioCtx.state !== 'closed') {
                 this.masterSfxGain.gain.setValueAtTime(GameConfig.audio.defaultSfxVolume * this.sfxVolMultiplier, this.audioCtx.currentTime);
             }
+        });
+
+        events.subscribe('DUCKING_TOGGLE_CHANGED', (enabled: boolean) => {
+            this.duckingEnabled = enabled;
         });
 
         // Lắng nghe lệnh từ UI
@@ -622,7 +627,7 @@ export class AudioSystem {
         exampleText = exampleText.replace(/<[^>]+>/g, ''); // Chống đọc tên thẻ HTML nếu còn sót
 
         // Duck volume
-        if (this.ytPlayer && this.ytReady && this.usingYoutube) {
+        if (this.duckingEnabled && this.ytPlayer && this.ytReady && this.usingYoutube) {
             this.ytPlayer.setVolume(Math.min(100, GameConfig.audio.bgmDuckVolume * this.bgmVolMultiplier));
         }
 

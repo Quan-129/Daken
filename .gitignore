@@ -7,6 +7,8 @@
 *.njsproj
 *.sln
 *.sw?
+Thumbs.db
+desktop.ini
 
 # Dependencies
 node_modules/
@@ -22,13 +24,10 @@ out/
 
 # Environment variables (CỰC KỲ QUAN TRỌNG: Không để lộ key Supabase/AI)
 .env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
+.env*
+!.env.example
 
 # AI & Repomix Outputs
-# Chặn các file tổng hợp code để tránh AI đọc chính nó (gây lặp vô tận)
 repomix-output.txt
 repomix-output.xml
 repomix-output.md
@@ -39,8 +38,14 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .agent/
+scratch/
 *.log
+error.txt
+start.txt
+*.tmp
+*.temp
 
 # Project specific
+File/
 src_jlpt.txt
-test_component.html
+test_component.html
