@@ -468,7 +468,7 @@ export class AudioSystem {
         
         osc.type = 'sawtooth';
         osc.frequency.setValueAtTime(150, this.audioCtx.currentTime);
-        gain.gain.setValueAtTime(0.12, this.audioCtx.currentTime);
+        gain.gain.setValueAtTime(0.25, this.audioCtx.currentTime); // To lên gấp rưỡi (+50%)
         gain.gain.exponentialRampToValueAtTime(0.001, this.audioCtx.currentTime + 0.1);
         
         osc.start();
@@ -533,7 +533,7 @@ export class AudioSystem {
         // Fast upward slide makes it sound like a bubble popping
         osc.frequency.exponentialRampToValueAtTime(baseFreq * 1.8, this.audioCtx.currentTime + 0.04);
         
-        gain.gain.setValueAtTime(0.2, this.audioCtx.currentTime);
+        gain.gain.setValueAtTime(0.5, this.audioCtx.currentTime); // Âm lượng bong bóng lớn hơn
         gain.gain.exponentialRampToValueAtTime(0.001, this.audioCtx.currentTime + 0.06);
         
         osc.start();

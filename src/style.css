@@ -1619,9 +1619,9 @@ input[type="text"]::placeholder {
     animation: none;
 }
 
-/* Hiệu ứng xoay nổ cho vành khuyên */
+/* Hiệu ứng xoay nổ cho vành khuyên - Cải thiện mượt mà không khựng */
 .radial-spin {
-    animation: radialPulseSpin 0.7s cubic-bezier(0.19, 1, 0.22, 1);
+    animation: radialPulseSpin 0.8s cubic-bezier(0.25, 1, 0.5, 1);
 }
 
 @keyframes radialPulseSpin {
@@ -1642,8 +1642,8 @@ input[type="text"]::placeholder {
     height: 100%;
     z-index: 40;
     pointer-events: none;
-    transform-origin: 50% 50%; /* Tâm xoay chuẩn cho SVG */
-    transform-box: fill-box;
+    transform-origin: center center; /* Đảm bảo tâm xoay tuyệt đối chính xác */
+    transform-box: view-box; /* Rất quan trọng cho SVG root */
 }
 
 .fan-blade,

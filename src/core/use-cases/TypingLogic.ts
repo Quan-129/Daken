@@ -110,6 +110,7 @@ export class TypingLogic {
     public incrementCorrectKeystrokes() { 
         this.correctKeystrokes++; 
         EventBus.getInstance().publish('AUDIO_BUBBLE', null);
+        EventBus.getInstance().publish('BUBBLE_PARTICLE', null);
     }
     
     public getTypoCount(): number { return this.currentWordTypoCount; }

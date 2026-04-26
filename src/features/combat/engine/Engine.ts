@@ -96,6 +96,10 @@ export class Engine {
         EventBus.getInstance().subscribe('GAME_SPEED_CHANGE', (val: number) => {
             this.setSpeedModifier(val);
         });
+
+        EventBus.getInstance().subscribe('BUBBLE_PARTICLE', () => {
+            this.createBubbleParticle();
+        });
     }
 
     private resize() {
@@ -195,6 +199,23 @@ export class Engine {
             color: color,
             alpha: 1,
             life: 60
+        });
+    }
+
+    private createBubbleParticle() {
+        const x = this.canvas.width / 2 + (Math.random() - 0.5) * 450;
+        const y = this.canvas.height - 80;
+        
+        this.particles.push({
+            isBubble: true,
+            x: x,
+            y: y,
+            vx: (Math.random() - 0.5) * 1.0,
+            vy: -(Math.random() * 1.5 + 1.5),
+            radius: Math.random() * 10 + 5,
+            color: (Math.random() > 0.5) ? "#00f5ff" : "#b2ff59", // Cyan or Lime Green
+            alpha: 0.8,
+            life: 120 + Math.random() * 60
         });
     }
 
@@ -358,6 +379,20 @@ export class Engine {
                     this.ctx.shadowBlur = 15;
                     this.ctx.shadowColor = p.color;
                     this.ctx.fillText(p.text, p.x, p.y);
+                } else if (p.isBubble) {
+                    this.ctx.beginPath();
+                    this.ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+                    this.ctx.strokeStyle = p.color;
+                    this.ctx.lineWidth = 1.5;
+                    this.ctx.stroke();
+                    
+                    // Inner glow / reflection
+                    this.ctx.beginPath();
+                    this.ctx.arc(p.x - p.radius * 0.3, p.y - p.radius * 0.3, p.radius * 0.2, 0, Math.PI * 2);
+                    this.ctx.fillStyle = "rgba(255, 255, 255, 0.3)";
+                    this.ctx.fill();
+                    
+                    p.vx += Math.sin(p.life * 0.1) * 0.05; // Slight sway
                 } else {
                     this.ctx.beginPath();
                     this.ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
